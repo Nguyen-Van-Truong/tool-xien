@@ -1,87 +1,25 @@
-# BÁO CÁO DỌN DẸP FILE STUDENTS_ACCOUNTS.TXT
-# Thời gian: 2025-08-30 04:37:11
+# BAO CAO DON DEP FILE STUDENTS_ACCOUNTS.TXT
+# Thoi gian: 2025-10-26 20:33:09
 
-## THỐNG KÊ:
-- Tài khoản gốc: 4048
-- Đã xóa: 78
-- Còn lại: 3970
-- File backup: students_accounts_backup_20250830_043711.txt
+## THONG KE:
+- Tai khoan goc: 830
+- Da xoa: 15
+- Con lai: 815
+- File backup: students_accounts_backup_20251026_203309.txt
 
-## DANH SÁCH ĐÃ XÓA:
-- 20125819@st.hcmuaf.edu.vn
-- 20128084@st.hcmuaf.edu.vn
-- 20113299@st.hcmuaf.edu.vn
-- 20128204@st.hcmuaf.edu.vn
-- 20123016@st.hcmuaf.edu.vn
-- 20118233@st.hcmuaf.edu.vn
-- 20118122@st.hcmuaf.edu.vn
-- 20117133@st.hcmuaf.edu.vn
-- 20122241@st.hcmuaf.edu.vn
-- 20154185@st.hcmuaf.edu.vn
-- 20122278@st.hcmuaf.edu.vn
-- 20124226@st.hcmuaf.edu.vn
-- 20113164@st.hcmuaf.edu.vn
-- 20149032@st.hcmuaf.edu.vn
-- 20137097@st.hcmuaf.edu.vn
-- 20111063@st.hcmuaf.edu.vn
-- 20111060@st.hcmuaf.edu.vn
-- 20155024@st.hcmuaf.edu.vn
-- 20155121@st.hcmuaf.edu.vn
-- 20120258@st.hcmuaf.edu.vn
-- 20131098@st.hcmuaf.edu.vn
-- 20127108@st.hcmuaf.edu.vn
-- 20130187@st.hcmuaf.edu.vn
-- 20130194@st.hcmuaf.edu.vn
-- 20124374@st.hcmuaf.edu.vn
-- 20122279@st.hcmuaf.edu.vn
-- 20157018@st.hcmuaf.edu.vn
-- 20131076@st.hcmuaf.edu.vn
-- 20122607@st.hcmuaf.edu.vn
-- 20128214@st.hcmuaf.edu.vn
-- 20163096@st.hcmuaf.edu.vn
-- 20122010@st.hcmuaf.edu.vn
-- 20128244@st.hcmuaf.edu.vn
-- 20112360@st.hcmuaf.edu.vn
-- 20118152@st.hcmuaf.edu.vn
-- 20127038@st.hcmuaf.edu.vn
-- 20131029@st.hcmuaf.edu.vn
-- 20125374@st.hcmuaf.edu.vn
-- 20125728@st.hcmuaf.edu.vn
-- 20124493@st.hcmuaf.edu.vn
-- 20113331@st.hcmuaf.edu.vn
-- 20163116@st.hcmuaf.edu.vn
-- 20135107@st.hcmuaf.edu.vn
-- 20155039@st.hcmuaf.edu.vn
-- 20149006@st.hcmuaf.edu.vn
-- 20112373@st.hcmuaf.edu.vn
-- 20139224@st.hcmuaf.edu.vn
-- 20122432@st.hcmuaf.edu.vn
-- 20154109@st.hcmuaf.edu.vn
-- 20155100@st.hcmuaf.edu.vn
-- 20154096@st.hcmuaf.edu.vn
-- 20123213@st.hcmuaf.edu.vn
-- 20124411@st.hcmuaf.edu.vn
-- 20139223@st.hcmuaf.edu.vn
-- 20130454@st.hcmuaf.edu.vn
-- 20157012@st.hcmuaf.edu.vn
-- 20112234@st.hcmuaf.edu.vn
-- 20116269@st.hcmuaf.edu.vn
-- 20122256@st.hcmuaf.edu.vn
-- 20124311@st.hcmuaf.edu.vn
-- 20154214@st.hcmuaf.edu.vn
-- 20124537@st.hcmuaf.edu.vn
-- 20139054@st.hcmuaf.edu.vn
-- 20113182@st.hcmuaf.edu.vn
-- 20122216@st.hcmuaf.edu.vn
-- 20155117@st.hcmuaf.edu.vn
-- 20111267@st.hcmuaf.edu.vn
-- 20135114@st.hcmuaf.edu.vn
-- 20116196@st.hcmuaf.edu.vn
-- 20126167@st.hcmuaf.edu.vn
-- 20154194@st.hcmuaf.edu.vn
-- 20122254@st.hcmuaf.edu.vn
-- 20166057@st.hcmuaf.edu.vn
-- 20149223@st.hcmuaf.edu.vn
-- 20115057@st.hcmuaf.edu.vn
-- 20114011@st.hcmuaf.edu.vn
-- 20130119@st.hcmuaf.edu.vn
+## DANH SACH DA XOA:
+- 20130363@st.hcmuaf.edu.vn
+- 20122336@st.hcmuaf.edu.vn
+- 20166022@st.hcmuaf.edu.vn
+- 20113213@st.hcmuaf.edu.vn
+- 20124111@st.hcmuaf.edu.vn
+- 20114053@st.hcmuaf.edu.vn
+- 20153130@st.hcmuaf.edu.vn
+- 20118095@st.hcmuaf.edu.vn
+- 20116180@st.hcmuaf.edu.vn
+- 20155053@st.hcmuaf.edu.vn
+- 20135113@st.hcmuaf.edu.vn
+- 20118120@st.hcmuaf.edu.vn
+- 20113364@st.hcmuaf.edu.vn
+- 20155083@st.hcmuaf.edu.vn
+- 20125521@st.hcmuaf.edu.vn
