@@ -1,0 +1,11 @@
+# TÀI KHOẢN HOẠT ĐỘNG TỐT - PERFECT CHECKER
+# Thời gian: 2025-10-25 18:39:16
+# Tổng thời gian: 0:08:08.421432
+# Threads: 5
+# Phương pháp: Mỗi tài khoản một Chrome hoàn toàn mới
+# Đã xử lý: 165 tài khoản
+# Tìm được: 3 tài khoản hoạt động tốt
+
+20130363@st.hcmuaf.edu.vn|24092002
+20125521@st.hcmuaf.edu.vn|16122002
+20153130@st.hcmuaf.edu.vn|17022002

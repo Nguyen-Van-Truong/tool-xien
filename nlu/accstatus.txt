@@ -1,0 +1,13 @@
+# TÌNH TRẠNG TẤT CẢ TÀI KHOẢN - MỖI TK MỘT CHROME ẨN DANH MỚI
+# Thời gian: 2025-07-07 21:44:18
+# Tổng thời gian: 0:00:20.484812
+# Logic: Có 'Wrong password' = Sai | Không có = Thành công
+
+## TỔNG KẾT CUỐI CÙNG:
+- Đăng nhập thành công: 1
+- Sai mật khẩu: 0
+- Lỗi kỹ thuật: 0
+- Tổng đã xử lý: 1
+
+## DANH SÁCH 1 TÀI KHOẢN HOẠT ĐỘNG:
+20116196@st.hcmuaf.edu.vn|01032001

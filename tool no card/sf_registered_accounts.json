@@ -1,0 +1,76 @@
+{
+  "registration_date": "2025-06-18 18:19:11",
+  "person_info": {
+    "first_name": "Theresa",
+    "middle_name": "Gregory",
+    "last_name": "Li",
+    "full_name": "Theresa Li",
+    "gender": "Female",
+    "birth_date": "06/17/1973",
+    "age": 52,
+    "email": "theresa.li868@gmail.com",
+    "phone": "(772) 314-6098",
+    "cell_phone": "(712) 662-6275",
+    "address": {
+      "street": "6486 Brooke Fork Way",
+      "city": "Lakeland",
+      "state": "FL",
+      "zip_code": "34095",
+      "full_address": "6486 Brooke Fork Way, Lakeland, FL 34095"
+    },
+    "ssn": "474-51-1723",
+    "driver_license": "FL813574601",
+    "education": {
+      "education_level": "Some College",
+      "high_school": "Lincoln High School",
+      "graduation_year": 2002
+    },
+    "employment": {
+      "employment_status": "Unemployed",
+      "job_title": "Security Guard",
+      "employer": "Home Depot",
+      "annual_income": "$100,000 or more"
+    },
+    "emergency_contact": {
+      "name": "Leah Cline",
+      "relationship": "Friend",
+      "phone": "(386) 642-5101",
+      "email": "steven17@example.com"
+    },
+    "citizenship": "US Citizen",
+    "race_ethnicity": "Hispanic or Latino",
+    "marital_status": "Widowed",
+    "military_status": "Veteran",
+    "financial_aid_needed": false,
+    "residency_status": "Florida Resident",
+    "health_insurance": true,
+    "disabilities": false,
+    "degree_goal": "Continuing Education",
+    "major_interest": "Art",
+    "id": 1
+  },
+  "registration_data": {
+    "fstNameSTR": "Theresa",
+    "lstNameSTR": "Li",
+    "emailAddrsSTR": "theresa.li868@gmail.com",
+    "cemailAddrsSTR": "theresa.li868@gmail.com",
+    "ssnumSTR": "474511723",
+    "cssnumSTR": "474511723",
+    "month": "Jun",
+    "day": "17",
+    "year": "1973",
+    "birthctrySTR": "United States Of America"
+  },
+  "email_info": {
+    "email": "theresa.li868@gmail.com",
+    "gmail_login_url": "https://mail.google.com",
+    "search_keywords": [
+      "Santa Fe College",
+      "Application",
+      "Verification",
+      "Confirm",
+      "theresa.li868@gmail.com"
+    ],
+    "note": "Kiểm tra Inbox và Spam folder cho email verification"
+  }
+}

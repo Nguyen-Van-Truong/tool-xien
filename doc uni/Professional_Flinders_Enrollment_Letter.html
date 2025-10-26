@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Confirmation of Enrolment - Flinders University</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                font-size: 10pt;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        
+        body {
+            font-family: "Times New Roman", serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.4;
+            color: #000;
+            background: white;
+            font-size: 10pt;
+        }
+        
+        .flinders-blue {
+            color: #003366;
+        }
+        
+        .letterhead {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-placeholder {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #003366, #0066cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 8px;
+            text-align: center;
+            line-height: 1.1;
+            flex-shrink: 0;
+        }
+        
+        .university-info {
+            flex: 1;
+            margin-left: 15px;
+        }
+        
+        .university-name {
+            font-size: 28pt;
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .university-tagline {
+            font-size: 12pt;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .contact-info {
+            font-size: 9pt;
+            color: #666;
+            line-height: 1.3;
+        }
+        
+        .horizontal-line {
+            width: 100%;
+            height: 2px;
+            background: #003366;
+            margin: 15px 0;
+        }
+        
+        .document-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .document-title {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .document-subtitle {
+            font-size: 12pt;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .document-type {
+            font-size: 9pt;
+            color: #999;
+        }
+        
+        .date-reference {
+            text-align: right;
+            margin-bottom: 25px;
+            font-size: 10pt;
+            color: #333;
+        }
+        
+        .salutation {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #003366;
+            letter-spacing: 1px;
+        }
+        
+        .re-line {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 11pt;
+        }
+        
+        .content-section {
+            margin-bottom: 20px;
+            text-align: justify;
+            line-height: 1.5;
+        }
+        
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #003366;
+            margin: 20px 0 10px 0;
+            text-transform: uppercase;
+            border-bottom: 1px solid #003366;
+            padding-bottom: 3px;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .info-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #e0e0e0;
+            vertical-align: top;
+        }
+        
+        .info-table .label {
+            font-weight: bold;
+            color: #003366;
+            width: 40%;
+        }
+        
+        .info-table .value {
+            color: #333;
+        }
+        
+        .main-content p {
+            margin: 12px 0;
+            text-align: justify;
+        }
+        
+        .signature-section {
+            margin-top: 40px;
+        }
+        
+        .signature-line {
+            margin: 25px 0 10px 0;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        
+        .signature-space {
+            height: 50px;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .signature-image {
+            width: 120px;
+            height: 40px;
+            background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjQwIiB2aWV3Qm94PSIwIDAgMTIwIDQwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMTAgMjBDMTUgMTAgMjUgMzAgMzUgMTVDNDUgMjUgNTUgNSA2NSAyMEM3NSAxMCA4NSAzMCA5NSAxNUMxMDUgMjUgMTEwIDEwIDExNSAyMCIgc3Ryb2tlPSIjMDAzMzY2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KPC9zdmc+') no-repeat;
+            background-size: contain;
+        }
+        
+        .signatory-details {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #003366;
+            line-height: 1.4;
+        }
+        
+        .footer-info {
+            margin-top: 30px;
+            padding: 15px;
+            background: #003366;
+            color: white;
+            text-align: center;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+        
+        .authentication-section {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 8pt;
+            color: #666;
+            line-height: 1.3;
+        }
+        
+        .highlight-text {
+            background: #ffffcc;
+            padding: 2px 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="letterhead">
+        <div class="logo-section">
+            <div class="logo-placeholder">
+                FLINDERS<br>
+                UNIVERSITY<br>
+                LOGO
+            </div>
+            <div class="university-info">
+                <div class="university-name">Flinders University</div>
+                <div class="university-tagline">Forever Fearless</div>
+                <div class="contact-info">
+                    Sturt Road, Bedford Park SA 5042, Australia<br>
+                    Phone: +61 8 8201 3100 | Email: international@flinders.edu.au<br>
+                    Website: www.flinders.edu.au
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="horizontal-line"></div>
+
+    <div class="document-header">
+        <div class="document-title">Official Confirmation of Enrolment</div>
+        <div class="document-subtitle">Student Enrolment Verification Letter</div>
+        <div class="document-type">Document Type: Academic Certification</div>
+    </div>
+
+    <div class="date-reference">
+        <strong>Date:</strong> July 13, 2025<br>
+        <strong>Reference:</strong> 2386219 - Official Confirmation of Enrolment
+    </div>
+
+    <div class="salutation">
+        TO WHOM IT MAY CONCERN
+    </div>
+
+    <div class="re-line">
+        Re: Confirmation of Enrolment for Ricardo Richardson
+    </div>
+
+    <div class="content-section">
+        <p>I am pleased to provide this official confirmation of enrolment on behalf of Flinders University, a leading Australian institution renowned for its commitment to academic excellence, innovative research, and outstanding student support. Established in 1966, Flinders University is consistently ranked among the top universities in Australia and globally, as recognized by prestigious bodies such as the Times Higher Education and the Good Universities Guide. We pride ourselves on fostering a vibrant, inclusive learning environment that equips students with the skills and knowledge to thrive in an increasingly interconnected world.</p>
+
+        <p>This letter serves to verify the enrolment status of the following student:</p>
+    </div>
+
+    <div class="section-title">Student Details:</div>
+    <table class="info-table">
+        <tr>
+            <td class="label">Full Name:</td>
+            <td class="value">Ricardo Richardson</td>
+        </tr>
+        <tr>
+            <td class="label">Date of Birth:</td>
+            <td class="value">12 February 2005</td>
+        </tr>
+        <tr>
+            <td class="label">Student Identification Number:</td>
+            <td class="value">2386219</td>
+        </tr>
+        <tr>
+            <td class="label">Email Address:</td>
+            <td class="value">rica0016@flinders.edu.au</td>
+        </tr>
+    </table>
+
+    <div class="section-title">Course Details:</div>
+    <table class="info-table">
+        <tr>
+            <td class="label">Program of Study:</td>
+            <td class="value">Diploma of Business (Pathway to Bachelor of Business - International Business Specialisation)</td>
+        </tr>
+        <tr>
+            <td class="label">CRICOS Course Code:</td>
+            <td class="value">109279H</td>
+        </tr>
+        <tr>
+            <td class="label">Mode of Study:</td>
+            <td class="value">Full-time</td>
+        </tr>
+        <tr>
+            <td class="label">Commencement Date:</td>
+            <td class="value">July 2025</td>
+        </tr>
+        <tr>
+            <td class="label">Expected Completion Date:</td>
+            <td class="value">July 2026</td>
+        </tr>
+        <tr>
+            <td class="label">Duration:</td>
+            <td class="value">1 year (equivalent to 2 semesters)</td>
+        </tr>
+        <tr>
+            <td class="label">Location:</td>
+            <td class="value">Bedford Park Campus, Adelaide, South Australia</td>
+        </tr>
+    </table>
+
+    <div class="content-section">
+        <p>The Diploma of Business at Flinders University is designed as a foundational pathway program that provides students with essential business knowledge and skills, preparing them for seamless progression into the Bachelor of Business with a specialisation in International Business. This program covers key areas such as business fundamentals, global markets, cross-cultural management, and strategic decision-making, all delivered through a blend of interactive lectures, practical workshops, and real-world case studies. Upon successful completion of the Diploma, students are guaranteed entry into the Bachelor program, subject to meeting academic progression requirements.</p>
+
+        <p>I hereby confirm that Mr. Ricardo Richardson has successfully met the admission criteria, accepted the offer of admission, and is currently enrolled in the above-mentioned program at Flinders University. As an international student, Mr. Richardson is required to maintain full-time enrolment and comply with the conditions of his student visa, including satisfactory academic progress and attendance. All courses at Flinders University are conducted entirely in English, ensuring a high-quality educational experience aligned with international standards.</p>
+    </div>
+
+    <div class="section-title">Financial Information (Indicative):</div>
+    <table class="info-table">
+        <tr>
+            <td class="label">Estimated Total Course Fees:</td>
+            <td class="value">AUD 25,000 (based on 2025 fee schedule; subject to annual review)</td>
+        </tr>
+        <tr>
+            <td class="label">Fees Paid to Date:</td>
+            <td class="value">AUD 5,000 (initial deposit as per acceptance of offer)</td>
+        </tr>
+        <tr>
+            <td class="label">Overseas Student Health Cover (OSHC):</td>
+            <td class="value">Confirmed and valid for the duration of the program</td>
+        </tr>
+    </table>
+
+    <div class="content-section">
+        <p>This confirmation is issued for purposes such as visa applications, employment verification, or third-party services requiring proof of current student status. It is valid as of the date of this letter and reflects the student's enrolment at the time of issuance. Should there be any changes to the enrolment status, Flinders University will notify relevant parties as required.</p>
+
+        <p>Flinders University is committed to supporting our students throughout their academic journey. We offer a range of services, including academic advising, career guidance, health and wellbeing support, and international student orientation programs to ensure a smooth transition and successful experience in Australia.</p>
+
+        <p>If you require any additional information or further verification, please do not hesitate to contact our International Student Services team at iss@flinders.edu.au or by telephone at +61 8 8201 2717. We are happy to assist with any queries.</p>
+    </div>
+
+    <div class="signature-section">
+        <div class="signature-line">Yours sincerely,</div>
+        
+        <div class="signature-space">
+            <div class="signature-image"></div>
+        </div>
+        
+        <div class="signatory-details">
+            <strong>Dr. Emily Carter</strong><br>
+            Manager, International Student Services<br>
+            Flinders University<br>
+            Phone: +61 8 8201 2717<br>
+            Email: iss@flinders.edu.au
+        </div>
+    </div>
+
+    <div class="footer-info">
+        CRICOS Provider Number: 00114A | ABN: 65 542 596 200<br>
+        TEQSA Provider ID: PRV12097 | TEQSA Category: Australian University<br>
+        This document is issued by Flinders University and contains security features for verification purposes.
+    </div>
+
+    <div class="authentication-section">
+        <strong>Document Authentication Code:</strong> FU-COE-2025-2386219-RC<br>
+        <strong>Generated:</strong> July 13, 2025 | <strong>Valid Until:</strong> July 13, 2026<br>
+        <em>For verification of this document, please contact International Student Services</em>
+    </div>
+</body>
+</html> 

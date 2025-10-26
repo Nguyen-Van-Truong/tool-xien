@@ -1,0 +1,14 @@
+{
+  "email": "evan10@naka.edu.pl",
+  "status": "SUCCESS_WITH_VERIFICATION",
+  "url": "https://ss2.sfcollege.edu/sr/AdmissionApplication/#/",
+  "verification_indicators": [
+    "code",
+    "confirm"
+  ],
+  "success_indicators": [
+    "success",
+    "submitted"
+  ],
+  "timestamp": 1750294766.3984284
+}

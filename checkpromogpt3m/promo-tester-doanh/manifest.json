@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Promo Code Tester (Demo)",
+  "version": "1.2.0",
+  "description": "Sinh mã ngẫu nhiên, mở link và kiểm thử bằng DOM. Dùng cho hệ thống bạn có quyền.",
+  "permissions": ["storage", "tabs", "downloads", "scripting"],
+  "host_permissions": ["<all_urls>"], 
+  "action": {
+    "default_title": "Promo Tester",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "background": { "service_worker": "background.js" }
+}

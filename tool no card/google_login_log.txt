@@ -1,0 +1,29 @@
+[2025-07-07 11:25:22] 🚀 Bắt đầu kiểm tra đăng nhập Google...
+[2025-07-07 11:25:26] ❌ Lỗi khởi tạo driver: Message: session not created: This version of ChromeDriver only supports Chrome version 135
+Current browser version is 137.0.7151.120 with binary path C:\Program Files\Google\Chrome\Application\chrome.exe
+Stacktrace:
+	GetHandleVerifier [0x00007FF7E081EFA5+77893]
+	GetHandleVerifier [0x00007FF7E081F000+77984]
+	(No symbol) [0x00007FF7E05E91BA]
+	(No symbol) [0x00007FF7E062D0FF]
+	(No symbol) [0x00007FF7E062C14B]
+	(No symbol) [0x00007FF7E06267D7]
+	(No symbol) [0x00007FF7E06219FD]
+	(No symbol) [0x00007FF7E0674F48]
+	(No symbol) [0x00007FF7E0674520]
+	(No symbol) [0x00007FF7E0666F03]
+	(No symbol) [0x00007FF7E0630328]
+	(No symbol) [0x00007FF7E0631093]
+	GetHandleVerifier [0x00007FF7E0AD7B6D+2931725]
+	GetHandleVerifier [0x00007FF7E0AD2132+2908626]
+	GetHandleVerifier [0x00007FF7E0AF00F3+3031443]
+	GetHandleVerifier [0x00007FF7E08391EA+184970]
+	GetHandleVerifier [0x00007FF7E084086F+215311]
+	GetHandleVerifier [0x00007FF7E0826EC4+110436]
+	GetHandleVerifier [0x00007FF7E0827072+110866]
+	GetHandleVerifier [0x00007FF7E080D479+5401]
+	BaseThreadInitThunk [0x00007FFDA926E8D7+23]
+	RtlUserThreadStart [0x00007FFDAA59C34C+44]
+
+[2025-07-07 11:25:26] 💡 Hãy đảm bảo Chrome và ChromeDriver đã được cài đặt
+[2025-07-07 11:25:26] ❌ Không thể khởi tạo driver

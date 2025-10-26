@@ -1,0 +1,17 @@
+# BÁO CÁO PERFECT CHECKER - CHỈ TÀI KHOẢN TỐT
+# Thời gian: 2025-10-25 18:39:16
+# Threads: 5
+# Tổng thời gian: 0:08:08.421432
+# Tốc độ: 20.3 tài khoản/phút
+
+## THỐNG KÊ:
+- Tài khoản hoạt động tốt: 3
+- Sai mật khẩu (không lưu): 126
+- Lỗi kỹ thuật (không lưu): 36
+- Tổng đã xử lý: 165
+- Tỷ lệ thành công: 1.8%
+
+## 3 TÀI KHOẢN HOẠT ĐỘNG TỐT:
+20130363@st.hcmuaf.edu.vn|24092002
+20125521@st.hcmuaf.edu.vn|16122002
+20153130@st.hcmuaf.edu.vn|17022002

@@ -1,0 +1,118 @@
+{
+  "summary": {
+    "total_checked": 10,
+    "valid_found": 1,
+    "invalid_found": 9,
+    "elapsed_time": 2.8778553009033203,
+    "check_rate": 3.474809868606366,
+    "success_rate": 10.0
+  },
+  "valid_codes": [
+    "CYG9B5A7ATFFZ4XG"
+  ],
+  "detailed_results": [
+    {
+      "code": "7UWMTS8PL3VK2TGQ",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732633.1917965,
+      "duration": 0.7876880168914795,
+      "duplicate": false
+    },
+    {
+      "code": "8CG2B85YV7NFTSWG",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732633.2648342,
+      "duration": 0.8596405982971191,
+      "duplicate": false
+    },
+    {
+      "code": "BCPGM8F7VLFZTVE3",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732633.6536655,
+      "duration": 0.4618690013885498,
+      "duplicate": false
+    },
+    {
+      "code": "FWQM7I7JO39KV1HV",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732633.700671,
+      "duration": 0.4358367919921875,
+      "duplicate": false
+    },
+    {
+      "code": "K4YRRYRO6K62VD9Y",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732634.1225228,
+      "duration": 0.42185187339782715,
+      "duplicate": false
+    },
+    {
+      "code": "CYG9B5A7ATFFZ4XG",
+      "is_valid": true,
+      "reason": "Valid",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732634.2388382,
+      "duration": 0.5839381217956543,
+      "duplicate": false
+    },
+    {
+      "code": "CCG9B5A7ATGFZ4XG",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732634.5272834,
+      "duration": 0.40476059913635254,
+      "duplicate": false
+    },
+    {
+      "code": "NHF1LI58JVR7ZLX2",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732634.6715477,
+      "duration": 0.4327094554901123,
+      "duplicate": false
+    },
+    {
+      "code": "CYG9B5A7AZFFZ4XG",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732634.971244,
+      "duration": 0.44396066665649414,
+      "duplicate": false
+    },
+    {
+      "code": "KCW78R6JTNF85PE5",
+      "is_valid": false,
+      "reason": "Looks like you don't meet the eligibility criteria for this promotion.",
+      "status_code": 200,
+      "strategy": "unknown",
+      "timestamp": 1754732635.131264,
+      "duration": 0.45868396759033203,
+      "duplicate": false
+    }
+  ],
+  "error_analysis": {
+    "Looks like you don't meet the eligibility criteria for this promotion.": 9
+  }
+}

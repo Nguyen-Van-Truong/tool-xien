@@ -1,0 +1,17 @@
+{
+  "element": {
+    "tag": "button",
+    "text": "HAVE QUESTIONS? ASK SF CHAT!",
+    "value": "",
+    "type": "button"
+  },
+  "success_indicators": [
+    "verification",
+    "success",
+    "submitted",
+    "created",
+    "account"
+  ],
+  "final_url": "https://ss2.sfcollege.edu/sr/AdmissionApplication/#/accountCreate#top",
+  "timestamp": 1750250647.8248446
+}

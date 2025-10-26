@@ -1,0 +1,282 @@
+{
+  "inputs": [
+    {
+      "index": 1,
+      "id": "fstNameSTR",
+      "name": "fstNameSTR",
+      "type": "text",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required ng-valid-maxlength",
+      "value": "",
+      "required": "true",
+      "ng_model": "student.fstNameSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 2,
+      "id": "midNameSTR",
+      "name": "midNameSTR",
+      "type": "text",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-valid ng-empty ng-valid-minlength ng-valid-maxlength",
+      "value": "",
+      "required": "",
+      "ng_model": "student.midNameSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 3,
+      "id": "lstNameSTR",
+      "name": "lstNameSTR",
+      "type": "text",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required ng-valid-maxlength",
+      "value": "",
+      "required": "true",
+      "ng_model": "student.lstNameSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 4,
+      "id": "prfNameSTR",
+      "name": "prfNameSTR",
+      "type": "text",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-valid ng-empty ng-valid-maxlength",
+      "value": "",
+      "required": "",
+      "ng_model": "student.prfNameSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 5,
+      "id": "email",
+      "name": "emailAddrsSTR",
+      "type": "email",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-valid-email ng-invalid ng-invalid-required ng-valid-maxlength",
+      "value": "",
+      "required": "true",
+      "ng_model": "student.emailAddrsSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 6,
+      "id": "emailC",
+      "name": "cemailAddrsSTR",
+      "type": "email",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-valid-email ng-invalid ng-invalid-required ng-valid-maxlength",
+      "value": "",
+      "required": "true",
+      "ng_model": "student.cemailAddrsSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 8,
+      "id": "ssn",
+      "name": "ssnumSTR",
+      "type": "tel",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required ng-valid-maxlength",
+      "value": "",
+      "required": "true",
+      "ng_model": "student.ssnumSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 9,
+      "id": "ssnC",
+      "name": "cssnumSTR",
+      "type": "tel",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required ng-valid-maxlength",
+      "value": "",
+      "required": "true",
+      "ng_model": "student.cssnumSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 11,
+      "id": "ssnNoticeCB",
+      "name": "ssnNoticeCB",
+      "type": "checkbox",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required",
+      "value": "on",
+      "required": "true",
+      "ng_model": "student.ssnNoticeCB",
+      "displayed": true,
+      "enabled": true
+    }
+  ],
+  "selects": [
+    {
+      "index": 1,
+      "id": "",
+      "name": "",
+      "class": "goog-te-combo",
+      "ng_model": "",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 2,
+      "id": "sfxNameSTR",
+      "name": "",
+      "class": "ng-pristine ng-untouched ng-valid ng-empty",
+      "ng_model": "student.sfxNameSTR",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 3,
+      "id": "pronouns",
+      "name": "",
+      "class": "ng-pristine ng-untouched ng-valid ng-not-empty",
+      "ng_model": "student.pronounIdINT",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 4,
+      "id": "month",
+      "name": "month",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required",
+      "ng_model": "student.month",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 5,
+      "id": "day",
+      "name": "day",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required",
+      "ng_model": "student.day",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 6,
+      "id": "year",
+      "name": "year",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required",
+      "ng_model": "student.year",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 7,
+      "id": "",
+      "name": "birthctrySTR",
+      "class": "ng-pristine ng-untouched ng-empty ng-invalid ng-invalid-required",
+      "ng_model": "student.birthctrySTR",
+      "displayed": true,
+      "enabled": true
+    }
+  ],
+  "buttons": [
+    {
+      "index": 1,
+      "id": "launchChatbot",
+      "type": "button",
+      "class": "MuiButtonBase-root MuiFab-root MuiFab-extended MuiFab-sizeLarge MuiFab-secondary MuiFab-root MuiFab-extended MuiFab-sizeLarge MuiFab-secondary Fab-button  oclt-140y3o1",
+      "text": "HAVE QUESTIONS? ASK SF CHAT!",
+      "value": "",
+      "onclick": "",
+      "ng_click": "",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 7,
+      "id": "",
+      "type": "button",
+      "class": "button float-left",
+      "text": "Back",
+      "value": "",
+      "onclick": "",
+      "ng_click": "createAccountBack()",
+      "displayed": true,
+      "enabled": true
+    },
+    {
+      "index": 8,
+      "id": "",
+      "type": "submit",
+      "class": "button float-right",
+      "text": "Next",
+      "value": "",
+      "onclick": "",
+      "ng_click": "validateNewStudent()",
+      "displayed": true,
+      "enabled": false
+    }
+  ],
+  "forms": [
+    {
+      "index": 2,
+      "id": "",
+      "name": "mainForm",
+      "action": "https://ss2.sfcollege.edu/sr/AdmissionApplication/#/accountCreate#top",
+      "method": "get",
+      "class": "ng-pristine ng-invalid ng-invalid-required ng-valid-maxlength ng-valid-minlength ng-valid-email",
+      "ng_submit": "submitForm(student)",
+      "displayed": true
+    }
+  ],
+  "email_fields": [
+    {
+      "id": "email",
+      "name": "emailAddrsSTR",
+      "type": "email",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-valid-email ng-invalid ng-invalid-required ng-valid-maxlength",
+      "ng_model": "student.emailAddrsSTR",
+      "all_text": "email emailaddrsstr  ng-pristine ng-untouched ng-empty ng-valid-email ng-invalid ng-invalid-required ng-valid-maxlength student.emailaddrsstr"
+    },
+    {
+      "id": "emailC",
+      "name": "cemailAddrsSTR",
+      "type": "email",
+      "placeholder": "",
+      "class": "ng-pristine ng-untouched ng-empty ng-valid-email ng-invalid ng-invalid-required ng-valid-maxlength",
+      "ng_model": "student.cemailAddrsSTR",
+      "all_text": "emailc cemailaddrsstr  ng-pristine ng-untouched ng-empty ng-valid-email ng-invalid ng-invalid-required ng-valid-maxlength student.cemailaddrsstr"
+    }
+  ],
+  "submit_elements": [
+    {
+      "type": "button",
+      "id": "",
+      "text": "Back",
+      "class": "button float-left",
+      "type_attr": "button",
+      "onclick": "",
+      "ng_click": "createAccountBack()",
+      "enabled": true,
+      "all_text": "back button float-left  createaccountback() button"
+    },
+    {
+      "type": "button",
+      "id": "",
+      "text": "Next",
+      "class": "button float-right",
+      "type_attr": "submit",
+      "onclick": "",
+      "ng_click": "validateNewStudent()",
+      "enabled": false,
+      "all_text": "next button float-right  validatenewstudent() submit"
+    }
+  ],
+  "timestamp": 1750252429.7219665,
+  "url": "https://ss2.sfcollege.edu/sr/AdmissionApplication/#/accountCreate#top"
+}

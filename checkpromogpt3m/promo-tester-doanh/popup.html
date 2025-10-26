@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Promo Tester</title>
+  <style>
+    body{font-family:system-ui,Arial;padding:12px;width:460px}
+    textarea{width:100%;height:140px}
+    .row{display:flex;gap:8px;margin:8px 0}
+    .row input{flex:1}
+    .btn{padding:8px 10px;border:1px solid #ccc;border-radius:8px;cursor:pointer}
+    .btn.primary{background:#4f46e5;color:#fff;border-color:#4338ca}
+    .btn.danger{background:#ef4444;color:#fff;border-color:#dc2626}
+    .pill{font-size:12px;padding:2px 8px;border-radius:999px;background:#eee;margin-left:6px}
+    #results{height:170px;overflow:auto;border:1px solid #ddd;border-radius:6px;padding:6px}
+    .ok{color:#16a34a} .bad{color:#ef4444}
+    small{color:#6b7280}
+    label{font-size:12px;color:#555}
+  </style>
+</head>
+<body>
+  <div>
+    <div>Base URL: <span id="baseUrl" class="pill">chưa cấu hình</span>
+      <a href="#" id="openOptions" style="font-size:12px;margin-left:8px">Cài đặt…</a>
+      <button id="stayOpenBtn" class="btn" style="margin-left:8px">Giữ mở</button>
+    </div>
+
+    <div class="row">
+      <input id="count" type="number" min="1" value="50" />
+      <button id="gen" class="btn">Sinh n mã</button>
+      <button id="clear" class="btn">Xoá mã</button>
+    </div>
+
+    <textarea id="codes" placeholder="Mỗi dòng 1 mã..."></textarea>
+
+    <!-- Hàng tham số thời gian -->
+    <div class="row">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <label for="delay">Delay giữa lượt mở (ms)</label>
+        <input id="delay" type="number" min="0" value="2000" title="Độ trễ giữa 2 lần KHỞI TẠO tác vụ (ms)" />
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <label for="timeout">Timeout quan sát (ms)</label>
+        <input id="timeout" type="number" min="1000" value="20000" title="Thời gian tối đa quan sát popup/DOM (ms)" />
+      </div>
+    </div>
+    <div class="row">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <label for="initialWait">Chờ hiện popup (ms)</label>
+        <input id="initialWait" type="number" min="0" value="5000" title="Chờ ban đầu trước khi bắt đầu quan sát popup (ms)" />
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <label for="concurrency">Số tab song song</label>
+        <input id="concurrency" type="number" min="1" value="3" title="Số tab mở/kiểm tra đồng thời" />
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="start" class="btn primary">Bắt đầu</button>
+      <button id="stop" class="btn danger">Dừng</button>
+      <button id="exportCsv" class="btn">Tải CSV</button>
+      <button id="clearResults" class="btn">Xoá tiến độ</button>
+    </div>
+
+    <div id="progress">Tiến độ: <span id="done">0</span>/<span id="total">0</span></div>
+    <div id="results"></div>
+    <small>Bản Quyền Thuộc Về Doanh xài Chat GPT. Miễn trừ mọi trách nhiệm.</small>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

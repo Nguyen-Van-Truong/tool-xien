@@ -1,0 +1,122 @@
+🇺🇸 SANTA FE COLLEGE REGISTRATION DATA
+============================================================
+Generated: 2025-06-18 18:37:03
+Total People: 2
+============================================================
+
+👤 PERSON #1
+----------------------------------------
+📋 BASIC INFORMATION:
+   Full Name: Evan Obrien
+   First Name: Evan
+   Middle Name: Christopher
+   Last Name: Obrien
+   Gender: Male
+   Birth Date: 06/27/1994
+   Age: 30
+   SSN: 340-50-1796
+   Driver License: FL805395906
+   Race/Ethnicity: American Indian or Alaska Native
+   Marital Status: Married
+   Citizenship: US Citizen
+   Military Status: Veteran
+
+📞 CONTACT INFORMATION:
+   Email: evan.obrien304@gmail.com
+   Phone: (720) 559-3538
+   Cell Phone: (985) 991-3638
+
+🏠 ADDRESS:
+   Street: 7689 Chavez Overpass Ave
+   City: Hollywood
+   State: FL
+   ZIP Code: 32288
+   Full Address: 7689 Chavez Overpass Ave, Hollywood, FL 32288
+   Residency: Florida Resident
+
+🎓 EDUCATION:
+   Education Level: High School Diploma
+   High School: Jefferson High School
+   Graduation Year: 2006
+
+💼 EMPLOYMENT:
+   Status: Employed Full-Time
+   Job Title: Driver
+   Employer: FedEx
+   Annual Income: $75,000 - $99,999
+
+🚨 EMERGENCY CONTACT:
+   Name: Elizabeth Holmes
+   Relationship: Spouse
+   Phone: (607) 821-8128
+   Email: suzanneward@example.net
+
+🎯 ACADEMIC GOALS:
+   Degree Goal: Associate in Science (A.S.)
+   Major Interest: Criminal Justice
+
+ℹ️ OTHER INFORMATION:
+   Financial Aid Needed: No
+   Health Insurance: No
+   Disabilities: No
+
+============================================================
+
+👤 PERSON #2
+----------------------------------------
+📋 BASIC INFORMATION:
+   Full Name: Patricia Rios
+   First Name: Patricia
+   Middle Name: David
+   Last Name: Rios
+   Gender: Female
+   Birth Date: 07/21/1961
+   Age: 63
+   SSN: 022-44-7691
+   Driver License: FL366001978
+   Race/Ethnicity: Hispanic or Latino
+   Marital Status: Widowed
+   Citizenship: US Citizen
+   Military Status: Active Duty
+
+📞 CONTACT INFORMATION:
+   Email: patricia.rios224@gmail.com
+   Phone: (737) 382-6712
+   Cell Phone: (219) 835-9392
+
+🏠 ADDRESS:
+   Street: 1965 Williams Crescent Ave
+   City: Palm Bay
+   State: FL
+   ZIP Code: 33668
+   Full Address: 1965 Williams Crescent Ave, Palm Bay, FL 33668
+   Residency: Florida Resident
+
+🎓 EDUCATION:
+   Education Level: Master's Degree
+   High School: North High School
+   Graduation Year: 2014
+
+💼 EMPLOYMENT:
+   Status: Retired
+   Job Title: Retail Worker
+   Employer: CVS Health
+   Annual Income: $50,000 - $74,999
+
+🚨 EMERGENCY CONTACT:
+   Name: Nancy Smith
+   Relationship: Relative
+   Phone: (405) 821-4657
+   Email: robertwalker@example.net
+
+🎯 ACADEMIC GOALS:
+   Degree Goal: Associate in Arts (A.A.)
+   Major Interest: Art
+
+ℹ️ OTHER INFORMATION:
+   Financial Aid Needed: Yes
+   Health Insurance: Yes
+   Disabilities: Yes
+
+============================================================
+

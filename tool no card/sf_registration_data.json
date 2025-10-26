@@ -1,0 +1,100 @@
+[
+  {
+    "first_name": "Evan",
+    "middle_name": "Christopher",
+    "last_name": "Obrien",
+    "full_name": "Evan Obrien",
+    "gender": "Male",
+    "birth_date": "06/27/1994",
+    "age": 30,
+    "email": "evan.obrien304@gmail.com",
+    "phone": "(720) 559-3538",
+    "cell_phone": "(985) 991-3638",
+    "address": {
+      "street": "7689 Chavez Overpass Ave",
+      "city": "Hollywood",
+      "state": "FL",
+      "zip_code": "32288",
+      "full_address": "7689 Chavez Overpass Ave, Hollywood, FL 32288"
+    },
+    "ssn": "340-50-1796",
+    "driver_license": "FL805395906",
+    "education": {
+      "education_level": "High School Diploma",
+      "high_school": "Jefferson High School",
+      "graduation_year": 2006
+    },
+    "employment": {
+      "employment_status": "Employed Full-Time",
+      "job_title": "Driver",
+      "employer": "FedEx",
+      "annual_income": "$75,000 - $99,999"
+    },
+    "emergency_contact": {
+      "name": "Elizabeth Holmes",
+      "relationship": "Spouse",
+      "phone": "(607) 821-8128",
+      "email": "suzanneward@example.net"
+    },
+    "citizenship": "US Citizen",
+    "race_ethnicity": "American Indian or Alaska Native",
+    "marital_status": "Married",
+    "military_status": "Veteran",
+    "financial_aid_needed": false,
+    "residency_status": "Florida Resident",
+    "health_insurance": false,
+    "disabilities": false,
+    "degree_goal": "Associate in Science (A.S.)",
+    "major_interest": "Criminal Justice",
+    "id": 1
+  },
+  {
+    "first_name": "Patricia",
+    "middle_name": "David",
+    "last_name": "Rios",
+    "full_name": "Patricia Rios",
+    "gender": "Female",
+    "birth_date": "07/21/1961",
+    "age": 63,
+    "email": "patricia.rios224@gmail.com",
+    "phone": "(737) 382-6712",
+    "cell_phone": "(219) 835-9392",
+    "address": {
+      "street": "1965 Williams Crescent Ave",
+      "city": "Palm Bay",
+      "state": "FL",
+      "zip_code": "33668",
+      "full_address": "1965 Williams Crescent Ave, Palm Bay, FL 33668"
+    },
+    "ssn": "022-44-7691",
+    "driver_license": "FL366001978",
+    "education": {
+      "education_level": "Master's Degree",
+      "high_school": "North High School",
+      "graduation_year": 2014
+    },
+    "employment": {
+      "employment_status": "Retired",
+      "job_title": "Retail Worker",
+      "employer": "CVS Health",
+      "annual_income": "$50,000 - $74,999"
+    },
+    "emergency_contact": {
+      "name": "Nancy Smith",
+      "relationship": "Relative",
+      "phone": "(405) 821-4657",
+      "email": "robertwalker@example.net"
+    },
+    "citizenship": "US Citizen",
+    "race_ethnicity": "Hispanic or Latino",
+    "marital_status": "Widowed",
+    "military_status": "Active Duty",
+    "financial_aid_needed": true,
+    "residency_status": "Florida Resident",
+    "health_insurance": true,
+    "disabilities": true,
+    "degree_goal": "Associate in Arts (A.A.)",
+    "major_interest": "Art",
+    "id": 2
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "statistics": {
+    "elapsed_time": 11.972613096237183,
+    "elapsed_formatted": "12.0s",
+    "total_generated": 50,
+    "total_checked": 50,
+    "valid_found": 0,
+    "error_count": 0,
+    "check_rate": 4.176197760513473,
+    "success_rate": 0.0,
+    "strategy_stats": {
+      "pattern_based": {
+        "generated": 20,
+        "valid": 0
+      },
+      "prefix_based": {
+        "generated": 11,
+        "valid": 0
+      },
+      "variation": {
+        "generated": 6,
+        "valid": 0
+      },
+      "random": {
+        "generated": 13,
+        "valid": 0
+      }
+    },
+    "timestamp": "2025-08-09T16:42:43.503985"
+  },
+  "valid_codes": [],
+  "total_unique_checked": 50,
+  "error_codes_sample": [
+    "JEMWM8X7PTFBS1E3",
+    "CEPWMYX1Y3VBZPW5",
+    "BESTUKAYYRK28BUY",
+    "KCW7BC6JTNFBSP65",
+    "OALQKDKJS1NCS6WJ",
+    "CAG9B27RVQFGC5XG",
+    "MEP7B5G9VX4KTVE3",
+    "MAXQVKXYBZGZT7VF",
+    "BEWAB8A7DT3RZVWK",
+    "KW2HD9LKFR2H66YB"
+  ]
+}
