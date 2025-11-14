@@ -1,0 +1,4 @@
+# Google Account Checker - Improved Version
+# Dependencies
+
+selenium>=4.15.0

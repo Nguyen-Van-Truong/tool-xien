@@ -1,0 +1,8 @@
+# Example accounts file
+# Format: email|password
+# Lines starting with # are ignored
+
+# Replace these with your actual accounts
+# example1@yourdomain.com|password123
+# example2@yourdomain.com|password456
+# example3@yourdomain.com|password789

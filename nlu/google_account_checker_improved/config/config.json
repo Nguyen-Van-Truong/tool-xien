@@ -1,0 +1,63 @@
+{
+  "performance": {
+    "threads": 4,
+    "headless": false,
+    "disable_images": true,
+    "page_load_timeout": 10,
+    "element_wait_timeout": 5
+  },
+
+  "anti_detection": {
+    "random_delays": true,
+    "min_delay_seconds": 1.5,
+    "max_delay_seconds": 3.5,
+    "rotate_user_agents": true,
+    "use_stealth_mode": true,
+    "session_break_after": 50,
+    "session_break_duration_seconds": 120
+  },
+
+  "rate_limiting": {
+    "enabled": true,
+    "max_accounts_per_minute": 12,
+    "cooldown_on_detection": 300
+  },
+
+  "retry": {
+    "max_retries": 2,
+    "retry_delay_seconds": 5,
+    "exponential_backoff": true
+  },
+
+  "files": {
+    "input_file": "students_accounts.txt",
+    "output_good_accounts": "results/good_accounts.txt",
+    "output_failed_accounts": "results/failed_accounts.txt",
+    "output_report": "results/report.txt",
+    "log_file": "logs/checker.log",
+    "backup_interval": 100
+  },
+
+  "validation": {
+    "save_wrong_password": false,
+    "save_technical_errors": true,
+    "save_captcha_required": true,
+    "save_phone_verification": true,
+    "check_login_success_urls": [
+      "myaccount.google.com",
+      "accounts.google.com/ManageAccount",
+      "accounts.google.com/b/0"
+    ]
+  },
+
+  "chrome_options": {
+    "window_size": "1920,1080",
+    "disable_gpu": true,
+    "no_sandbox": true,
+    "disable_dev_shm_usage": true,
+    "disable_blink_features": "AutomationControlled",
+    "exclude_switches": ["enable-automation"],
+    "use_automation_extension": false,
+    "remote_debugging_base_port": 9222
+  }
+}
