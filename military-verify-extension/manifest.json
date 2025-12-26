@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Military Verification Auto-Fill",
+  "version": "1.0.0",
+  "description": "Auto-fill military verification forms and search veteran data from VA.gov",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://services.sheerid.com/*",
+    "https://www.vlm.cem.va.gov/*",
+    "https://vlm.cem.va.gov/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Military Verify"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://services.sheerid.com/*"
+      ],
+      "js": [
+        "content-sheerid.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.vlm.cem.va.gov/*",
+        "https://vlm.cem.va.gov/*"
+      ],
+      "js": [
+        "content-va.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

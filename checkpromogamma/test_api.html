@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Stripe API</title>
+</head>
+<body>
+    <h1>Testing Gamma/Stripe Promo Code API</h1>
+    <div id="results"></div>
+
+    <script>
+        async function testAPI() {
+            const resultsDiv = document.getElementById('results');
+            const code = 'RZZKK46F';
+            const url = `https://api.stripe.com/v1/promotion_codes/${code}`;
+
+            resultsDiv.innerHTML += `<p>Testing API: ${url}</p>`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer pk_live_51MS6sAE3HBB5yrHt6gBd276SL4CGS2kGGPA4gkYgfOdKB3g9E1HMaUyoEi0Z47s0h1FVD1MuYaZ3Ay32U13xqeH400NPSkhlYc',
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+                        'Origin': 'https://billing.gamma.app',
+                        'Referer': 'https://billing.gamma.app/c/pay/cs_live_b1rSDhKOm0RPZNr16MgX3aidRbrwjHhfaCDYWHZPTJyC6KJdRMsxwqGj0i'
+                    }
+                });
+
+                resultsDiv.innerHTML += `<p>Status: ${response.status}</p>`;
+                const text = await response.text();
+                resultsDiv.innerHTML += `<p>Response: ${text.substring(0, 500)}</p>`;
+
+            } catch (error) {
+                resultsDiv.innerHTML += `<p>Error: ${error.message}</p>`;
+            }
+        }
+
+        testAPI();
+    </script>
+</body>
+</html>
+

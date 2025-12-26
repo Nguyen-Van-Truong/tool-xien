@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamma Promo Code API Tester - Live Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 5px solid #4CAF50;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        .valid { background-color: rgba(76, 175, 80, 0.3); border-left: 5px solid #4CAF50; }
+        .invalid { background-color: rgba(244, 67, 54, 0.3); border-left: 5px solid #f44336; }
+        .error { background-color: rgba(255, 193, 7, 0.3); border-left: 5px solid #ffc107; }
+        .info { background-color: rgba(33, 150, 243, 0.3); border-left: 5px solid #2196F3; }
+        button {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        button:active {
+            transform: translateY(0px);
+        }
+        .code-input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin: 10px 0;
+            width: 200px;
+        }
+        .code-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .progress {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Gamma Promo Code API Tester</h1>
+
+        <div class="test-section">
+            <h2>🔍 Single Code Test</h2>
+            <input type="text" id="singleCode" class="code-input" placeholder="Enter promo code" value="RZZKK46F">
+            <button onclick="testSingleCode()">Test Code</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Batch Test (Sample Codes)</h2>
+            <button onclick="testBatchCodes()">Test All Sample Codes</button>
+        </div>
+
+        <div class="progress" id="progress">
+            <div class="spinner"></div>
+            Testing in progress...
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        const progressDiv = document.getElementById('progress');
+
+        function showProgress() {
+            progressDiv.style.display = 'block';
+        }
+
+        function hideProgress() {
+            progressDiv.style.display = 'none';
+        }
+
+        function addResult(title, content, type = 'info') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<strong>${title}</strong><br>${content}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        async function testCode(code) {
+            addResult(`Testing: ${code}`, 'Making request...', 'info');
+
+            try {
+                const response = await fetch(`https://api.stripe.com/v1/promotion_codes/${code}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer pk_live_51MS6sAE3HBB5yrHt6gBd276SL4CGS2kGGPA4gkYgfOdKB3g9E1HMaUyoEi0Z47s0h1FVD1MuYaZ3Ay32U13xqeH400NPSkhlYc',
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+                        'Origin': 'https://billing.gamma.app',
+                        'Referer': 'https://billing.gamma.app/c/pay/cs_live_b1rSDhKOm0RPZNr16MgX3aidRbrwjHhfaCDYWHZPTJyC6KJdRMsxwqGj0i'
+                    }
+                });
+
+                const responseText = await response.text();
+
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        const isValid = data.id && data.active;
+
+                        if (isValid) {
+                            addResult(`✅ VALID: ${code}`,
+                                `Status: ${response.status}<br>
+                                ID: ${data.id}<br>
+                                Active: ${data.active}<br>
+                                Code: ${data.code}<br>
+                                Created: ${new Date(data.created * 1000).toLocaleString()}`,
+                                'valid');
+                        } else {
+                            addResult(`❌ INVALID: ${code}`,
+                                `Status: ${response.status}<br>
+                                Found but inactive: ${JSON.stringify(data, null, 2)}`,
+                                'invalid');
+                        }
+                    } catch (e) {
+                        addResult(`⚠️ PARSE ERROR: ${code}`,
+                            `Status: ${response.status}<br>
+                            Could not parse JSON: ${responseText.substring(0, 200)}`,
+                            'error');
+                    }
+                } else {
+                    addResult(`❌ INVALID: ${code}`,
+                        `Status: ${response.status}<br>
+                        Response: ${responseText}`,
+                        'invalid');
+                }
+
+            } catch (error) {
+                addResult(`💥 ERROR: ${code}`,
+                    `Network/Connection Error: ${error.message}`,
+                    'error');
+            }
+        }
+
+        async function testSingleCode() {
+            const code = document.getElementById('singleCode').value.trim();
+            if (!code) {
+                alert('Please enter a promo code');
+                return;
+            }
+
+            showProgress();
+            resultsDiv.innerHTML = '';
+            await testCode(code);
+            hideProgress();
+        }
+
+        async function testBatchCodes() {
+            const codes = [
+                'RZZKK46F', 'K9M2P4X', 'A7B3C8D', 'X5Y2Z9W', 'M4N6Q1R',
+                'T8U3V7S', 'H5J2K9L', 'P3Q7R4S', 'D8F2G5H', 'W4X6Y8Z',
+                'B3C7D9E', 'M5N8P2Q', 'R4T6V8W', 'A9B2C5D', 'K7L3M6N',
+                'P8Q4R7S', 'T2U5V9X', 'H6J8K3L', 'D4F7G2H', 'W9X3Y6Z'
+            ];
+
+            showProgress();
+            resultsDiv.innerHTML = '';
+            addResult('🚀 Starting Batch Test', `Testing ${codes.length} codes...`, 'info');
+
+            for (let i = 0; i < codes.length; i++) {
+                const code = codes[i];
+                addResult(`[${i+1}/${codes.length}]`, `Starting test for: ${code}`, 'info');
+                await testCode(code);
+
+                // Wait 1 second between requests to avoid rate limiting
+                if (i < codes.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+
+            hideProgress();
+            addResult('✅ Batch Test Completed', `Tested ${codes.length} codes`, 'info');
+        }
+
+        // Auto-test the provided code on page load
+        window.onload = function() {
+            addResult('🎯 Page Loaded', 'Gamma Promo Code API Tester ready!<br>Use the buttons above to test codes.', 'info');
+        };
+    </script>
+</body>
+</html>
