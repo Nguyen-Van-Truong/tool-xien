@@ -1,0 +1,70 @@
+SAMUEL|VACCARO|Navy|May|13|1936|March|7|2025|samuelvaccaro500@yahoo.com
+WILLIAM|VAFAKOS|Army|June|13|1930|March|8|2025|williamvafakos730@icloud.com
+JAMES|VAHLSING|Air Force|February|7|1942|May|8|2025|jamesvahlsing414@aol.com
+WILBUR|VACHON|Army|October|8|1934|April|8|2025|wilburvachon878@outlook.com
+JOSEPH|VACHON|Navy|October|16|1933|February|19|2025|josephvachon964@hotmail.com
+VALENTO|VACCO|Marine Corps|February|23|1934|May|10|2025|valentovacco606@gmail.com
+RONALD|VAHLE|Navy|December|21|1950|January|6|2025|ronaldvahle719@aol.com
+DAVID|VACHON|Army|September|24|1930|October|2|2025|davidvachon315@outlook.com
+JAMES|VAIAS|Marine Corps|September|18|1947|October|14|2025|jamesvaias678@outlook.com
+WARREN|VAAD|Navy|April|9|1945|May|18|2025|warrenvaad626@hotmail.com
+ALFRED|VADNEY|Marine Corps|June|9|1946|January|17|2025|alfredvadney899@aol.com
+ROBERT|VACHON|Air Force|November|18|1944|January|23|2025|robertvachon806@gmail.com
+KIRISIMASI|VAAIA|Air Force|December|25|1949|February|15|2025|kirisimasivaaia932@aol.com
+JOSEPH|VACCARO|Army|June|5|1942|April|30|2025|josephvaccaro102@hotmail.com
+PAUL|VADNEY|Air Force|July|27|1966|April|30|2025|paulvadney261@yahoo.com
+LOUIS|VAHAMONDE|Navy|April|22|1933|July|10|2025|louisvahamonde923@icloud.com
+JOHNNY|VAIANA|Army|February|10|1930|August|6|2025|johnnyvaiana529@hotmail.com
+HEATHER|VAARS|Air Force|April|16|1982|August|13|2025|heathervaars700@gmail.com
+ANTHONY|VACCARELLA|Air Force|January|1|1954|August|17|2025|anthonyvaccarella849@icloud.com
+JEAN|VACURA|Navy|May|12|1952|August|21|2025|jeanvacura100@icloud.com
+CHARLES|VAGOTT|Marine Corps|June|9|1941|August|28|2025|charlesvagott243@outlook.com
+DONALD|VACHON|Navy|February|21|1941|October|4|2025|donaldvachon249@icloud.com
+JOHN|VADNAIS|Air Force|March|21|1946|August|30|2025|johnvadnais769@icloud.com
+ANTHONY|VACCARO|Navy|July|8|1937|October|8|2025|anthonyvaccaro891@hotmail.com
+PAUL|VACHETTE|Army|August|29|1947|November|4|2025|paulvachette397@aol.com
+MARTIN|VAIL|Army|June|10|1951|April|4|2025|martinvail945@gmail.com
+JOHN|VAILLANCOURT|Navy|July|24|1965|March|16|2025|johnvaillancourt737@gmail.com
+FREDRICK|VAISVIL|Army|October|21|1931|April|11|2025|fredrickvaisvil398@yahoo.com
+VETTO|VAITULIS|Army|October|13|1931|April|30|2025|vettovaitulis267@aol.com
+EDWARD|VAIRA|Army|February|19|1931|May|5|2025|edwardvaira696@yahoo.com
+JOHN|VAIL|Army|September|15|1959|April|25|2025|johnvail363@gmail.com
+RODNEY|VAILLANCOURT|Army|January|28|1946|September|5|2025|rodneyvaillancourt182@aol.com
+OLAV|VALAND|Army|March|22|1945|February|15|2025|olavvaland527@hotmail.com
+LIONEL|VAILLANCOURT|Army|August|28|1944|February|19|2025|lionelvaillancourt714@gmail.com
+WILLIAM|VAIN|Air Force|March|7|1942|January|29|2025|williamvain964@outlook.com
+EDWIN|VAIL|Navy|August|19|1947|March|31|2025|edwinvail642@hotmail.com
+ATRELL|VAILS|Marine Corps|March|15|1932|May|5|2025|atrellvails638@outlook.com
+RICHARD|VAIL|Army|February|19|1934|May|29|2025|richardvail822@hotmail.com
+GENE|VAIL|Navy|September|14|1932|June|6|2025|genevail696@outlook.com
+LAURIE|VAINIO|Air Force|June|19|1937|July|6|2025|laurievainio638@gmail.com
+LARRY|VAIL|Army|June|28|1945|July|13|2025|larryvail119@hotmail.com
+FRANCISCO|VALADEZ|Army|March|12|1942|September|4|2025|franciscovaladez399@icloud.com
+SPENCER|VAIL|Marine Corps|May|1|1937|September|14|2025|spencervail151@hotmail.com
+WILLIAM|VAILLANCOURT|Navy|May|16|1943|May|15|2025|williamvaillancourt566@yahoo.com
+JESUS|VALADEZ|Marine Corps|March|5|1949|October|18|2025|jesusvaladez480@gmail.com
+GEORGE|VAILS|Army|May|29|1934|November|10|2025|georgevails287@aol.com
+FAAMANU|VAIFANUA|Marine Corps|April|11|1953|October|15|2025|faamanuvaifanua757@aol.com
+MICHAEL|VAJGERT|Navy|December|31|1956|November|11|2025|michaelvajgert486@icloud.com
+JAMES|VALA|Marine Corps|May|4|1956|December|24|2025|jamesvala819@aol.com
+HERMINIO|VALDEABELLA|Navy|April|13|1953|February|4|2025|herminiovaldeabella105@hotmail.com
+GEORGE|VALDEZ|Army|July|25|1936|April|11|2025|georgevaldez627@outlook.com
+WALTER|VALASEK|Air Force|December|24|1932|June|28|2025|waltervalasek466@yahoo.com
+MARTIN|VALDEZ|Navy|November|12|1942|May|30|2025|martinvaldez488@gmail.com
+OSCAR|VALDES|Army|January|17|1932|October|4|2025|oscarvaldes230@outlook.com
+FRED|VALDEZ|Army|December|13|1944|November|5|2025|fredvaldez496@gmail.com
+ERNEST|VALDEZ|Air Force|February|23|1941|January|11|2025|ernestvaldez477@hotmail.com
+JOSE|VALDEZ|Army|June|30|1946|March|25|2025|josevaldez189@icloud.com
+ERNESTO|VALDES|Army|June|2|1943|April|7|2025|ernestovaldes521@hotmail.com
+GILBERTO|VALCARCEL VELAZQUEZ|Army|January|24|1945|April|19|2025|gilbertovalcarcel velazquez449@outlook.com
+GERARD|VALDEZ|Navy|September|22|1969|May|4|2025|gerardvaldez702@outlook.com
+MANUEL|VALDEZ|Army|January|11|1933|June|7|2025|manuelvaldez372@hotmail.com
+CARLOS|VALDEZ|Marine Corps|October|29|1957|June|12|2025|carlosvaldez210@yahoo.com
+JOSEPH|VALDEZ|Army|December|16|1944|June|24|2025|josephvaldez283@icloud.com
+MICHAEL|VALDEZ|Army|October|2|1963|July|22|2025|michaelvaldez381@icloud.com
+FRANK|VALDEZ|Air Force|August|5|1936|July|14|2025|frankvaldez577@icloud.com
+LUIS|VALDES|Air Force|August|22|1937|August|23|2025|luisvaldes517@yahoo.com
+BENNY|VALDEZ|Navy|May|24|1938|November|13|2025|bennyvaldez424@hotmail.com
+JUAN|VALDEZ|Army|January|8|1942|December|3|2025|juanvaldez115@icloud.com
+LUIS|VALDEZ|Navy|June|13|1947|December|14|2025|luisvaldez966@outlook.com
+FRANCISCO|VALDERRAMA-SOTO|Army|January|29|1932|December|22|2025|franciscovalderrama-soto524@yahoo.com

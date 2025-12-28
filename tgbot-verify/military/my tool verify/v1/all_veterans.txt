@@ -1,0 +1,85 @@
+CHRISTOPHER|GALLEGOS|Air Force|November|2|1983|August|27|2025|christophergallegos623@icloud.com
+BYRON|GALLUP|Air Force|December|13|1972|September|12|2025|byrongallup153@yahoo.com
+TOMAS|GALVAN|Army|December|25|1974|August|4|2025|tomasgalvan659@icloud.com
+DAVID|GARDNER|Army|September|23|1985|January|26|2025|davidgardner934@gmail.com
+DOUGLAS|GEEDING|Air Force|January|1|1971|February|1|2025|douglasgeeding945@aol.com
+NEIL|GARRETT|Army|June|4|1979|August|14|2025|neilgarrett385@yahoo.com
+JAMIE|GAVIN|Marine Corps|March|7|1984|July|7|2025|jamiegavin165@hotmail.com
+CHRISTOPHER|GARRETT|Navy|August|3|1980|October|22|2025|christophergarrett624@outlook.com
+RAMON|GARCIA ALVAREZ|Marine Corps|April|6|2000|February|8|2025|ramongarcia alvarez923@outlook.com
+TELLY|GARCIA|Navy|August|26|1974|April|10|2025|tellygarcia773@yahoo.com
+JOSEPH|GARDNER|Army|January|18|1993|April|21|2025|josephgardner983@hotmail.com
+DAMIAN|GARZA|Marine Corps|April|16|1994|April|25|2025|damiangarza326@outlook.com
+STEVEN|GARCIA|Marine Corps|September|20|1979|April|27|2025|stevengarcia126@outlook.com
+ALEXANDER|GARDNER|Army|June|4|1995|April|18|2025|alexandergardner473@hotmail.com
+VICTOR|GARCIA-RAMOS|Army|October|2|1983|June|8|2025|victorgarcia-ramos980@aol.com
+DANA|GARNEAU|Marine Corps|June|4|1971|June|12|2025|danagarneau497@aol.com
+MARIA|GARRETT|Army|August|29|1991|July|1|2025|mariagarrett351@icloud.com
+MICHAEL|GEDLING|Air Force|February|1|1981|May|7|2025|michaelgedling158@hotmail.com
+KRISINDA|GARZA-TERRY|Air Force|December|4|1975|July|20|2025|krisindagarza-terry279@hotmail.com
+NOEL|GARCIA MARQUEZ|Marine Corps|July|28|1993|June|20|2025|noelgarcia marquez548@hotmail.com
+KEAGAN|GARRETT|Navy|October|10|2000|August|10|2025|keagangarrett575@hotmail.com
+SIAKOR|GBAWAR|Navy|February|7|1977|August|16|2025|siakorgbawar913@outlook.com
+GARY|GARDNER|Army|September|1|1976|July|27|2025|garygardner445@icloud.com
+KRISTOPHER|GARDNER|Army|December|6|1987|September|2|2025|kristophergardner307@icloud.com
+RAPHAEL|GASTON|Army|September|24|1973|September|13|2025|raphaelgaston381@gmail.com
+BRENT|GARDINER|Navy|July|19|1983|October|5|2025|brentgardiner787@outlook.com
+FRANK|GARNER|Army|August|4|1970|October|21|2025|frankgarner624@aol.com
+TRINIDAD|GARZA|Coast Guard|September|26|1978|November|22|2025|trinidadgarza857@hotmail.com
+BRIAN|GIBSON|Navy|June|14|1971|January|4|2025|briangibson655@aol.com
+JOHN|GIBERT|Coast Guard|May|4|1972|March|7|2025|johngibert917@hotmail.com
+CHAD|GIESIGE|Air Force|February|20|1975|June|17|2025|chadgiesige309@yahoo.com
+LENIOX|GILBERT|Marine Corps|November|29|1970|July|1|2025|lenioxgilbert370@hotmail.com
+HOWARD|GEORGE|Navy|October|29|1975|June|15|2025|howardgeorge932@yahoo.com
+MARK|GILES|Navy|March|29|1970|August|2|2025|markgiles231@hotmail.com
+GLEN|GENT|Army|October|8|1980|January|7|2025|glengent802@gmail.com
+DAVID|GIFFORD|Navy|May|18|1976|January|29|2025|davidgifford673@outlook.com
+CHRISTOPHER|GEORGE|Army|April|30|1984|February|9|2025|christophergeorge223@outlook.com
+KENNETH|GIBSON-BALLARD|Army|October|28|1983|March|20|2025|kennethgibson-ballard427@yahoo.com
+THOMAS|GIESE|Air Force|January|5|1982|April|9|2025|thomasgiese842@yahoo.com
+DAVID|GEORGE|Marine Corps|June|11|1993|March|30|2025|davidgeorge667@yahoo.com
+KALVIN|GILL|Army|May|25|1985|April|23|2025|kalvingill110@hotmail.com
+JOSHUA|GELHAAR|Army|February|3|1982|April|26|2025|joshuagelhaar859@icloud.com
+JESSE|GENTRY|Marine Corps|July|7|1976|June|7|2025|jessegentry851@icloud.com
+JON|GEORGE|Navy|September|4|1972|June|8|2025|jongeorge170@hotmail.com
+DANIEL|GEIST|Army|September|26|1988|June|25|2025|danielgeist236@hotmail.com
+VICTOR|GIGLIETTE|Army|August|7|1972|August|8|2025|victorgigliette757@aol.com
+LISA|GENTRY|Navy|August|23|1970|August|28|2025|lisagentry663@hotmail.com
+JOHN|GEORGE|Army|May|3|1987|July|20|2025|johngeorge334@outlook.com
+JENNIFER|GHOLSON|Air Force|May|29|1971|August|31|2025|jennifergholson327@aol.com
+CHARLES|GERGELY|Army|February|2|1972|November|18|2025|charlesgergely776@gmail.com
+CHARLES|GILL|Navy|March|2|1973|November|23|2025|charlesgill252@icloud.com
+HENRY|GIBSON|Marine Corps|February|4|1980|November|2|2025|henrygibson907@outlook.com
+ERIK|GIGGLEMAN|Army|May|15|1992|November|21|2025|erikgiggleman398@gmail.com
+ROBERT|HAMDEN|Navy|July|11|1984|January|7|2025|roberthamden774@aol.com
+BRANDON|HALL|Army|February|14|1990|March|11|2025|brandonhall318@aol.com
+ANDREW|HAJNY|Navy|August|11|1986|February|11|2025|andrewhajny875@outlook.com
+DANIEL|HALL|Air Force|May|28|1974|February|7|2025|danielhall211@gmail.com
+KEITH|HAGOOD|Army|January|10|1972|May|31|2025|keithhagood409@outlook.com
+JOEY|HACKER|Army|March|28|1985|July|12|2025|joeyhacker207@icloud.com
+ERIC|HALL|Marine Corps|May|5|1973|February|4|2025|erichall294@icloud.com
+HUNTER|HAMILTON|Army|May|15|1996|March|9|2025|hunterhamilton399@outlook.com
+ERIC|HAISCH|Navy|June|29|1979|September|5|2025|erichaisch362@gmail.com
+JAMES|HAM|Navy|May|28|1971|October|17|2025|jamesham977@gmail.com
+SHAWN|HAM|Navy|April|16|1974|March|15|2025|shawnham518@yahoo.com
+DOMINIC|HAFEEZ|Air Force|April|26|1995|February|18|2025|dominichafeez336@icloud.com
+JAMES|HALL|Marine Corps|December|23|1979|February|4|2025|jameshall795@outlook.com
+JOVAN|HALL|Army|July|7|1985|April|7|2025|jovanhall626@gmail.com
+NATHAN|HALL|Marine Corps|June|17|1995|May|11|2025|nathanhall927@outlook.com
+CORBIN|HAMILTON|Navy|May|3|2003|May|31|2025|corbinhamilton141@yahoo.com
+LATASHIA|HAIRSTON|Army|July|9|1976|May|10|2025|latashiahairston519@gmail.com
+KENNETH|HAMBURG|Air Force|May|31|1982|May|17|2025|kennethhamburg518@icloud.com
+ASHLEIGH|HALTON|Army|October|1|1988|August|22|2025|ashleighhalton288@gmail.com
+ADAM|HAECK|Army|March|24|1976|August|28|2025|adamhaeck412@icloud.com
+ANDREW|HALL|Army|January|19|1976|November|5|2025|andrewhall692@icloud.com
+RAYMOND|HAMILTON|Army|November|1|1983|November|19|2025|raymondhamilton466@yahoo.com
+GERALD|HALEY|Army|January|31|1970|December|3|2025|geraldhaley338@gmail.com
+TIMOTHY|HALL|Army|June|15|1980|February|12|2025|timothyhall638@outlook.com
+TROY|HALL|Air Force|November|30|1988|June|28|2025|troyhall768@icloud.com
+PHILIP|HARBIN|Army|April|1|1981|June|11|2025|philipharbin882@gmail.com
+CHRISTOPHER|HARDING|Marine Corps|February|14|1996|June|19|2025|christopherharding152@yahoo.com
+ADAM|HANSHAW|Army|June|20|1990|August|28|2025|adamhanshaw534@aol.com
+CRAIG|HANDZEL|Army|May|17|1973|July|20|2025|craighandzel597@gmail.com
+TYLER|HANSEN|Army|May|30|1996|April|23|2025|tylerhansen786@outlook.com
+RAYMOND|HAMM|Navy|July|12|1970|October|22|2025|raymondhamm872@aol.com
+HUNTER|HARDAWAY|Marine Corps|January|20|1977|January|6|2025|hunterhardaway836@aol.com

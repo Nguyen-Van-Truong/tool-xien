@@ -1,0 +1,135 @@
+KEVIN|ABEL|Army|December|18|1962|December|1|2025|kevinabel149@yahoo.com
+TONY|ABEL|Air Force|July|9|1961|December|1|2025|tonyabel665@yahoo.com
+ROBERT|ABEL|Navy|April|2|1957|December|1|2025|robertabel298@outlook.com
+JOSEPH|ABEL|Marine Corps|May|23|1959|December|1|2025|josephabel166@gmail.com
+RUSSEL|ABEL|Army|April|25|1962|December|1|2025|russelabel535@outlook.com
+EDWARD|ABEL|Navy|December|16|1956|December|1|2025|edwardabel380@outlook.com
+CHRISTOPHER|ABELL|Air Force|February|14|1972|December|1|2025|christopherabell168@icloud.com
+DAVID|ABELL|Navy|July|4|1955|December|1|2025|davidabell995@hotmail.com
+DAVID|ABELL|Navy|April|2|1967|December|1|2025|davidabell843@outlook.com
+KENNETH|ABELES|Army|June|12|1957|December|1|2025|kennethabeles662@icloud.com
+ROBERT|ABELL|Air Force|July|31|1962|December|1|2025|robertabell222@hotmail.com
+JAMES|ABELL|Army|June|25|1960|December|1|2025|jamesabell337@icloud.com
+GILBERT|ABELL|Army|June|3|1955|December|1|2025|gilbertabell445@icloud.com
+VERNON|ABEL|Army|August|22|1958|December|1|2025|vernonabel988@outlook.com
+RANDALL|ABELL|Navy|July|28|1957|December|1|2025|randallabell338@hotmail.com
+THOMAS|ABELE|Navy|January|11|1965|December|1|2025|thomasabele366@hotmail.com
+JEFFREY|ABELDGAARD|Army|April|30|1956|December|1|2025|jeffreyabeldgaard968@aol.com
+DANIEL|ABELL|Army|October|5|1973|December|1|2025|danielabell584@outlook.com
+MICHAEL|ABELL|Army|October|8|1968|December|1|2025|michaelabell719@yahoo.com
+WILLIAM|ABEL|Army|March|16|1960|December|1|2025|williamabel679@gmail.com
+FREDERICK|ABELING|Army|July|17|1959|December|1|2025|frederickabeling650@hotmail.com
+jerry|abell|Army|February|23|1970|December|1|2025|jerryabell811@gmail.com
+WILLIAM|ABEL|Army|April|9|1955|December|1|2025|williamabel351@hotmail.com
+DANIEL|ABELL|Army|December|1|1971|December|1|2025|danielabell916@icloud.com
+MICHAEL|ABELL|Army|October|18|1957|December|1|2025|michaelabell484@hotmail.com
+ELLIOT|ABELAYE|Army|October|1|1959|December|1|2025|elliotabelaye745@outlook.com
+WAYNE|ABEL|Army|November|24|1955|December|1|2025|wayneabel794@gmail.com
+TRENT|ABEL|Marine Corps|April|25|1971|December|1|2025|trentabel203@outlook.com
+ROBERT|ABELL|Navy|June|17|1963|December|1|2025|robertabell447@icloud.com
+DAVID|ABELL|Navy|January|9|1958|December|1|2025|davidabell167@hotmail.com
+JASON|ABELL|Coast Guard|May|1|1971|December|1|2025|jasonabell607@outlook.com
+DANIEL|ABEN|Navy|August|8|1955|December|1|2025|danielaben797@gmail.com
+ARNI THADDEUS|ABELLA|Air Force|December|21|1962|December|1|2025|arni thaddeusabella113@yahoo.com
+SCOTT|ABELL|Navy|November|7|1958|December|1|2025|scottabell865@outlook.com
+TERRANCE|ABELL|Navy|May|2|1957|December|1|2025|terranceabell489@hotmail.com
+RUDY|ABENIDO|Air Force|November|9|1959|December|1|2025|rudyabenido957@outlook.com
+CHARLES|ABERCROMBIE|Army|June|25|1955|December|1|2025|charlesabercrombie648@aol.com
+BENJAMIN|ABERCROMBIE|Marine Corps|January|29|1957|December|1|2025|benjaminabercrombie470@gmail.com
+RHONDA|ABEN|Air Force|June|21|1963|December|1|2025|rhondaaben360@yahoo.com
+GEORGE|ABENDANO|Army|September|20|1956|December|1|2025|georgeabendano128@hotmail.com
+WILLIAM|ABELL|Army|January|25|1961|December|1|2025|williamabell976@aol.com
+JASON|ABENE|Navy|July|14|1975|December|1|2025|jasonabene865@hotmail.com
+JOSEPH|ABER|Army|July|25|1961|December|1|2025|josephaber501@aol.com
+SCOTT|ABER|Air Force|November|23|1962|December|1|2025|scottaber392@aol.com
+CHRISTOPHER|ABENDSCHEIN|Navy|June|4|1966|December|1|2025|christopherabendschein679@yahoo.com
+JOHNTHON|ABER|Army|October|22|1957|July|14|2025|johnthonaber180@outlook.com
+FRANCISCO|ABELLERA|Army|January|26|1955|December|1|2025|franciscoabellera433@aol.com
+BRYAN|ABERCROMBIE|Army|December|8|1980|December|1|2025|bryanabercrombie683@aol.com
+DAVID|ABELLA|Coast Guard|June|19|1977|December|1|2025|davidabella687@hotmail.com
+BRADLEY|ABELS|Air Force|September|16|1960|December|1|2025|bradleyabels690@yahoo.com
+JARED|ABELOW|Army|December|24|1981|December|1|2025|jaredabelow941@gmail.com
+RICHARD|ABER|Air Force|May|20|1957|December|1|2025|richardaber292@icloud.com
+ROBERT|ABELON|Navy|July|11|1956|December|1|2025|robertabelon909@gmail.com
+ARLENE|ABERCROMBIE|Army|March|22|1978|December|1|2025|arleneabercrombie370@hotmail.com
+BRANDON|ABERCROMBIE|Air Force|September|11|1991|December|1|2025|brandonabercrombie845@icloud.com
+RAMIRO|ABELLA|Army|May|1|1957|December|1|2025|ramiroabella109@hotmail.com
+JOHN|ABERCROMBIE|Marine Corps|July|7|1970|December|1|2025|johnabercrombie644@yahoo.com
+MICHAEL|ABERCROMBIE|Navy|January|21|1959|December|1|2025|michaelabercrombie682@yahoo.com
+JAMES|ABERCROMBIE|Air Force|October|16|1955|December|1|2025|jamesabercrombie581@outlook.com
+JACKIE|ABERCROMBIE|Army|May|14|1960|December|1|2025|jackieabercrombie285@hotmail.com
+PATRICIA|ABERCROMBIE|Marine Corps|May|2|1959|December|1|2025|patriciaabercrombie491@hotmail.com
+J|ABERCROMBIE|Air Force|September|11|1959|December|1|2025|jabercrombie711@aol.com
+KIRT|ABERNATHEY|Navy|June|22|1967|December|1|2025|kirtabernathey244@outlook.com
+MICHAEL|ABERCROMBIE|Air Force|July|29|1965|December|1|2025|michaelabercrombie536@aol.com
+SCOT|ABERCROMBIE|Navy|March|7|1959|December|1|2025|scotabercrombie572@yahoo.com
+HARRY|ABERCROMBIE|Army|April|2|1958|December|1|2025|harryabercrombie146@gmail.com
+DEYARIAN|ABERCROMBIE|Marine Corps|November|14|1986|December|1|2025|deyarianabercrombie173@gmail.com
+jacob|abercrombie|Navy|August|25|1981|December|1|2025|jacobabercrombie629@outlook.com
+LAWRENCE|ABERCROMBIE|Army|June|27|1958|December|1|2025|lawrenceabercrombie294@yahoo.com
+MICHAEL|ABERCROMBIE|Air Force|April|20|1956|December|1|2025|michaelabercrombie651@aol.com
+JACOB|ABERLE|Marine Corps|May|14|1989|December|1|2025|jacobaberle184@icloud.com
+DONALD|ABERCROMBIE|Air Force|November|11|1956|December|1|2025|donaldabercrombie138@gmail.com
+EDDIE|ABERCROMBIE|Army|March|2|1956|January|17|2025|eddieabercrombie384@outlook.com
+RUSSELL|ABEREGG|Army|April|5|1963|August|21|2025|russellaberegg571@yahoo.com
+MICHAEL|ABERNATHA|Army|January|23|1967|December|1|2025|michaelabernatha125@icloud.com
+LARRY|ABERCROMBIE|Marine Corps|November|4|1955|December|1|2025|larryabercrombie143@gmail.com
+SHANNON|ABERCROMBIE|Army|March|4|1971|December|1|2025|shannonabercrombie651@icloud.com
+WILLIE|ABERCROMBIE|Army|January|2|1964|December|1|2025|willieabercrombie230@gmail.com
+STEVEN|ABERLE|Army|March|27|1968|December|1|2025|stevenaberle299@outlook.com
+ervin|abercrombie|Army|October|9|1962|December|1|2025|ervinabercrombie583@aol.com
+RONNIE|ABERCROMBIE|Marine Corps|March|29|1955|December|1|2025|ronnieabercrombie114@icloud.com
+MARK|ABERNATHEY|Navy|February|6|1956|December|1|2025|markabernathey579@icloud.com
+GARY|ABERNATHY|Air Force|March|3|1955|December|1|2025|garyabernathy640@gmail.com
+GERALD|ABERNATHY|Army|August|22|1964|December|1|2025|geraldabernathy966@gmail.com
+MICHAEL|ABERNATHY|Army|July|31|1961|December|1|2025|michaelabernathy765@outlook.com
+ANTHONY|ABERNATHY|Navy|March|15|1964|December|1|2025|anthonyabernathy191@icloud.com
+MARSHALL|ABERNATHY|Army|August|22|1967|December|1|2025|marshallabernathy303@gmail.com
+JERRY|ABERNATHY|Army|February|28|1958|December|1|2025|jerryabernathy542@hotmail.com
+MARK|ABERNATHY|Navy|August|28|1958|December|1|2025|markabernathy192@hotmail.com
+JUSTIN|ABERNATHY|Air Force|September|12|1991|December|1|2025|justinabernathy492@hotmail.com
+COY|ABERNATHY|Army|June|22|1968|December|1|2025|coyabernathy806@yahoo.com
+ERROL|ABERNATHY|Army|September|20|1964|December|1|2025|errolabernathy321@outlook.com
+MICHAEL|ABERNATHY|Coast Guard|November|4|1957|April|26|2025|michaelabernathy944@aol.com
+BRIAN|ABERNATHY|Army|December|7|1976|December|1|2025|brianabernathy415@yahoo.com
+LESLIE|ABERNATHY|Navy|December|31|1972|December|1|2025|leslieabernathy181@outlook.com
+CARLO|ABERNATHY|Army|May|26|1968|December|1|2025|carloabernathy107@hotmail.com
+DAVID|ABERNATHY|Army|October|28|1960|December|1|2025|davidabernathy993@outlook.com
+CURTIS|ABERNATHY|Army|March|30|1989|December|1|2025|curtisabernathy158@aol.com
+CHRISTOPHER|ABERNATHY|Navy|October|4|1975|July|30|2025|christopherabernathy516@icloud.com
+LYNDON|ABERNATHY|Army|August|24|1963|December|1|2025|lyndonabernathy501@gmail.com
+ANTHONYE|ABERNATHY|Navy|May|7|1967|December|1|2025|anthonyeabernathy826@outlook.com
+ALFORD|ABERNATHY|Army|December|12|1955|December|1|2025|alfordabernathy411@yahoo.com
+FANNIE|ABERNATHY|Army|July|2|1964|December|1|2025|fannieabernathy439@gmail.com
+GARY|ABERNATHY|Navy|September|7|1957|December|1|2025|garyabernathy740@icloud.com
+MANDEL|ABERNATHY|Army|March|2|1958|December|1|2025|mandelabernathy321@gmail.com
+CHRISTOPHER|ABERNATHY|Navy|April|8|1965|December|1|2025|christopherabernathy523@hotmail.com
+GEORGE|ABEYOUNIS|Army|January|24|1955|December|1|2025|georgeabeyounis586@hotmail.com
+STEPHEN|ABERNATHY|Marine Corps|April|19|1977|December|1|2025|stephenabernathy671@gmail.com
+DAVID|ABEYTA|Marine Corps|August|16|1985|December|1|2025|davidabeyta398@outlook.com
+DARRELL|ABERNETHY|Army|January|6|1958|December|1|2025|darrellabernethy259@outlook.com
+TIMOTHY|ABERNATHY|Marine Corps|July|6|1956|December|1|2025|timothyabernathy905@hotmail.com
+WILLARD|ABERNATHY|Air Force|October|4|1960|December|1|2025|willardabernathy402@hotmail.com
+WILLIAM|ABERNATHY|Army|September|24|1958|December|1|2025|williamabernathy997@hotmail.com
+PAUL|ABERNATHY|Air Force|November|27|1960|December|1|2025|paulabernathy236@gmail.com
+DANIEL|ABEYTA|Army|June|14|1960|December|1|2025|danielabeyta376@outlook.com
+ANDRES|ABEYTA|Army|May|4|1955|December|1|2025|andresabeyta767@yahoo.com
+ROSS|ABERNATHY|Army|June|24|1957|December|1|2025|rossabernathy617@hotmail.com
+michael|abernethy|Air Force|January|27|1957|December|1|2025|michaelabernethy332@outlook.com
+ABEL|ABEYTA|Air Force|August|25|1993|December|1|2025|abelabeyta285@aol.com
+CHRISTINE|ABEYTA|Army|February|10|1960|December|1|2025|christineabeyta992@hotmail.com
+PHA|ABERNATHY|Army|December|8|1955|December|1|2025|phaabernathy239@aol.com
+CHARLES|ABERNETHY|Navy|February|2|1960|December|1|2025|charlesabernethy318@aol.com
+TIMOTHY|ABERNATHY|Army|January|9|1963|December|1|2025|timothyabernathy817@gmail.com
+DAVID|ABERNETHY|Air Force|January|12|1965|December|1|2025|davidabernethy212@yahoo.com
+CHRISTOPHER|ABEYTA|Army|April|10|1985|December|1|2025|christopherabeyta243@aol.com
+ROOSEVELT|ABERNATHY|Marine Corps|February|18|1958|December|1|2025|rooseveltabernathy814@aol.com
+TERRY|ABERNATHY|Air Force|November|5|1955|December|1|2025|terryabernathy907@yahoo.com
+BRUCE|ABERNETHY|Army|August|25|1963|December|1|2025|bruceabernethy579@hotmail.com
+MICHAEL|ABERNATHY|Army|May|26|1955|December|1|2025|michaelabernathy208@outlook.com
+VAL|ABERNATHY|Army|November|9|1963|December|1|2025|valabernathy249@outlook.com
+DAN|ABEYTA|Air Force|August|8|1955|December|1|2025|danabeyta121@hotmail.com
+DEO|ABIERA|Air Force|July|17|1961|December|1|2025|deoabiera671@outlook.com
+HENRY|ABEYTA|Army|September|1|1958|December|1|2025|henryabeyta561@outlook.com
+RUSSELL|ABEYTA|Army|October|25|1955|December|1|2025|russellabeyta704@gmail.com
+ISMAEL|ABILA|Army|June|8|1955|December|1|2025|ismaelabila696@outlook.com

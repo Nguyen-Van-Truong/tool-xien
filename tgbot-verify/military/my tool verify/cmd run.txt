@@ -1,0 +1,2 @@
+cd "E:\tool xien\tgbot-verify\military\my tool verify\v1"
+python verify_gui.py

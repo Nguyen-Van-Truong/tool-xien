@@ -1,0 +1,25 @@
+LARRY|IVERSON|Army|September|12|1945|January|8|2025|larryiverson123@gmail.com
+ERNEST|IVERSON|Navy|July|14|1951|February|8|2025|ernestiverson456@yahoo.com
+CLARENCE|IVERSON|Air Force|November|25|1936|March|24|2025|clarenceiverson789@gmail.com
+LARRY|IVERSON|Army|July|15|1939|April|7|2025|larryiverson234@hotmail.com
+JEFFREY|IVERSON|Army|February|2|1944|February|18|2025|jeffreyiverson567@gmail.com
+STEVEN|IVERSON|Air Force|September|21|1963|March|15|2025|steveniverson890@yahoo.com
+OREESE|IVERY|Army|December|30|1947|April|26|2025|oreeseivery123@gmail.com
+RICHARD|IVERSON|Navy|December|2|1938|July|29|2025|richardiverson456@hotmail.com
+CHRISTOPHER|IVERY|Air Force|December|26|1939|August|17|2025|christopherivery789@gmail.com
+JAMES|IVERY|Army|January|11|1949|May|23|2025|jamesivery234@yahoo.com
+MARK|IVERSON|Navy|March|23|1953|February|5|2025|markiverson567@gmail.com
+EPHRAIM|IVERSON|Air Force|November|5|1970|January|22|2025|ephraimiverson890@hotmail.com
+JOHN|IVERSON|Army|November|1|1959|February|12|2025|johniverson123@gmail.com
+RICHARD|IVARSON|Army|July|8|1942|February|21|2025|richardivarson456@yahoo.com
+ALFRED|IVERSON|Army|April|17|1936|January|31|2025|alfrediverson789@gmail.com
+DAVID|IVERSON|Army|April|27|1944|April|3|2025|davidiverson234@hotmail.com
+RONALD|IVERSON|Army|August|1|1949|March|26|2025|ronaldiverson567@gmail.com
+KEITH|IVERSON|Navy|March|30|1944|June|15|2025|keithiverson890@yahoo.com
+DONALD|IVERS|Marine Corps|November|15|1954|June|24|2025|donaldivers123@gmail.com
+ARTHUR|IVERSEN|Army|October|7|1933|July|11|2025|arthuriversen456@hotmail.com
+OSCAR|IVERSON|Army|September|17|1948|September|3|2025|oscariverson789@gmail.com
+JOHN|IVERSEN|Navy|March|26|1941|October|10|2025|johniversen234@yahoo.com
+ROLF|IVERSON|Navy|January|26|1946|October|20|2025|rolfiverson567@gmail.com
+ALFONSIA|IVERY|Air Force|September|7|1931|October|24|2025|alfonsiavery890@hotmail.com
+DANNY|IVERY|Marine Corps|October|23|1957|October|26|2025|dannyivery123@gmail.com
