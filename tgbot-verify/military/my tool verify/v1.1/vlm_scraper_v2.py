@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-🎖️ VLM API Scraper V1.1 - All Veterans (Stable Mode)
+🎖️ VLM API Scraper V2 - All Veterans (Session Reset Mode)
 Lấy tất cả veterans, với auto-retry mạnh mẽ cho server không ổn định
-+ Session Reset: Tự động tạo session mới khi gặp nhiều lỗi (như xóa cookies)
++ Session Reset: Tự động tạo session mới khi gặp nhiều lỗi (như xóa cookies/ẩn danh mới)
 """
 
 import httpx
@@ -18,8 +18,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ===================== CONFIG =====================
 API_URL = "https://www.vlm.cem.va.gov/api/v1.1/gcio/profile/search/advanced"
-MAX_RETRIES = 5  # Retry 5 times on server errors
-RETRY_DELAY = 3  # Wait 3 seconds between retries
+MAX_RETRIES = 3  # Retry 3 times per request
+RETRY_DELAY = 2  # Wait 2 seconds between retries
 REQUEST_DELAY = 2  # Wait 2 seconds between requests
 SESSION_RESET_THRESHOLD = 5  # Reset session after 5 consecutive server errors
 SESSION_RESET_WAIT = 60  # Wait 60 seconds after session reset
@@ -44,6 +44,15 @@ MONTH_MAP = {
 # Lock for thread-safe file writing
 file_lock = threading.Lock()
 
+# Random User-Agents để tránh bị phát hiện
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+]
+
 
 def generate_email(first_name: str, last_name: str) -> str:
     """Generate random email"""
@@ -63,34 +72,47 @@ def parse_date(date_str: str) -> tuple:
         return ("January", "1", "2025")
 
 
-def fetch_veterans(last_name: str, page: int = 1, dob_from: str = None):
-    """
-    Fetch veterans from API with auto-retry (5 attempts)
-    Returns: (status, list) - status can be 200, 502, etc. or None for network error
-    """
+class SessionManager:
+    """Quản lý HTTP session với khả năng reset (như xóa cookies)"""
     
-    params = {
-        "lastName": last_name,
-        "dobTo": "2025-12-31",
-        "limit": 25,
-        "orderby": "date_of_death",
-        "page": page
-    }
+    def __init__(self, letter: str):
+        self.letter = letter.upper()
+        self.client = None
+        self.session_count = 0
+        self.create_new_session()
     
-    if dob_from:
-        params["dobFrom"] = dob_from
+    def create_new_session(self):
+        """Tạo session mới (như mở tab ẩn danh mới)"""
+        if self.client:
+            try:
+                self.client.close()
+            except:
+                pass
+        
+        self.session_count += 1
+        self.client = httpx.Client(
+            timeout=60.0,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": random.choice(USER_AGENTS),
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+            }
+        )
+        print(f"[{self.letter}] 🆕 Session #{self.session_count} created (fresh cookies)")
     
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+    def reset_session(self):
+        """Reset session khi gặp nhiều lỗi (như xóa cookies và mở ẩn danh mới)"""
+        print(f"[{self.letter}] 🔄 Resetting session... waiting {SESSION_RESET_WAIT}s")
+        time.sleep(SESSION_RESET_WAIT)
+        self.create_new_session()
     
-    # Retry loop - 5 attempts
-    for attempt in range(MAX_RETRIES):
-        try:
-            with httpx.Client(timeout=60.0) as client:
-                response = client.post(API_URL, json=params, headers=headers)
+    def fetch(self, params: dict) -> tuple:
+        """Fetch với retry logic"""
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = self.client.post(API_URL, json=params)
                 status = response.status_code
                 
                 if status == 200:
@@ -99,22 +121,29 @@ def fetch_veterans(last_name: str, page: int = 1, dob_from: str = None):
                     veterans = resp.get("data", [])
                     return (200, veterans)
                 
-                # Server error (502, 503, 504) - retry
+                # Server error - retry
                 if status in [502, 503, 504]:
                     if attempt < MAX_RETRIES - 1:
-                        wait_time = RETRY_DELAY + attempt  # 3, 4, 5, 6, 7 seconds
-                        time.sleep(wait_time)
+                        time.sleep(RETRY_DELAY + attempt)
                         continue
                 
                 return (status, None)
                 
-        except Exception as e:
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(RETRY_DELAY)
-                continue
-            return (None, None)
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_DELAY)
+                    continue
+                return (None, None)
+        
+        return (None, None)
     
-    return (None, None)
+    def close(self):
+        """Close session"""
+        if self.client:
+            try:
+                self.client.close()
+            except:
+                pass
 
 
 def parse_veteran(vet: dict) -> dict:
@@ -188,17 +217,45 @@ def scrape_letter(letter: str, start_page: int, end_page: int, output_file: str,
     Returns: total veterans scraped
     """
     
+    session = SessionManager(letter)
+    
     total_veterans = 0
     batch_veterans = []
     consecutive_empty = 0
+    consecutive_errors = 0  # Track consecutive server errors
     
     for page in range(start_page, end_page + 1):
-        status, data = fetch_veterans(letter, page, dob_from)
+        params = {
+            "lastName": letter,
+            "dobTo": "2025-12-31",
+            "limit": 25,
+            "orderby": "date_of_death",
+            "page": page
+        }
         
-        # Server error after 5 retries - skip
+        if dob_from:
+            params["dobFrom"] = dob_from
+        
+        status, data = session.fetch(params)
+        
+        # Server error
         if status != 200:
-            print(f"[{letter.upper()}] Page {page}: Error {status} after {MAX_RETRIES} retries (skipping)")
-            continue
+            consecutive_errors += 1
+            print(f"[{letter.upper()}] Page {page}: Error {status} ({consecutive_errors}/{SESSION_RESET_THRESHOLD})")
+            
+            # Reset session after too many consecutive errors
+            if consecutive_errors >= SESSION_RESET_THRESHOLD:
+                session.reset_session()
+                consecutive_errors = 0
+                # Retry current page with new session
+                status, data = session.fetch(params)
+                if status != 200:
+                    print(f"[{letter.upper()}] Page {page}: Still error after reset, skipping")
+                    continue
+            else:
+                continue
+        
+        consecutive_errors = 0  # Reset error counter on success
         
         # Empty data (status 200 but no veterans)
         if len(data) == 0:
@@ -224,13 +281,14 @@ def scrape_letter(letter: str, start_page: int, end_page: int, output_file: str,
             print(f"[{letter.upper()}] 💾 Saved {len(batch_veterans)} veterans")
             batch_veterans = []
         
-        time.sleep(REQUEST_DELAY)  # Wait 2 seconds between requests
+        time.sleep(REQUEST_DELAY)  # Wait between requests
     
     # Save remaining
     if batch_veterans:
         save_veterans_threadsafe(batch_veterans, output_file)
         print(f"[{letter.upper()}] 💾 Saved {len(batch_veterans)} veterans")
     
+    session.close()
     return total_veterans
 
 
@@ -243,7 +301,7 @@ def scrape_letter_wrapper(args_tuple):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="VLM API Scraper V1.1 - Stable Mode")
+    parser = argparse.ArgumentParser(description="VLM API Scraper V2 - Session Reset Mode")
     parser.add_argument("-l", "--letter", default=None, help="Specific letter (a-z), or leave empty for all")
     parser.add_argument("-s", "--start", type=int, default=1, help="Start page (default: 1)")
     parser.add_argument("-e", "--end", type=int, default=100, help="End page (default: 100)")
@@ -257,7 +315,7 @@ def main():
     dob_from = f"{args.dob}-01-01" if args.dob else None
     
     print("=" * 60)
-    print("🎖️  VLM API SCRAPER V1.1 - STABLE MODE")
+    print("🎖️  VLM API SCRAPER V2 - SESSION RESET MODE")
     print("=" * 60)
     
     if args.letter:
@@ -271,8 +329,7 @@ def main():
     if dob_from:
         print(f"Birth year: {args.dob}+")
     print(f"Threads: {args.threads}")
-    print(f"Retries: {MAX_RETRIES} (delay: {RETRY_DELAY}s)")
-    print(f"Request delay: {REQUEST_DELAY}s")
+    print(f"Session reset: After {SESSION_RESET_THRESHOLD} errors, wait {SESSION_RESET_WAIT}s")
     print(f"Output: {args.output}")
     print("=" * 60)
     

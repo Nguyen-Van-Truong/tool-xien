@@ -4,18 +4,7 @@ python verify_gui.py
 
 
 cd "E:\tool xien\tgbot-verify\military\my tool verify\v1.1"
-python vlm_scraper.py
 
-python vlm_scraper.py -s 4 -e 20 -o new_veterans.txt --dob 1964 --clear
+python vlm_scraper.py -s 6 -e 35 -o new_veterans.txt --dob 1964 --clear -t 2
 
-# Start từ trang 5 thay vì trang 4
-python vlm_scraper.py -s 5
-
-# Giới hạn max 50 pages mỗi letter
-python vlm_scraper.py -m 50
-
-# Sinh từ 1965 trở đi
-python vlm_scraper.py --dob 1965-01-01
-
-# Lưu vào file khác
-python vlm_scraper.py -o new_veterans.txt
+python vlm_scraper_v2.py -s 6 -e 35 -o new_veterans_v2.txt --dob 1963 --clear -t 2
