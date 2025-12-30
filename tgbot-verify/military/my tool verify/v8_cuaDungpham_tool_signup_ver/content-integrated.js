@@ -98,11 +98,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     }));
                 }
             }
-            
+
             if (!chatgptAccount || !dataArray || dataArray.length === 0) {
                 throw new Error('Missing ChatGPT account or veterans data');
             }
-            
+
             currentDataIndex = 0;
             stats = { processed: 0, success: 0, failed: 0 };
             isRunning = true;
@@ -156,7 +156,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     stats = result['veterans-stats'];
                 }
                 isRunning = true;
-                
+
                 // Check current URL to determine which loop to start
                 const currentUrl = window.location.href;
                 setTimeout(() => {
@@ -355,7 +355,7 @@ async function startSignupLoop() {
                 (document.querySelector('textarea[placeholder*="Message"]') !== null) ||
                 !hasLoginLink
             );
-            
+
             if (isLoggedIn) {
                 sendStatus('✅ Already logged in and on veterans page, starting verify...', 'info');
                 // Mark as completed since already logged in
@@ -393,14 +393,14 @@ async function startSignupLoop() {
                 const text = (btn.innerText || btn.textContent || '').toLowerCase();
                 return text.includes('sign up') || text.includes('signup');
             });
-            
+
             const isLoggedIn = bodyText && (
                 bodyText.includes('New chat') ||
                 bodyText.includes('New conversation') ||
                 document.querySelector('textarea[placeholder*="Message"]') !== null ||
                 (!hasSignUpButton && !hasLoginLink)
             );
-            
+
             if (isLoggedIn) {
                 sendStatus('✅ Already logged in, navigating to veterans-claim...', 'info');
                 // Mark as completed since already logged in
@@ -966,7 +966,7 @@ async function handleAboutYou(data) {
 
         // Fill Birthday - React Aria DateField has separate segments for month, day, year
         // Need to fill each segment individually: month (2 digits), day (2 digits), year (4 digits)
-        
+
         const monthSegment = document.querySelector('[data-type="month"][role="spinbutton"]');
         const daySegment = document.querySelector('[data-type="day"][role="spinbutton"]');
         const yearSegment = document.querySelector('[data-type="year"][role="spinbutton"]');
@@ -986,11 +986,11 @@ async function handleAboutYou(data) {
             // Clear existing content by selecting all and deleting
             segment.textContent = '';
             segment.innerText = '';
-            
+
             // Type each digit one by one to simulate real user input
             for (let i = 0; i < value.length; i++) {
                 const digit = value[i];
-                
+
                 // Method 1: beforeinput event (React Aria listens to this)
                 const beforeInputEvent = new InputEvent('beforeinput', {
                     inputType: 'insertText',
@@ -1000,12 +1000,12 @@ async function handleAboutYou(data) {
                     composed: true
                 });
                 const beforeInputAllowed = segment.dispatchEvent(beforeInputEvent);
-                
+
                 if (beforeInputAllowed) {
                     // Method 2: Update text content
                     segment.textContent = (segment.textContent || '') + digit;
                     segment.innerText = (segment.innerText || '') + digit;
-                    
+
                     // Method 3: input event
                     const inputEvent = new InputEvent('input', {
                         inputType: 'insertText',
@@ -1015,7 +1015,7 @@ async function handleAboutYou(data) {
                         composed: true
                     });
                     segment.dispatchEvent(inputEvent);
-                    
+
                     // Method 4: Keyboard events for compatibility
                     const keydownEvent = new KeyboardEvent('keydown', {
                         key: digit,
@@ -1027,7 +1027,7 @@ async function handleAboutYou(data) {
                         composed: true
                     });
                     segment.dispatchEvent(keydownEvent);
-                    
+
                     const keypressEvent = new KeyboardEvent('keypress', {
                         key: digit,
                         code: `Digit${digit}`,
@@ -1038,7 +1038,7 @@ async function handleAboutYou(data) {
                         composed: true
                     });
                     segment.dispatchEvent(keypressEvent);
-                    
+
                     const keyupEvent = new KeyboardEvent('keyup', {
                         key: digit,
                         code: `Digit${digit}`,
@@ -1050,14 +1050,14 @@ async function handleAboutYou(data) {
                     });
                     segment.dispatchEvent(keyupEvent);
                 }
-                
+
                 await delay(100); // Delay between digits
             }
 
             // Dispatch change event to finalize
             const changeEvent = new Event('change', { bubbles: true, cancelable: true });
             segment.dispatchEvent(changeEvent);
-            
+
             // Blur to finalize
             await delay(200);
             segment.blur();
@@ -1130,45 +1130,45 @@ async function handleAboutYou(data) {
         if (continueButton) {
             // Lưu URL hiện tại để so sánh sau
             const initialUrl = window.location.href;
-            
+
             continueButton.click();
             sendStatus('✅ Clicked Continue, waiting for page to change...', 'info');
-            
+
             // Đợi và kiểm tra xem trang có chuyển không hoặc có xuất hiện trang survey không
             let surveyFound = false;
             let urlChanged = false;
             let attempts = 0;
             const maxAttempts = 20; // Tối đa 10 giây (20 * 500ms)
-            
+
             while (attempts < maxAttempts && !surveyFound && isRunning) {
                 attempts++;
                 await delay(500);
-                
+
                 // Kiểm tra URL có thay đổi không
                 const currentUrl = window.location.href;
                 if (currentUrl !== initialUrl) {
                     urlChanged = true;
                 }
-                
+
                 // Kiểm tra xem có trang survey "What brings you to ChatGPT?" không
                 // Kiểm tra bằng cách tìm text cụ thể trên trang
                 const pageText = document.body.innerText || document.body.textContent || '';
                 const pageTextLower = pageText.toLowerCase();
-                
+
                 // Tìm câu hỏi survey
                 const hasSurveyQuestion = pageTextLower.includes('what brings you to chatgpt');
-                
+
                 // Tìm các option của survey (School, Work, Personal tasks, Fun and entertainment, Other)
                 const hasSchool = pageTextLower.includes('school');
                 const hasWork = pageTextLower.includes('work') && !pageTextLower.includes('personal tasks'); // Tránh match "Personal tasks"
                 const hasPersonalTasks = pageTextLower.includes('personal tasks');
                 const hasFunEntertainment = pageTextLower.includes('fun and entertainment') || pageTextLower.includes('fun & entertainment');
                 const hasOther = pageTextLower.includes('other') && (pageTextLower.includes('school') || pageTextLower.includes('work'));
-                
+
                 // Cần có ít nhất 3 trong số các option này để xác định là trang survey
                 const surveyOptionsCount = [hasSchool, hasWork, hasPersonalTasks, hasFunEntertainment, hasOther].filter(Boolean).length;
                 const hasSurveyOptions = surveyOptionsCount >= 3;
-                
+
                 // Tìm nút "Next" và "Skip" (đặc trưng của trang survey)
                 const hasNextButton = Array.from(document.querySelectorAll('button')).some(btn => {
                     const text = (btn.innerText || btn.textContent || '').trim().toLowerCase();
@@ -1178,28 +1178,28 @@ async function handleAboutYou(data) {
                     const text = (el.innerText || el.textContent || '').trim().toLowerCase();
                     return text === 'skip';
                 });
-                
+
                 if (hasSurveyQuestion || (hasSurveyOptions && hasNextButton && hasSkipLink)) {
                     surveyFound = true;
                     sendStatus('✅ Signup successful! Reached survey page.', 'success');
                     break;
                 }
-                
+
                 // Log mỗi 5 lần thử
                 if (attempts % 5 === 0) {
                     sendStatus(`⏳ Checking signup result... (${attempts}/${maxAttempts})`, 'info');
                 }
             }
-            
+
             if (!isRunning) {
                 return;
             }
-            
+
             // Kiểm tra kết quả
             if (surveyFound) {
                 // Đăng ký thành công - đã đến trang survey
                 sendStatus('✅ Signup successful! Skipping survey and moving to verify...', 'success');
-                
+
                 // Try to skip survey if possible
                 try {
                     const skipButton = Array.from(document.querySelectorAll('a, button')).find(el => {
@@ -1213,16 +1213,16 @@ async function handleAboutYou(data) {
                 } catch (e) {
                     console.log('Could not skip survey, continuing...');
                 }
-                
+
                 // Mark signup as completed
                 chatgptAccount.signupCompleted = true;
                 chrome.storage.local.set({ 'chatgpt-account': chatgptAccount });
-                
+
                 // Navigate to veterans-claim page and start verify
                 sendStatus('🌐 Navigating to veterans-claim page...', 'info');
                 window.location.href = 'https://chatgpt.com/veterans-claim';
                 await delay(5000);
-                
+
                 // Start verify process
                 await startVerificationLoop();
                 return;
@@ -1234,7 +1234,7 @@ async function handleAboutYou(data) {
             } else {
                 // Không chuyển trang sau khi click Continue -> Lỗi
                 sendStatus('❌ Error: Page did not change after filling information', 'error');
-                
+
                 // Đánh dấu thất bại
                 stats.processed++;
                 stats.failed++;
@@ -1508,12 +1508,12 @@ async function handleOTPVerification(data) {
             // Mark signup as completed
             chatgptAccount.signupCompleted = true;
             chrome.storage.local.set({ 'chatgpt-account': chatgptAccount });
-            
+
             // Navigate to veterans-claim page and start verify
             sendStatus('🌐 Navigating to veterans-claim page...', 'info');
             window.location.href = 'https://chatgpt.com/veterans-claim';
             await delay(5000);
-            
+
             // Start verify process
             await startVerificationLoop();
             return;
@@ -1686,12 +1686,12 @@ function removeProcessedData(keepRunning = true) {
                     'veterans-data-list': updatedDataList,
                     'veterans-current-index': currentDataIndex
                 };
-                
+
                 // Only update 'veterans-is-running' if keepRunning is true
                 if (keepRunning) {
                     storageUpdate['veterans-is-running'] = true;
                 }
-                
+
                 // Update storage with new array and updated data list
                 chrome.storage.local.set(
                     storageUpdate,
@@ -1731,11 +1731,11 @@ async function startVerificationLoop() {
     const currentData = dataArray[currentDataIndex];
     mailRetryCount = 0; // Reset mail retry count for new data
     currentEmail = ''; // Reset email for new data (will be auto-generated)
-    
+
     // Calculate the correct position
     const originalTotal = stats.processed + dataArray.length;
     const currentPosition = stats.processed + 1;
-    
+
     sendStatus(
         `🔄 Verifying ${currentPosition}/${originalTotal}: ${currentData.first} ${currentData.last}`,
         'info'
@@ -1752,7 +1752,7 @@ async function startVerificationLoop() {
         // Check current URL
         const currentUrl = window.location.href;
         console.log('📍 Current URL:', currentUrl);
-        
+
         // Check for sourcesUnavailable error in URL
         if (currentUrl.includes('sourcesUnavailable') || currentUrl.includes('Error sourcesUnavailable')) {
             console.log('🚫 sourcesUnavailable error detected in URL, stopping tool...');
@@ -1771,20 +1771,20 @@ async function startVerificationLoop() {
             // Đang ở trang SheerID - KHÔNG được redirect, phải điền form
             console.log('✅ On SheerID page, MUST fill form - NOT redirecting!');
             sendStatus('✅ On verification page, filling form...', 'info');
-            
+
             // Auto-generate email if not already set
             if (!currentEmail) {
                 console.log('📧 Generating new email...');
                 await generateNewEmail();
             }
-            
+
             console.log('📝 Starting to fill form...');
             // Directly call checkAndFillForm - this should fill the form
             await checkAndFillForm();
             // IMPORTANT: Do NOT call anything after checkAndFillForm if still on SheerID
             return; // Exit here, checkAndFillForm will handle everything
-        } 
-        
+        }
+
         // If on ChatGPT veterans-claim page, click verify button
         if (currentUrl.includes('chatgpt.com/veterans-claim')) {
             // Step 1: Click verify button
@@ -1793,7 +1793,7 @@ async function startVerificationLoop() {
             // clickVerifyButton will handle redirect to SheerID
             return;
         }
-        
+
         // If on other ChatGPT pages, navigate to veterans-claim
         if (currentUrl.includes('chatgpt.com')) {
             console.log('🌐 On ChatGPT page, navigating to veterans-claim...');
@@ -1802,7 +1802,7 @@ async function startVerificationLoop() {
             await startVerificationLoop();
             return;
         }
-        
+
         // If on other pages, navigate to veterans-claim
         console.log('🌐 Unknown page, navigating to ChatGPT veterans-claim page...');
         window.location.href = 'https://chatgpt.com/veterans-claim';
@@ -1815,9 +1815,9 @@ async function startVerificationLoop() {
             console.log('⏹️ Tool stopped during error handling, exiting');
             return;
         }
-        
+
         console.error('❌ Error in verification loop:', error);
-        
+
         // Extract error message
         let errorMessage = 'Unknown error';
         if (error) {
@@ -1829,16 +1829,16 @@ async function startVerificationLoop() {
                 errorMessage = String(error);
             }
         }
-        
+
         // Check if it's a Status-related error (CRITICAL - must stop)
-        const isStatusError = errorMessage.toLowerCase().includes('status') || 
-                             errorMessage.toLowerCase().includes('không tìm thấy');
-        
+        const isStatusError = errorMessage.toLowerCase().includes('status') ||
+            errorMessage.toLowerCase().includes('không tìm thấy');
+
         // Status errors are critical - stop tool immediately
         if (isStatusError) {
             console.log('🚫 Critical Status error detected in verification loop, stopping tool...');
-            const finalStatusMsg = errorMessage.toLowerCase().includes('❌') 
-                ? errorMessage 
+            const finalStatusMsg = errorMessage.toLowerCase().includes('❌')
+                ? errorMessage
                 : '❌ Lỗi nghiêm trọng: ' + errorMessage;
             sendStatus(finalStatusMsg, 'error');
             await delay(100);
@@ -1847,7 +1847,7 @@ async function startVerificationLoop() {
             updateUIOnStop();
             return;
         }
-        
+
         // For other errors, stop tool
         sendStatus('❌ Error: ' + errorMessage, 'error');
         isRunning = false;
@@ -1862,7 +1862,7 @@ async function generateNewEmail() {
         console.log('⏹️ Tool stopped, exiting generateNewEmail');
         return;
     }
-    
+
     try {
         sendStatus('📧 Generating new email...', 'info');
 
@@ -1934,12 +1934,12 @@ async function clickVerifyButton() {
         console.log('⏹️ Tool stopped, exiting clickVerifyButton');
         return;
     }
-    
+
     sendStatus('🔍 Looking for verify button...', 'info');
     await delay(2000);
-    
+
     if (!isRunning) return;
-    
+
     let button = null;
     let attempts = 0;
     const maxAttempts = 10;
@@ -1947,7 +1947,7 @@ async function clickVerifyButton() {
     while (attempts < maxAttempts && !button) {
         attempts++;
         const buttons = document.querySelectorAll('button.btn-primary, button[class*="btn-primary"]');
-        
+
         for (let btn of buttons) {
             const buttonText = btn.innerText || btn.textContent || '';
             if (buttonText.includes('Xác minh tư cách đủ điều kiện') ||
@@ -1982,16 +1982,16 @@ async function clickVerifyButton() {
         console.log('✅ Clicking verify/claim button...');
         button.click();
         sendStatus('✅ Clicked verify button, waiting for redirect...', 'success');
-        
+
         // Wait for redirect to SheerID - check URL change with better logic
         let urlChanged = false;
         let attempts = 0;
         const maxWaitAttempts = 30; // 30 seconds max
-        
+
         while (attempts < maxWaitAttempts && !urlChanged && isRunning) {
             attempts++;
             await delay(1000);
-            
+
             const currentUrl = window.location.href;
             if (currentUrl.includes('services.sheerid.com')) {
                 urlChanged = true;
@@ -1999,12 +1999,12 @@ async function clickVerifyButton() {
                 break;
             }
         }
-        
+
         if (!isRunning) {
             console.log('⏹️ Tool stopped during redirect wait');
             return;
         }
-        
+
         if (!urlChanged) {
             console.log('⚠️ URL did not change to SheerID after clicking, checking...');
             const finalUrl = window.location.href;
@@ -2015,19 +2015,19 @@ async function clickVerifyButton() {
                 return;
             }
         }
-        
+
         await delay(3000); // Wait for page to fully load
         if (!isRunning) return;
-        
+
         // Generate email if not already set
         if (!currentEmail) {
             await generateNewEmail();
             if (!isRunning) return;
         }
-        
+
         await delay(1000);
         if (!isRunning) return;
-        
+
         // Now fill the form
         await checkAndFillForm();
     } else {
@@ -2040,12 +2040,12 @@ async function checkAndFillForm() {
         console.log('⏹️ Tool stopped, exiting checkAndFillForm');
         return;
     }
-    
+
     sendStatus('🔍 Checking verification page...', 'info');
     await delay(3000);
-    
+
     if (!isRunning) return;
-    
+
     const currentUrl = window.location.href;
     if (currentUrl.includes('sourcesUnavailable') || currentUrl.includes('Error sourcesUnavailable')) {
         isRunning = false;
@@ -2059,7 +2059,7 @@ async function checkAndFillForm() {
         const errorDiv = document.querySelector('.sid-error-msg');
         if (errorDiv) {
             const errorText = errorDiv.innerText || errorDiv.textContent || '';
-            
+
             if (errorText.includes('We are unable to verify you at this time') ||
                 errorText.includes('unable to verify you') ||
                 errorText.includes('contact SheerID support') ||
@@ -2098,11 +2098,11 @@ async function checkAndFillForm() {
 
                 await delay(2000);
                 if (!isRunning) return;
-                
+
                 window.location.href = 'https://chatgpt.com/veterans-claim';
                 await delay(5000);
                 if (!isRunning) return;
-                
+
                 await startVerificationLoop();
                 return;
             }
@@ -2123,7 +2123,7 @@ async function checkAndFillForm() {
             // If we're on ChatGPT page, let verification loop handle it
             return;
         }
-        
+
         console.log('✅ Confirmed on SheerID page, proceeding to fill form...');
 
         let heading = null;
@@ -2160,14 +2160,14 @@ async function checkAndFillForm() {
                 bodyText.includes('Verification Limit Exceeded') ||
                 bodyText.includes('limit exceeded') ||
                 bodyText.includes('Error')) {
-                
+
                 const errorType = bodyText.includes('Not approved') ? 'Not approved' :
-                                 bodyText.includes('Verification Limit Exceeded') || bodyText.includes('limit exceeded') ? 'Verification Limit Exceeded' :
-                                 'Error';
-                
+                    bodyText.includes('Verification Limit Exceeded') || bodyText.includes('limit exceeded') ? 'Verification Limit Exceeded' :
+                        'Error';
+
                 console.log(`❌ ${errorType} detected in body text, moving to next data...`);
                 sendStatus(`❌ ${errorType}, trying next data...`, 'info');
-                
+
                 if (currentDataIndex + 1 >= dataArray.length) {
                     isRunning = false;
                     chrome.storage.local.set({ 'veterans-is-running': false });
@@ -2191,15 +2191,15 @@ async function checkAndFillForm() {
 
                 await delay(2000);
                 if (!isRunning) return;
-                
+
                 // Reset email for new data
                 currentEmail = '';
                 mailRetryCount = 0;
-                
+
                 window.location.href = 'https://chatgpt.com/veterans-claim';
                 await delay(5000);
                 if (!isRunning) return;
-                
+
                 await startVerificationLoop();
                 return;
             }
@@ -2215,13 +2215,13 @@ async function checkAndFillForm() {
                 updateUIOnStop();
                 return;
             }
-            
+
             if (bodyText.includes('Check your email')) {
                 sendStatus('📧 Email check page detected, reading mail...', 'info');
                 await readMailAndVerify();
                 return;
             }
-            
+
             // Try to find form directly - this is important!
             const formExists = document.querySelector('#sid-military-status + button');
             if (formExists) {
@@ -2233,7 +2233,7 @@ async function checkAndFillForm() {
                 await fillForm();
                 return;
             }
-            
+
             // If form not found, try to wait a bit more
             sendStatus('⏳ Form not found yet, waiting...', 'info');
             await delay(3000);
@@ -2245,7 +2245,7 @@ async function checkAndFillForm() {
                 await fillForm();
                 return;
             }
-            
+
             throw new Error('Page heading not found and form not detected on SheerID page');
         }
 
@@ -2259,19 +2259,19 @@ async function checkAndFillForm() {
             sendStatus('📧 Email check page detected, reading mail...', 'info');
             await readMailAndVerify();
         } else if (headingText.includes('We are unable to verify you at this time') ||
-                   headingText.includes('unable to verify you') ||
-                   headingText.includes('sourcesUnavailable') ||
-                   headingText.toLowerCase().includes('sources unavailable')) {
+            headingText.includes('unable to verify you') ||
+            headingText.includes('sourcesUnavailable') ||
+            headingText.toLowerCase().includes('sources unavailable')) {
             isRunning = false;
             chrome.storage.local.set({ 'veterans-is-running': false });
             sendStatus('🚫 VPN/PROXY Error: Unable to verify. Please change VPN/PROXY and restart.', 'error');
             return;
         } else if (headingText.includes('Verification Limit Exceeded') ||
-                   headingText.includes('limit exceeded')) {
+            headingText.includes('limit exceeded')) {
             // Verification Limit Exceeded - try next data (same as Not approved)
             console.log('❌ Verification Limit Exceeded detected, moving to next data...');
             sendStatus('❌ Verification Limit Exceeded, trying next data...', 'info');
-            
+
             // Check if there's more data
             if (currentDataIndex + 1 >= dataArray.length) {
                 isRunning = false;
@@ -2280,40 +2280,40 @@ async function checkAndFillForm() {
                 sendStatus('❌ All data failed, no more to try', 'error');
                 return;
             }
-            
+
             // Remove processed data and move to next
             removeProcessedData();
             stats.processed++;
             stats.failed++;
             updateStats();
-            
+
             chrome.storage.local.set({
                 'veterans-current-index': currentDataIndex,
                 'veterans-is-running': true
             });
-            
+
             const originalTotal = stats.processed + dataArray.length;
             const nextPosition = stats.processed + 1;
             sendStatus(`🔄 Trying next data: ${nextPosition}/${originalTotal}`, 'info');
-            
+
             await delay(2000);
             if (!isRunning) return;
-            
+
             // Reset email for new data
             currentEmail = '';
             mailRetryCount = 0;
-            
+
             window.location.href = 'https://chatgpt.com/veterans-claim';
             await delay(5000);
             if (!isRunning) return;
-            
+
             await startVerificationLoop();
             return;
         } else if (headingText.includes('Error')) {
             // Generic Error - also try next data (don't stop unless VPN error)
             console.log('❌ Error detected, moving to next data...');
             sendStatus('❌ Error detected, trying next data...', 'info');
-            
+
             // Check if there's more data
             if (currentDataIndex + 1 >= dataArray.length) {
                 isRunning = false;
@@ -2322,33 +2322,33 @@ async function checkAndFillForm() {
                 sendStatus('❌ All data failed, no more to try', 'error');
                 return;
             }
-            
+
             // Remove processed data and move to next
             removeProcessedData();
             stats.processed++;
             stats.failed++;
             updateStats();
-            
+
             chrome.storage.local.set({
                 'veterans-current-index': currentDataIndex,
                 'veterans-is-running': true
             });
-            
+
             const originalTotal = stats.processed + dataArray.length;
             const nextPosition = stats.processed + 1;
             sendStatus(`🔄 Trying next data: ${nextPosition}/${originalTotal}`, 'info');
-            
+
             await delay(2000);
             if (!isRunning) return;
-            
+
             // Reset email for new data
             currentEmail = '';
             mailRetryCount = 0;
-            
+
             window.location.href = 'https://chatgpt.com/veterans-claim';
             await delay(5000);
             if (!isRunning) return;
-            
+
             await startVerificationLoop();
             return;
         } else if (headingText.includes('verified') || headingText.includes("You've been verified")) {
@@ -2373,7 +2373,7 @@ async function checkAndFillForm() {
             } else {
                 // Unknown heading but we're on SheerID - must find form
                 sendStatus('⚠️ Unknown page state: ' + headingText + '. Searching for form...', 'info');
-                
+
                 // Double check we're still on SheerID
                 const urlCheck = window.location.href;
                 if (!urlCheck.includes('services.sheerid.com')) {
@@ -2383,11 +2383,11 @@ async function checkAndFillForm() {
                     await startVerificationLoop();
                     return;
                 }
-                
+
                 // Wait and try to find form
                 await delay(3000);
                 if (!isRunning) return;
-                
+
                 const formExistsRetry = document.querySelector('#sid-military-status + button');
                 if (formExistsRetry) {
                     sendStatus('✅ Found form after waiting, filling...', 'success');
@@ -2404,7 +2404,7 @@ async function checkAndFillForm() {
         }
     } catch (error) {
         if (!isRunning) return;
-        
+
         let errorMessage = 'Unknown error';
         if (error) {
             if (typeof error === 'string') {
@@ -2415,10 +2415,10 @@ async function checkAndFillForm() {
                 errorMessage = String(error);
             }
         }
-        
-        const isStatusError = errorMessage.toLowerCase().includes('status') || 
-                             errorMessage.toLowerCase().includes('không tìm thấy');
-        
+
+        const isStatusError = errorMessage.toLowerCase().includes('status') ||
+            errorMessage.toLowerCase().includes('không tìm thấy');
+
         if (isStatusError) {
             sendStatus('❌ ' + errorMessage, 'error');
             await delay(100);
@@ -2427,11 +2427,11 @@ async function checkAndFillForm() {
             updateUIOnStop();
             return;
         }
-        
+
         sendStatus(`❌ Lỗi khi kiểm tra trang: ${errorMessage}`, 'error');
         await delay(2000);
         if (!isRunning) return;
-        
+
         const formExists = document.querySelector('#sid-military-status + button');
         if (formExists) {
             sendStatus('✅ Found form on retry, filling...', 'success');
@@ -2449,7 +2449,7 @@ async function fillForm() {
         console.log('⏹️ Tool stopped, exiting fillForm');
         return;
     }
-    
+
     if (!dataArray || dataArray.length === 0 || currentDataIndex >= dataArray.length) {
         sendStatus('❌ No data available', 'error');
         return;
@@ -2462,11 +2462,11 @@ async function fillForm() {
     const monthName = data.month.trim();
     const day = data.day.trim();
     const year = data.year.trim();
-    
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                        'July', 'August', 'September', 'October', 'November', 'December'];
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
     const monthIndex = monthNames.findIndex(m => m.toLowerCase() === monthName.toLowerCase());
-    
+
     if (monthIndex === -1) {
         throw new Error('Invalid month name: ' + monthName);
     }
@@ -2474,55 +2474,62 @@ async function fillForm() {
     try {
         sendStatus('📝 Selecting status...', 'info');
         if (!isRunning) return;
-        
-        const statusButton = await waitForElement('#sid-military-status + button', 10000).catch((error) => {
+
+        // Wait for page to fully load before looking for status button
+        await delay(2000);
+        if (!isRunning) return;
+
+        // Try to find status button - if not found, SKIP and continue with other fields
+        let statusButton = null;
+        let statusSkipped = false;
+
+        statusButton = await waitForElement('#sid-military-status + button', 10000).catch((error) => {
             if (error === 'Tool stopped') return null;
-            sendStatus('❌ NOT FOUND STATUS MENU. Có thể trang chưa load xong.', 'error');
-            isRunning = false;
-            chrome.storage.local.set({ 'veterans-is-running': false });
-            updateUIOnStop();
+            console.log('⚠️ Status button not found, will skip status selection');
             return null;
         });
-        
-        if (!isRunning || !statusButton) return;
-        
-        let statusItem = document.getElementById('sid-military-status-item-1');
-        const menuAlreadyOpen = statusItem !== null && statusItem.offsetParent !== null;
-        
-        if (!menuAlreadyOpen) {
-            statusButton.click();
-            await waitForElement('#sid-military-status-item-1', 10000).catch((error) => {
-                if (error === 'Tool stopped') return null;
-                sendStatus('❌ NOT FOUND STATUS MENU.', 'error');
-                isRunning = false;
-                chrome.storage.local.set({ 'veterans-is-running': false });
-                updateUIOnStop();
-                return null;
-            });
-            if (!isRunning) return;
+
+        if (!isRunning) return;
+
+        if (statusButton) {
+            // Status button found - try to select status
+            let statusItem = document.getElementById('sid-military-status-item-1');
+            const menuAlreadyOpen = statusItem !== null && statusItem.offsetParent !== null;
+
+            if (!menuAlreadyOpen) {
+                statusButton.click();
+                await waitForElement('#sid-military-status-item-1', 5000).catch(() => null);
+                if (!isRunning) return;
+                await delay(1000);
+                statusItem = document.getElementById('sid-military-status-item-1');
+            } else {
+                await delay(500);
+            }
+
+            if (statusItem) {
+                const statusButtonText = statusButton.innerText || statusButton.textContent || '';
+                const isAlreadySelected = statusButtonText.toLowerCase().includes('veteran') ||
+                    statusButtonText.toLowerCase().includes('retiree');
+
+                if (!isAlreadySelected) {
+                    statusItem.click();
+                    await delay(3000);
+                } else {
+                    await delay(1000);
+                }
+                sendStatus('✅ Status selected', 'success');
+            } else {
+                console.log('⚠️ Status item not found after clicking, skipping status selection');
+                statusSkipped = true;
+            }
+        } else {
+            console.log('⚠️ No status button found, skipping status selection');
+            statusSkipped = true;
+        }
+
+        if (statusSkipped) {
+            sendStatus('⚠️ Status menu not found, continuing with other fields...', 'info');
             await delay(1000);
-            statusItem = document.getElementById('sid-military-status-item-1');
-        } else {
-            await delay(500);
-        }
-        
-        if (!statusItem) {
-            sendStatus('❌ NOT FOUND STATUS MENU.', 'error');
-            isRunning = false;
-            chrome.storage.local.set({ 'veterans-is-running': false });
-            updateUIOnStop();
-            return;
-        }
-        
-        const statusButtonText = statusButton.innerText || statusButton.textContent || '';
-        const isAlreadySelected = statusButtonText.toLowerCase().includes('veteran') || 
-                                  statusButtonText.toLowerCase().includes('retiree');
-        
-        if (!isAlreadySelected) {
-            statusItem.click();
-            await delay(3000);
-        } else {
-            await delay(3000);
         }
 
         sendStatus('📝 Selecting branch...', 'info');
@@ -2533,16 +2540,16 @@ async function fillForm() {
         await delay(1000);
         const branchItems = document.querySelectorAll('#sid-branch-of-service-menu .sid-input-select-list__item');
         if (branchItems.length === 0) throw new Error('Branch items not found');
-        
+
         let matched = false;
         const branchUpper = branch.toUpperCase().trim();
         const branchNoPrefix = branchUpper.replace(/^US\s+/, '');
-        
+
         for (let item of branchItems) {
             let itemText = item.innerText.toUpperCase().trim();
             const itemTextNoPrefix = itemText.replace(/^US\s+/, '');
-            
-            if (itemText === branchUpper || 
+
+            if (itemText === branchUpper ||
                 itemTextNoPrefix === branchNoPrefix ||
                 itemText.includes(branchUpper) ||
                 branchUpper.includes(itemTextNoPrefix) ||
@@ -2641,7 +2648,7 @@ async function fillForm() {
         await checkAndFillForm();
     } catch (error) {
         if (!isRunning) return;
-        
+
         let errorMessage = 'Unknown error';
         if (error) {
             if (typeof error === 'string') {
@@ -2652,10 +2659,10 @@ async function fillForm() {
                 errorMessage = String(error);
             }
         }
-        
-        const isStatusError = errorMessage.toLowerCase().includes('status') || 
-                             errorMessage.toLowerCase().includes('không tìm thấy');
-        
+
+        const isStatusError = errorMessage.toLowerCase().includes('status') ||
+            errorMessage.toLowerCase().includes('không tìm thấy');
+
         if (isStatusError) {
             sendStatus('❌ ' + errorMessage, 'error');
             await delay(100);
@@ -2664,7 +2671,7 @@ async function fillForm() {
             updateUIOnStop();
             return;
         }
-        
+
         sendStatus(`❌ Lỗi khi điền form: ${errorMessage}`, 'error');
         throw error;
     }
@@ -2675,7 +2682,7 @@ async function readMailAndVerify() {
         console.log('⏹️ Tool stopped, exiting readMailAndVerify');
         return;
     }
-    
+
     try {
         sendStatus('📧 Reading emails...', 'info');
 
@@ -2740,18 +2747,18 @@ async function readMailAndVerify() {
 
         if (verificationLink) {
             if (!isRunning) return;
-            
+
             sendStatus('✅ Verification link found, opening...', 'success');
             mailRetryCount = 0;
             window.location.href = verificationLink;
             await delay(5000);
-            
+
             if (!isRunning) return;
-            
+
             await checkAndFillForm();
         } else {
             if (!isRunning) return;
-            
+
             mailRetryCount++;
             if (mailRetryCount >= MAX_MAIL_RETRIES) {
                 sendStatus('❌ Max retries reached, stopping tool', 'error');
@@ -2763,14 +2770,14 @@ async function readMailAndVerify() {
             }
             sendStatus(`⚠️ No verification link found, retrying... (${mailRetryCount}/${MAX_MAIL_RETRIES})`, 'info');
             await delay(5000);
-            
+
             if (!isRunning) return;
-            
+
             await readMailAndVerify();
         }
     } catch (error) {
         if (!isRunning) return;
-        
+
         console.error('Error reading mail:', error);
         mailRetryCount++;
         if (mailRetryCount >= MAX_MAIL_RETRIES) {
@@ -2783,9 +2790,9 @@ async function readMailAndVerify() {
         }
         sendStatus(`❌ Error reading mail, retrying... (${mailRetryCount}/${MAX_MAIL_RETRIES}): ` + error.message, 'error');
         await delay(5000);
-        
+
         if (!isRunning) return;
-        
+
         await readMailAndVerify();
     }
 }
