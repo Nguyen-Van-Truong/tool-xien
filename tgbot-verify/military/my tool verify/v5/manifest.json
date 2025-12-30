@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Military Auto Verify V3",
+  "version": "3.0.0",
+  "description": "Auto verify military status - Side Panel mode with real-time updates",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab",
+    "notifications",
+    "cookies",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://services.sheerid.com/*",
+    "https://*.sheerid.com/*",
+    "https://tools.dongvanfb.net/*"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": [
+        "content/veterans-claim.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://services.sheerid.com/*",
+        "https://*.sheerid.com/*"
+      ],
+      "js": [
+        "content/sheerid-form.js",
+        "content/sheerid-verify.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

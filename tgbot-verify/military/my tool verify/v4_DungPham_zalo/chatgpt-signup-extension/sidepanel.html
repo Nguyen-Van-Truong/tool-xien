@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Auto Signup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e4e4e7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 16px;
+        }
+
+        #signup-extension-panel {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            color: #e4e4e7;
+        }
+        
+        .signup-panel-header {
+            padding: 16px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(30, 30, 46, 0.5);
+        }
+        
+        .signup-panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .signup-panel-content {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .signup-status-section {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(30, 30, 46, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .signup-status-label {
+            font-size: 11px;
+            color: #a1a1aa;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .signup-status-text {
+            font-size: 13px;
+            color: #e4e4e7;
+            word-break: break-word;
+        }
+        
+        .signup-status-text.success {
+            color: #34d399;
+        }
+        
+        .signup-status-text.error {
+            color: #f87171;
+        }
+        
+        .signup-stats-section {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(30, 30, 46, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .signup-stats-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .signup-stats-item:last-child {
+            border-bottom: none;
+        }
+        
+        .signup-stats-label {
+            font-size: 12px;
+            color: #a1a1aa;
+        }
+        
+        .signup-stats-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .signup-stats-value.success {
+            color: #34d399;
+        }
+        
+        .signup-stats-value.error {
+            color: #f87171;
+        }
+        
+        .signup-form-section {
+            margin-bottom: 16px;
+        }
+        
+        .signup-form-label {
+            display: block;
+            font-size: 11px;
+            color: #a1a1aa;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .signup-file-buttons {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .signup-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex: 1;
+        }
+        
+        .signup-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            filter: brightness(1.1);
+        }
+        
+        .signup-btn:active {
+            transform: translateY(0);
+        }
+        
+        .signup-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .signup-btn-load {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .signup-btn-save {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .signup-start-stop-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .signup-btn-start {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            font-weight: 700;
+            font-size: 12px;
+        }
+        
+        .signup-btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            border-color: rgba(107, 114, 128, 0.3);
+        }
+        
+        .signup-btn-start:disabled:hover {
+            transform: none;
+            box-shadow: none;
+            filter: none;
+        }
+        
+        .signup-btn-stop {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            font-weight: 700;
+            font-size: 12px;
+        }
+        
+        .signup-btn-stop:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            border-color: rgba(107, 114, 128, 0.3);
+        }
+        
+        .signup-btn-stop:disabled:hover {
+            transform: none;
+            box-shadow: none;
+            filter: none;
+        }
+        
+        .signup-data-info {
+            font-size: 11px;
+            color: #34d399;
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 4px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: none;
+        }
+        
+        .signup-data-info.show {
+            display: block;
+        }
+        
+        .signup-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(30, 30, 46, 0.6);
+            color: #e4e4e7;
+            font-size: 11px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        
+        .signup-input:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(30, 30, 46, 0.8);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .signup-input::placeholder {
+            color: #71717a;
+        }
+        
+        .signup-input[readonly] {
+            cursor: not-allowed;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .signup-form-section {
+            margin-bottom: 16px;
+        }
+        
+        .signup-api-section {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(30, 30, 46, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .signup-api-label {
+            font-size: 11px;
+            color: #a1a1aa;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .signup-api-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(30, 30, 46, 0.6);
+            color: #e4e4e7;
+            font-size: 11px;
+            font-family: inherit;
+        }
+        
+        .signup-api-input:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(30, 30, 46, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div id="signup-extension-panel">
+        <div class="signup-panel-header">
+            <div class="signup-panel-title">
+                <span>ChatGPT Auto Signup</span>
+                <span><i><font size="1">Version 1.0.0</font></i></span>
+            </div>
+        </div>
+        <div class="signup-panel-content">
+            <div class="signup-form-section">
+                <label class="signup-form-label">Data List</label>
+                <div class="signup-file-buttons">
+                    <input type="file" id="signup-file-input" accept=".txt" style="display: none;" />
+                    <button id="signup-load-btn" class="signup-btn signup-btn-load">📁 Load File</button>
+                    <button id="signup-save-btn" class="signup-btn signup-btn-save">💾 Save</button>
+                </div>
+                <div class="signup-data-info" id="signup-data-info">
+                    <span id="signup-data-count">0</span> accounts loaded
+                </div>
+            </div>
+            
+            <div class="signup-api-section" style="display: none;">
+                <label class="signup-api-label">API Endpoint (for OTP) - Không cần thiết nữa</label>
+                <input type="text" id="signup-api-input" class="signup-api-input" placeholder="Sử dụng dongvanfb.net API" disabled />
+                <div style="font-size: 10px; color: #71717a; margin-top: 4px;">
+                    Extension sẽ tự động sử dụng API dongvanfb.net để đọc email
+                </div>
+            </div>
+            
+            <div class="signup-form-section">
+                <div class="signup-start-stop-row">
+                    <button id="signup-start-btn" class="signup-btn signup-btn-start" disabled>▶️ Start Signup</button>
+                    <button id="signup-stop-btn" class="signup-btn signup-btn-stop" disabled>⏹️ Stop</button>
+                </div>
+            </div>
+            
+            <div class="signup-status-section">
+                <div class="signup-status-label">Status:</div>
+                <div id="signup-panel-status" class="signup-status-text">Ready</div>
+            </div>
+            
+            <div class="signup-stats-section">
+                <div class="signup-stats-item">
+                    <span class="signup-stats-label">Total:</span>
+                    <span id="signup-panel-total" class="signup-stats-value">0</span>
+                </div>
+                <div class="signup-stats-item">
+                    <span class="signup-stats-label">Processed:</span>
+                    <span id="signup-panel-processed" class="signup-stats-value">0</span>
+                </div>
+                <div class="signup-stats-item">
+                    <span class="signup-stats-label">Success:</span>
+                    <span id="signup-panel-success" class="signup-stats-value success">0</span>
+                </div>
+                <div class="signup-stats-item">
+                    <span class="signup-stats-label">Failed:</span>
+                    <span id="signup-panel-failed" class="signup-stats-value error">0</span>
+                </div>
+            </div>
+            
+            <div class="signup-form-section">
+                <label class="signup-form-label">Current Account</label>
+                <input id="signup-panel-current" type="text" class="signup-input" value="-" readonly />
+            </div>
+        </div>
+    </div>
+    <script src="sidepanel.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "ChatGPT Veterans Auto Verify",
+  "version": "1.0.0",
+  "description": "Automated verification tool for ChatGPT veterans claim",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "sidePanel",
+    "tabs",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://services.sheerid.com/*",
+    "https://tinyhost.shop/*"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://services.sheerid.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
+

@@ -1,0 +1,31 @@
+
+html:root {
+    --stripe-bg-color: #000000;
+    --checkout-white: var(--stripe-bg-color) !important;
+}
+
+html body {
+    --stripe-bg-color: var(--stripe-bg-color) !important;
+    --checkout-white: var(--stripe-bg-color) !important;
+}
+
+
+.Text-color--gray600 {
+    color: hsl(0deg 28.03% 97.25% / 70%) !important;
+}
+
+.Text-color--gray800 {
+    color: hsl(0deg 0% 100% / 90%) !important;
+}
+
+.PaymentHeader {
+    color: hsl(0deg 0% 99.74% / 90%) !important;
+}
+
+element.style {
+    background-color: var(--stripe-bg-color) !important;
+    padding: 64px 64px 40px !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+    flex: 0 0 40% !important;
+}

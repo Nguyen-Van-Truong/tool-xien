@@ -1,0 +1,48 @@
+{
+    "manifest_version": 3,
+    "name": "ChatGPT Auto Signup",
+    "version": "1.0.0",
+    "description": "Automates ChatGPT account signup process",
+    "permissions": [
+        "storage",
+        "activeTab",
+        "tabs",
+        "sidePanel"
+    ],
+    "host_permissions": [
+        "https://chatgpt.com/*",
+        "https://*.chatgpt.com/*",
+        "https://auth.openai.com/*",
+        "https://*.openai.com/*",
+        "https://tools.dongvanfb.net/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
+    "action": {
+        "default_title": "ChatGPT Auto Signup"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://chatgpt.com/*",
+                "https://*.chatgpt.com/*",
+                "https://auth.openai.com/*",
+                "https://*.openai.com/*"
+            ],
+            "js": [
+                "chatgpt-signup.js"
+            ],
+            "run_at": "document_idle",
+            "all_frames": false
+        }
+    ],
+    "icons": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    }
+}

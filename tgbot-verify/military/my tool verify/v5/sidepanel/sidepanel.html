@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Military Auto Verify</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>🎖️ Military Verify V3</h1>
+    <div class="subtitle">Side Panel Mode</div>
+
+    <!-- Email Account (API) Section -->
+    <div class="section email-section">
+      <div class="section-header">
+        <span>📧 Email Account</span>
+        <button id="checkEmailBtn" class="btn btn-small">Check Email</button>
+      </div>
+      <input type="text" id="emailAccount" class="input-field" 
+        placeholder="email|pass|refresh_token|client_id">
+      <div class="email-status" id="emailStatus"></div>
+    </div>
+
+    <!-- SheerID Link & Email -->
+    <div class="section verify-section">
+      <div class="section-header">
+        <span>🔗 Verification Setup</span>
+      </div>
+      <input type="text" id="sheeridLink" class="input-field" 
+        placeholder="https://services.sheerid.com/verify/...?verificationId=...">
+      <input type="email" id="emailInput" class="input-field" 
+        placeholder="email@example.com (CHỈ email, không password!)">
+    </div>
+
+    <!-- Veterans Import Section -->
+    <div class="section">
+      <div class="section-header">
+        <span>📂 Veterans Data</span>
+        <input type="file" id="fileInput" accept=".txt" hidden>
+        <button id="importBtn" class="btn btn-small">Import</button>
+      </div>
+      <div class="veteran-count" id="veteranCount">No data loaded</div>
+    </div>
+
+    <!-- Current Veteran Display -->
+    <div class="veteran-card" id="veteranCard">
+      <div class="vet-info">
+        <div class="vet-name" id="vetName">---</div>
+        <div class="vet-branch" id="vetBranch">---</div>
+        <div class="vet-dates">
+          <span>🎂 <span id="vetBirth">---</span></span>
+          <span>📅 <span id="vetDischarge">---</span></span>
+        </div>
+      </div>
+      <div class="vet-nav">
+        <button id="prevBtn" class="btn btn-nav">◀</button>
+        <span id="vetIndex">0/0</span>
+        <button id="nextBtn" class="btn btn-nav">▶</button>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-card" id="statusCard">
+      <div class="status-indicator" id="statusIndicator"></div>
+      <span id="statusText">Ready</span>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-value" id="attempts">0</span>
+        <span class="stat-label">Attempts</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="success">0</span>
+        <span class="stat-label">Success</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="failed">0</span>
+        <span class="stat-label">Failed</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="startBtn" class="btn btn-primary">▶ Verify 1</button>
+      <button id="stopBtn" class="btn btn-danger" disabled>⏹ Stop</button>
+      <button id="skipBtn" class="btn btn-warning">⏭ Skip</button>
+    </div>
+
+    <!-- Log - Takes remaining space -->
+    <div class="log-section">
+      <h3>📋 Log (Real-time)</h3>
+      <div id="logContainer" class="log-container"></div>
+    </div>
+
+    <!-- Cookie Management (collapsed) -->
+    <details class="section cookie-section">
+      <summary>🍪 ChatGPT Cookies</summary>
+      <div class="cookie-buttons">
+        <button id="exportCookieBtn" class="btn btn-small">📤 Export</button>
+        <button id="importCookieBtn" class="btn btn-small">📥 Import</button>
+      </div>
+      <textarea id="cookieTextarea" class="cookie-textarea" placeholder="Paste cookies JSON..."></textarea>
+      <div class="cookie-status" id="cookieStatus"></div>
+    </details>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+
+</html>
