@@ -256,7 +256,7 @@ async function startSignupLoop() {
 
                 if (passwordInput) {
                     sendStatus('✅ Found password form, filling...', 'success');
-                    await fillPassword(currentData);
+                    await fillPassword(chatgptAccount);
                     return;
                 }
 
@@ -2612,7 +2612,7 @@ async function fillForm() {
         dischargeMonthButton.click();
         await waitForElement('#sid-discharge-date__month-menu', 10000);
         await delay(200);
-        const dischargeMonthItem = document.getElementById('sid-discharge-date__month-item-1');
+        const dischargeMonthItem = document.getElementById('sid-discharge-date__month-item-11');
         if (!dischargeMonthItem) throw new Error('Discharge month item not found');
         dischargeMonthItem.click();
         await delay(200);

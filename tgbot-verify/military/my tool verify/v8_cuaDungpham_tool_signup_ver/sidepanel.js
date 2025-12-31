@@ -324,11 +324,15 @@ function setupPanelHandlers() {
                 const content = event.target.result;
                 const lines = content.split('\n').filter((line) => line.trim());
 
-                // Parse first valid account (6 fields)
+                // Parse first valid account (supports 4 or 6 fields)
+                // Format 6 fields: email-chatgpt|pass-chatgpt|email-login|pass-email|refresh_token|client_id
+                // Format 4 fields: email|password|refresh_token|client_id (email-login = email, pass-email = password)
                 let validAccount = null;
                 for (const line of lines) {
                     const parts = line.trim().split('|');
+
                     if (parts.length === 6) {
+                        // 6-field format: full format with separate email login
                         validAccount = {
                             email: parts[0].trim(),
                             password: parts[1].trim(),
@@ -338,12 +342,26 @@ function setupPanelHandlers() {
                             clientId: parts[5].trim(),
                             original: line.trim()
                         };
+                        console.log('✅ Loaded 6-field account format');
+                        break;
+                    } else if (parts.length === 4) {
+                        // 4-field format: email login = chatgpt email
+                        validAccount = {
+                            email: parts[0].trim(),
+                            password: parts[1].trim(),
+                            emailLogin: parts[0].trim(),  // Same as email
+                            passEmail: parts[1].trim(),   // Same as password
+                            refreshToken: parts[2].trim(),
+                            clientId: parts[3].trim(),
+                            original: line.trim()
+                        };
+                        console.log('✅ Loaded 4-field account format (email login = chatgpt email)');
                         break;
                     }
                 }
 
                 if (!validAccount) {
-                    updateUIPanelStatus('❌ Invalid ChatGPT account format. Expected: email-chatgpt|pass-chatgpt|email-login|pass-email|refresh_token|client_id', 'error');
+                    updateUIPanelStatus('❌ Invalid format! Expected: email|pass|token|clientId (4 fields) or email|pass|emailLogin|passEmail|token|clientId (6 fields)', 'error');
                     chatgptFileInput.value = '';
                     return;
                 }
