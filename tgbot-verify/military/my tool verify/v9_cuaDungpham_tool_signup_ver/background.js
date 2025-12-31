@@ -1,40 +1,95 @@
 // Background service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'updateStatus' || message.action === 'updateStats' || message.action === 'updatePanel') {
+    if (message.action === 'getTabId') {
+        // Return the sender's tab ID so content script can identify itself
+        sendResponse({ tabId: sender.tab?.id });
+        return false; // Sync response
+    } else if (message.action === 'updateStatus' || message.action === 'updateStats' || message.action === 'updatePanel') {
         // Messages will be handled via storage changes in side panel
         // No need to forward since side panel listens to storage changes
     } else if (message.action === 'clearCookies') {
-        // Clear cookies for ChatGPT and SheerID for multi-account switching
+        // Clear ALL browsing data (cookies, localStorage, indexedDB, cache, etc.) for ChatGPT and OpenAI
         (async () => {
             try {
-                const allCookies = await chrome.cookies.getAll({});
-                const cookiesToDelete = allCookies.filter(cookie => {
-                    return cookie.domain.includes('chatgpt.com') ||
-                        cookie.domain.includes('sheerid.com') ||
-                        cookie.domain.includes('openai.com');
-                });
+                // Origins to clear completely
+                const origins = [
+                    'https://chatgpt.com',
+                    'https://auth.openai.com',
+                    'https://openai.com',
+                    'https://auth0.openai.com'
+                ];
 
-                let deletedCount = 0;
-                for (const cookie of cookiesToDelete) {
+                // Data types to remove - this is the comprehensive list from Chrome docs
+                const dataToRemove = {
+                    cookies: true,
+                    localStorage: true,
+                    indexedDB: true,
+                    cacheStorage: true,
+                    serviceWorkers: true,
+                    fileSystems: true,
+                    webSQL: true
+                };
+
+                // Clear data for each origin
+                for (const origin of origins) {
                     try {
-                        const protocol = cookie.secure ? 'https' : 'http';
-                        const domain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
-                        const url = `${protocol}://${domain}${cookie.path || '/'}`;
-
-                        await chrome.cookies.remove({
-                            url: url,
-                            name: cookie.name
-                        });
-                        deletedCount++;
+                        await chrome.browsingData.remove(
+                            { origins: [origin] },
+                            dataToRemove
+                        );
+                        console.log(`✅ Cleared all data for ${origin}`);
                     } catch (e) {
-                        console.log('Error deleting cookie:', e);
+                        console.log(`⚠️ Error clearing data for ${origin}:`, e.message || e);
                     }
                 }
 
-                console.log(`✅ Cleared ${deletedCount} cookies for multi-account switch`);
-                sendResponse({ success: true, deletedCount });
+                // Also clear cache globally (since cache: true with origins doesn't work well)
+                try {
+                    await chrome.browsingData.removeCache({});
+                    console.log('✅ Cleared global cache');
+                } catch (e) {
+                    console.log('⚠️ Could not clear global cache:', e.message || e);
+                }
+
+                // Double check: Also manually remove any remaining cookies using cookies API
+                let deletedCookies = 0;
+                try {
+                    const allCookies = await chrome.cookies.getAll({});
+                    const cookiesToDelete = allCookies.filter(cookie => {
+                        return cookie.domain.includes('chatgpt.com') ||
+                            cookie.domain.includes('openai.com') ||
+                            cookie.domain.includes('auth.openai.com') ||
+                            cookie.domain.includes('auth0.openai.com');
+                    });
+
+                    for (const cookie of cookiesToDelete) {
+                        try {
+                            // Try multiple URL formats to ensure deletion
+                            const urls = [];
+                            const domain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
+                            urls.push(`https://${domain}${cookie.path || '/'}`);
+                            urls.push(`https://${domain}/`);
+                            if (cookie.domain.startsWith('.')) {
+                                urls.push(`https://${cookie.domain.substring(1)}/`);
+                            }
+
+                            for (const url of urls) {
+                                try {
+                                    await chrome.cookies.remove({ url: url, name: cookie.name });
+                                    deletedCookies++;
+                                    console.log(`✅ Removed cookie: ${cookie.name} from ${url}`);
+                                    break; // Success, no need to try other URLs
+                                } catch (e) { /* try next URL */ }
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                    console.log(`✅ Manually removed ${deletedCookies} remaining cookies`);
+                } catch (e) { console.log('⚠️ Error in manual cookie removal:', e); }
+
+                console.log('✅ All browsing data cleared successfully');
+                sendResponse({ success: true, deletedCookies, message: 'Cleared all data for ChatGPT/OpenAI' });
             } catch (error) {
-                console.error('Error clearing cookies:', error);
+                console.error('Error clearing data:', error);
                 sendResponse({ success: false, error: error.message });
             }
         })();

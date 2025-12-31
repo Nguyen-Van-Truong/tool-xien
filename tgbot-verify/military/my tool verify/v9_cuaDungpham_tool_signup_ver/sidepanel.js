@@ -391,6 +391,20 @@ function setupPanelHandlers() {
                 currentAccountIndex = 0;
                 chatgptAccount = parsedAccounts[0];
 
+                // Clear old veteran processing state when loading new accounts
+                chrome.storage.local.remove([
+                    'veterans-data-array',
+                    'veterans-current-index',
+                    'veterans-is-running',
+                    'veterans-stats'
+                ]);
+
+                // Reset local state
+                dataArray = [];
+                currentDataIndex = 0;
+                stats = { processed: 0, success: 0, failed: 0 };
+                isRunning = false;
+
                 // Save to storage
                 chrome.storage.local.set({
                     'chatgpt-account': chatgptAccount,
@@ -452,7 +466,21 @@ function setupPanelHandlers() {
                     return;
                 }
 
-                // Save to storage
+                // Clear old veteran processing state when loading new veterans data
+                chrome.storage.local.remove([
+                    'veterans-data-array',
+                    'veterans-current-index',
+                    'veterans-is-running',
+                    'veterans-stats'
+                ]);
+
+                // Reset local state
+                dataArray = [];
+                currentDataIndex = 0;
+                stats = { processed: 0, success: 0, failed: 0 };
+                isRunning = false;
+
+                // Save new veterans data to storage
                 chrome.storage.local.set({ 'veterans-data-list': content });
 
                 // Show data count
@@ -611,7 +639,8 @@ function setupPanelHandlers() {
                     'veterans-data-list': dataListString,
                     'veterans-current-index': 0,
                     'veterans-is-running': true,
-                    'veterans-stats': { processed: 0, success: 0, failed: 0 }
+                    'veterans-stats': { processed: 0, success: 0, failed: 0 },
+                    'veterans-active-tab-id': null // Will be set below with actual tab ID
                 }, () => {
                     console.log('✅ Data saved to storage');
 
@@ -630,23 +659,30 @@ function setupPanelHandlers() {
                             currentUrl.includes('auth.openai.com');
 
                         if (isOnChatGPTPage) {
-                            // Try to send message
-                            chrome.tabs.sendMessage(tabs[0].id, {
-                                action: 'startVerification',
-                                account: account,
-                                data: workingDataArray
-                            }, (response) => {
-                                if (chrome.runtime.lastError) {
-                                    // If message fails, redirect to ChatGPT page (content script might not be loaded)
-                                    console.log('Content script not ready, redirecting to ChatGPT...');
-                                    updateUIPanelStatus('🌐 Redirecting to ChatGPT page...', 'info');
-                                    chrome.tabs.update(tabs[0].id, { url: 'https://chatgpt.com' });
-                                }
+                            // Save tab ID to storage so only this tab will run
+                            chrome.storage.local.set({ 'veterans-active-tab-id': tabs[0].id }, () => {
+                                console.log('✅ Saved active tab ID:', tabs[0].id);
+                                // Try to send message
+                                chrome.tabs.sendMessage(tabs[0].id, {
+                                    action: 'startVerification',
+                                    account: account,
+                                    data: workingDataArray,
+                                    tabId: tabs[0].id // Include tab ID in message
+                                }, (response) => {
+                                    if (chrome.runtime.lastError) {
+                                        // If message fails, redirect to ChatGPT page (content script might not be loaded)
+                                        console.log('Content script not ready, redirecting to ChatGPT...');
+                                        updateUIPanelStatus('🌐 Redirecting to ChatGPT page...', 'info');
+                                        chrome.tabs.update(tabs[0].id, { url: 'https://chatgpt.com' });
+                                    }
+                                });
                             });
                         } else {
-                            // Not on ChatGPT page, navigate there
-                            updateUIPanelStatus('🌐 Navigating to ChatGPT page...', 'info');
-                            chrome.tabs.update(tabs[0].id, { url: 'https://chatgpt.com' });
+                            // Not on ChatGPT page, save tab ID and navigate there
+                            chrome.storage.local.set({ 'veterans-active-tab-id': tabs[0].id }, () => {
+                                updateUIPanelStatus('🌐 Navigating to ChatGPT page...', 'info');
+                                chrome.tabs.update(tabs[0].id, { url: 'https://chatgpt.com' });
+                            });
                         }
                     });
                 });
@@ -777,54 +813,24 @@ function setupPanelHandlers() {
     const clearCookiesBtn = document.getElementById('veterans-clear-cookies-btn');
     if (clearCookiesBtn) {
         clearCookiesBtn.addEventListener('click', async () => {
-            updateUIPanelStatus('🍪 Đang xóa cookies của ChatGPT và SheerID...', 'info');
+            updateUIPanelStatus('🍪 Đang xóa cookies và data của ChatGPT, OpenAI...', 'info');
 
             try {
-                // Get all cookies - we'll filter for chatgpt.com and sheerid.com domains
-                const allCookies = await chrome.cookies.getAll({});
-
-                // Filter cookies for chatgpt.com, sheerid.com and their subdomains
-                const cookiesToDelete = allCookies.filter(cookie => {
-                    return cookie.domain.includes('chatgpt.com') ||
-                        cookie.domain.includes('sheerid.com');
-                });
-
-                if (cookiesToDelete.length === 0) {
-                    updateUIPanelStatus('ℹ️ Không có cookies nào để xóa', 'info');
-                    return;
-                }
-
-                // Delete each cookie
-                let deletedCount = 0;
-                for (const cookie of cookiesToDelete) {
-                    try {
-                        // Construct proper URL for cookie removal
-                        const protocol = cookie.secure ? 'https' : 'http';
-                        // Handle domain format (.chatgpt.com or chatgpt.com)
-                        const domain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
-                        const url = `${protocol}://${domain}${cookie.path || '/'}`;
-
-                        await chrome.cookies.remove({
-                            url: url,
-                            name: cookie.name
-                        });
-                        deletedCount++;
-                    } catch (error) {
-                        console.error(`Error deleting cookie ${cookie.name}:`, error);
+                // Send message to background script to clear cookies and site data
+                chrome.runtime.sendMessage({ action: 'clearCookies' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error:', chrome.runtime.lastError);
+                        updateUIPanelStatus('❌ Lỗi khi xóa: ' + chrome.runtime.lastError.message, 'error');
+                        return;
                     }
-                }
 
-                updateUIPanelStatus(`✅ Đã xóa ${deletedCount} cookies`, 'success');
-
-                // Wait a bit then reload to chatgpt.com
-                setTimeout(() => {
-                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                        if (tabs[0]) {
-                            chrome.tabs.update(tabs[0].id, { url: 'https://chatgpt.com' });
-                        }
-                    });
-                }, 1000);
-
+                    if (response && response.success) {
+                        updateUIPanelStatus(`✅ Đã xóa cookies + site data. Kiểm tra lại browser settings.`, 'success');
+                        // Không tự động chuyển trang, để user kiểm tra
+                    } else {
+                        updateUIPanelStatus('❌ Lỗi khi xóa: ' + (response?.error || 'Unknown error'), 'error');
+                    }
+                });
             } catch (error) {
                 console.error('Error clearing cookies:', error);
                 updateUIPanelStatus('❌ Lỗi khi xóa cookies: ' + error.message, 'error');

@@ -9,7 +9,8 @@
     "scripting",
     "sidePanel",
     "tabs",
-    "cookies"
+    "cookies",
+    "browsingData"
   ],
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -36,7 +37,9 @@
         "https://*.openai.com/*",
         "https://services.sheerid.com/*"
       ],
-      "js": ["content-integrated.js"],
+      "js": [
+        "content-integrated.js"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -52,4 +55,3 @@
     "128": "icon128.png"
   }
 }
-

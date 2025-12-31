@@ -14,6 +14,20 @@ let currentEmail = ''; // For verify email generation
 let mailRetryCount = 0;
 const MAX_MAIL_RETRIES = 10;
 
+// Listen for storage changes to sync isRunning immediately when STOP is pressed
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes['veterans-is-running']) {
+        const newValue = changes['veterans-is-running'].newValue;
+        if (newValue === false && isRunning === true) {
+            console.log('⏹️ STOP detected from storage change, setting isRunning = false');
+            isRunning = false;
+        } else if (newValue === true && isRunning === false) {
+            // Also sync when starting
+            isRunning = true;
+        }
+    }
+});
+
 // Parse data from format: email-chatgpt|pass-chatgpt|email-login|pass-email|refresh_token|client_id|first|last|branch|month|day|year
 function parseAccountData(dataString) {
     const lines = dataString.trim().split('\n').filter(line => line.trim());
@@ -135,65 +149,81 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
 });
 
-// Auto-resume when page loads
+// Auto-resume when page loads - but only on the correct tab
 (function autoResumeSignup() {
-    chrome.storage.local.get(
-        [
-            'chatgpt-account',
-            'chatgpt-accounts-array',
-            'chatgpt-current-account-index',
-            'veterans-data-array',
-            'veterans-current-index',
-            'veterans-is-running',
-            'veterans-stats'
-        ],
-        (result) => {
-            if (
-                result['veterans-is-running'] &&
-                result['veterans-data-array'] &&
-                result['chatgpt-account']
-            ) {
-                // Load accounts array and current index first
-                accountsArray = result['chatgpt-accounts-array'] || [];
-                currentAccountIndex = result['chatgpt-current-account-index'] || 0;
+    // First, get the current tab ID
+    chrome.runtime.sendMessage({ action: 'getTabId' }, (response) => {
+        const currentTabId = response?.tabId;
+        console.log('📍 Current tab ID:', currentTabId);
 
-                // Use account from array at correct index, fallback to saved single account
-                if (accountsArray.length > 0 && currentAccountIndex < accountsArray.length) {
-                    chatgptAccount = accountsArray[currentAccountIndex];
-                    console.log(`📍 Resuming with account ${currentAccountIndex + 1}/${accountsArray.length}: ${chatgptAccount.email}`);
-                } else {
-                    chatgptAccount = result['chatgpt-account'];
-                    accountsArray = [chatgptAccount];
-                    currentAccountIndex = 0;
-                }
-
-                dataArray = result['veterans-data-array'];
-                currentDataIndex = result['veterans-current-index'] || 0;
-                if (result['veterans-stats']) {
-                    stats = result['veterans-stats'];
-                }
-                isRunning = true;
-
-                // Check current URL to determine which loop to start
-                const currentUrl = window.location.href;
-                setTimeout(() => {
-                    // If already on SheerID page, go directly to verification
-                    if (currentUrl.includes('services.sheerid.com')) {
-                        console.log('📍 Auto-resume: Already on SheerID page, starting verify...');
-                        startVerificationLoop();
-                    } else if (chatgptAccount.signupCompleted) {
-                        // Signup already completed, go to verify
-                        console.log('📍 Auto-resume: Signup completed, starting verify...');
-                        startVerificationLoop();
-                    } else {
-                        // Need to do signup first
-                        console.log('📍 Auto-resume: Starting signup...');
-                        startSignupLoop();
+        chrome.storage.local.get(
+            [
+                'chatgpt-account',
+                'chatgpt-accounts-array',
+                'chatgpt-current-account-index',
+                'veterans-data-array',
+                'veterans-current-index',
+                'veterans-is-running',
+                'veterans-stats',
+                'veterans-active-tab-id'
+            ],
+            (result) => {
+                if (
+                    result['veterans-is-running'] &&
+                    result['veterans-data-array'] &&
+                    result['chatgpt-account']
+                ) {
+                    // Check if this is the active tab
+                    const activeTabId = result['veterans-active-tab-id'];
+                    if (activeTabId && currentTabId && activeTabId !== currentTabId) {
+                        console.log(`⚠️ This tab (${currentTabId}) is not the active tab (${activeTabId}), skipping auto-resume`);
+                        return; // Don't auto-resume on wrong tab
                     }
-                }, 2000);
+
+                    console.log(`✅ This tab (${currentTabId}) is the active tab, auto-resuming...`);
+
+                    // Load accounts array and current index first
+                    accountsArray = result['chatgpt-accounts-array'] || [];
+                    currentAccountIndex = result['chatgpt-current-account-index'] || 0;
+
+                    // Use account from array at correct index, fallback to saved single account
+                    if (accountsArray.length > 0 && currentAccountIndex < accountsArray.length) {
+                        chatgptAccount = accountsArray[currentAccountIndex];
+                        console.log(`📍 Resuming with account ${currentAccountIndex + 1}/${accountsArray.length}: ${chatgptAccount.email}`);
+                    } else {
+                        chatgptAccount = result['chatgpt-account'];
+                        accountsArray = [chatgptAccount];
+                        currentAccountIndex = 0;
+                    }
+
+                    dataArray = result['veterans-data-array'];
+                    currentDataIndex = result['veterans-current-index'] || 0;
+                    if (result['veterans-stats']) {
+                        stats = result['veterans-stats'];
+                    }
+                    isRunning = true;
+
+                    // Check current URL to determine which loop to start
+                    const currentUrl = window.location.href;
+                    setTimeout(() => {
+                        // If already on SheerID page, go directly to verification
+                        if (currentUrl.includes('services.sheerid.com')) {
+                            console.log('📍 Auto-resume: Already on SheerID page, starting verify...');
+                            startVerificationLoop();
+                        } else if (chatgptAccount.signupCompleted) {
+                            // Signup already completed, go to verify
+                            console.log('📍 Auto-resume: Signup completed, starting verify...');
+                            startVerificationLoop();
+                        } else {
+                            // Need to do signup first
+                            console.log('📍 Auto-resume: Starting signup...');
+                            startSignupLoop();
+                        }
+                    }, 2000);
+                }
             }
-        }
-    );
+        );
+    });
 })();
 
 async function startSignupLoop() {
@@ -1652,7 +1682,26 @@ function waitForUrlChange(contains, timeout = 15000) {
 }
 
 function delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+        // Check every 100ms if isRunning is still true
+        // If stopped, resolve immediately to exit the loop
+        const checkInterval = 100;
+        let elapsed = 0;
+
+        const intervalId = setInterval(() => {
+            elapsed += checkInterval;
+            if (!isRunning || elapsed >= ms) {
+                clearInterval(intervalId);
+                resolve();
+            }
+        }, checkInterval);
+
+        // Failsafe: also set a timeout in case interval fails
+        setTimeout(() => {
+            clearInterval(intervalId);
+            resolve();
+        }, ms + 100);
+    });
 }
 
 function sendStatus(message, type = 'info') {
