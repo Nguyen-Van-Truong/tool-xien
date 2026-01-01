@@ -10,7 +10,10 @@
     "sidePanel",
     "tabs",
     "cookies",
-    "browsingData"
+    "browsingData",
+    "proxy",
+    "webRequest",
+    "webRequestAuthProvider"
   ],
   "host_permissions": [
     "https://chatgpt.com/*",

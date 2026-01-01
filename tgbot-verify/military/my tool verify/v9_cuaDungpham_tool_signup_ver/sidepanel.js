@@ -280,9 +280,25 @@ function updateUIPanel() {
 function updateUIPanelStatus(message, type = 'info') {
     const statusEl = document.getElementById('veterans-panel-status');
     if (statusEl) {
-        statusEl.textContent = message;
-        statusEl.className = 'veterans-status-text ' +
-            (type === 'success' ? 'success' : type === 'error' ? 'error' : '');
+        // Get timestamp
+        const now = new Date();
+        const time = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // Append new log entry
+        const newLine = `[${time}] ${message}`;
+        const currentText = statusEl.value || '';
+
+        // Keep max 50 lines to prevent memory issues
+        const lines = currentText.split('\n').filter(l => l.trim());
+        if (lines.length >= 50) {
+            lines.shift(); // Remove oldest line
+        }
+        lines.push(newLine);
+
+        statusEl.value = lines.join('\n');
+
+        // Auto-scroll to bottom
+        statusEl.scrollTop = statusEl.scrollHeight;
     }
 }
 
@@ -330,6 +346,17 @@ function updateUIOnStop() {
 
 // Setup panel event handlers
 function setupPanelHandlers() {
+    // Clear Log button
+    const clearLogBtn = document.getElementById('veterans-clear-log-btn');
+    if (clearLogBtn) {
+        clearLogBtn.addEventListener('click', () => {
+            const statusEl = document.getElementById('veterans-panel-status');
+            if (statusEl) {
+                statusEl.value = 'Log cleared';
+            }
+        });
+    }
+
     // Load ChatGPT Account file button (6 fields)
     const chatgptLoadBtn = document.getElementById('chatgpt-account-load-btn');
     const chatgptFileInput = document.getElementById('chatgpt-account-file-input');
@@ -834,6 +861,142 @@ function setupPanelHandlers() {
             } catch (error) {
                 console.error('Error clearing cookies:', error);
                 updateUIPanelStatus('❌ Lỗi khi xóa cookies: ' + error.message, 'error');
+            }
+        });
+    }
+
+    // Clear SheerID button
+    const clearSheerIDBtn = document.getElementById('veterans-clear-sheerid-btn');
+    if (clearSheerIDBtn) {
+        clearSheerIDBtn.addEventListener('click', async () => {
+            updateUIPanelStatus('🔒 Đang xóa SheerID data...', 'info');
+
+            try {
+                // Send message to background script to clear SheerID data
+                chrome.runtime.sendMessage({ action: 'clearSheerID' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Error:', chrome.runtime.lastError);
+                        updateUIPanelStatus('❌ Lỗi khi xóa SheerID: ' + chrome.runtime.lastError.message, 'error');
+                        return;
+                    }
+
+                    if (response && response.success) {
+                        updateUIPanelStatus(`✅ Đã xóa SheerID data. Kiểm tra lại browser settings.`, 'success');
+                    } else {
+                        updateUIPanelStatus('❌ Lỗi khi xóa SheerID: ' + (response?.error || 'Unknown error'), 'error');
+                    }
+                });
+            } catch (error) {
+                console.error('Error clearing SheerID:', error);
+                updateUIPanelStatus('❌ Lỗi khi xóa SheerID: ' + error.message, 'error');
+            }
+        });
+    }
+
+    // Auto Clear SheerID mode selectbox
+    const clearSheerIDModeSelect = document.getElementById('veterans-clear-sheerid-mode');
+    if (clearSheerIDModeSelect) {
+        // Load saved setting
+        chrome.storage.local.get(['veterans-clear-sheerid-mode'], (result) => {
+            // Default to 'always' if not set
+            const mode = result['veterans-clear-sheerid-mode'] || 'always';
+            clearSheerIDModeSelect.value = mode;
+        });
+
+        // Save setting on change
+        clearSheerIDModeSelect.addEventListener('change', () => {
+            const mode = clearSheerIDModeSelect.value;
+            chrome.storage.local.set({ 'veterans-clear-sheerid-mode': mode }, () => {
+                const modeLabels = {
+                    'always': 'Luôn clear',
+                    'on-error': 'Chỉ khi lỗi IP/VPN',
+                    'never': 'Không bao giờ'
+                };
+                console.log(`✅ Auto Clear SheerID mode: ${mode}`);
+                updateUIPanelStatus(`🔒 Clear SheerID: ${modeLabels[mode]}`, 'info');
+            });
+        });
+    }
+
+    // Proxy settings
+    const proxyEnabledCheckbox = document.getElementById('veterans-proxy-enabled');
+    const proxyInput = document.getElementById('veterans-proxy-input');
+    const proxyStatus = document.getElementById('veterans-proxy-status');
+
+    if (proxyEnabledCheckbox && proxyInput && proxyStatus) {
+        // Load saved proxy settings
+        chrome.storage.local.get(['veterans-proxy-enabled', 'veterans-proxy-string'], (result) => {
+            if (result['veterans-proxy-string']) {
+                proxyInput.value = result['veterans-proxy-string'];
+            }
+            if (result['veterans-proxy-enabled']) {
+                proxyEnabledCheckbox.checked = true;
+                proxyStatus.textContent = 'Đang bật';
+                proxyStatus.style.color = '#34d399';
+            }
+        });
+
+        // Save proxy string on input change
+        proxyInput.addEventListener('change', () => {
+            chrome.storage.local.set({ 'veterans-proxy-string': proxyInput.value });
+        });
+
+        // Toggle proxy on/off
+        proxyEnabledCheckbox.addEventListener('change', () => {
+            const isEnabled = proxyEnabledCheckbox.checked;
+            const proxyString = proxyInput.value.trim();
+
+            if (isEnabled) {
+                if (!proxyString) {
+                    updateUIPanelStatus('❌ Vui lòng nhập proxy string!', 'error');
+                    proxyEnabledCheckbox.checked = false;
+                    return;
+                }
+
+                // Parse proxy string: IP:PORT:USER:PASS
+                const parts = proxyString.split(':');
+                if (parts.length < 4) {
+                    updateUIPanelStatus('❌ Proxy format không đúng! Dùng: IP:PORT:USER:PASS', 'error');
+                    proxyEnabledCheckbox.checked = false;
+                    return;
+                }
+
+                const proxyConfig = {
+                    host: parts[0],
+                    port: parseInt(parts[1]),
+                    username: parts[2],
+                    password: parts.slice(3).join(':') // Handle passwords with colons
+                };
+
+                // Send to background script to enable proxy
+                chrome.runtime.sendMessage({ action: 'enableProxy', proxy: proxyConfig }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Proxy error:', chrome.runtime.lastError);
+                        updateUIPanelStatus('❌ Lỗi bật proxy: ' + chrome.runtime.lastError.message, 'error');
+                        proxyEnabledCheckbox.checked = false;
+                        return;
+                    }
+                    if (response && response.success) {
+                        proxyStatus.textContent = 'Đang bật';
+                        proxyStatus.style.color = '#34d399';
+                        chrome.storage.local.set({
+                            'veterans-proxy-enabled': true,
+                            'veterans-proxy-string': proxyString
+                        });
+                        updateUIPanelStatus(`🌐 Proxy đã bật: ${proxyConfig.host}:${proxyConfig.port}`, 'success');
+                    } else {
+                        updateUIPanelStatus('❌ Không thể bật proxy: ' + (response?.error || 'Unknown error'), 'error');
+                        proxyEnabledCheckbox.checked = false;
+                    }
+                });
+            } else {
+                // Disable proxy
+                chrome.runtime.sendMessage({ action: 'disableProxy' }, (response) => {
+                    proxyStatus.textContent = 'Tắt';
+                    proxyStatus.style.color = '#71717a';
+                    chrome.storage.local.set({ 'veterans-proxy-enabled': false });
+                    updateUIPanelStatus('🌐 Proxy đã tắt', 'info');
+                });
             }
         });
     }

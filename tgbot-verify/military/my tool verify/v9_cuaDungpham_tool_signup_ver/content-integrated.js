@@ -1773,7 +1773,54 @@ function removeProcessedData(keepRunning = true) {
 
         console.log('🗑️ Removed processed data:', processedData.original);
         console.log('💾 Updated data list saved to storage');
+
+        // Clear SheerID data after processing each veteran
+        clearSheerIDData();
     }
+}
+
+// Helper function to clear SheerID data (respects mode setting)
+// reason: 'normal' (after each veteran) or 'error' (on IP/VPN error)
+function clearSheerIDData(reason = 'normal') {
+    chrome.storage.local.get(['veterans-clear-sheerid-mode'], (result) => {
+        // Default to 'always' if not set
+        const mode = result['veterans-clear-sheerid-mode'] || 'always';
+
+        // Check if we should clear based on mode and reason
+        let shouldClear = false;
+
+        if (mode === 'always') {
+            shouldClear = true;
+        } else if (mode === 'on-error' && reason === 'error') {
+            shouldClear = true;
+        } else if (mode === 'never') {
+            shouldClear = false;
+        }
+
+        if (!shouldClear) {
+            console.log(`⚠️ Clear SheerID skipped (mode: ${mode}, reason: ${reason})`);
+            return;
+        }
+
+        // Perform the clear
+        doClearSheerID();
+    });
+}
+
+// Force clear SheerID (ignores mode setting) - used by manual button
+function forceClearSheerIDData() {
+    doClearSheerID();
+}
+
+// Internal function to actually clear SheerID
+function doClearSheerID() {
+    chrome.runtime.sendMessage({ action: 'clearSheerID' }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.log('⚠️ Could not clear SheerID:', chrome.runtime.lastError.message);
+        } else if (response && response.success) {
+            console.log('✅ SheerID data cleared');
+        }
+    });
 }
 
 // ============================================
@@ -1822,6 +1869,7 @@ async function startVerificationLoop() {
         // Check for sourcesUnavailable error in URL
         if (currentUrl.includes('sourcesUnavailable') || currentUrl.includes('Error sourcesUnavailable')) {
             console.log('🚫 sourcesUnavailable error detected in URL, stopping tool...');
+            clearSheerIDData('error'); // Clear SheerID data on VPN error
             isRunning = false;
             chrome.storage.local.set({ 'veterans-is-running': false });
             updateUIOnStop();
@@ -2182,6 +2230,7 @@ async function checkAndFillForm() {
 
     const currentUrl = window.location.href;
     if (currentUrl.includes('sourcesUnavailable') || currentUrl.includes('Error sourcesUnavailable')) {
+        clearSheerIDData('error'); // Clear SheerID data on VPN error
         isRunning = false;
         chrome.storage.local.set({ 'veterans-is-running': false });
         updateUIOnStop();
@@ -2201,6 +2250,7 @@ async function checkAndFillForm() {
                 errorText.includes('having difficulty verifying') ||
                 errorText.includes('sourcesUnavailable') ||
                 errorText.toLowerCase().includes('sources unavailable')) {
+                clearSheerIDData('error'); // Clear SheerID data on VPN error
                 isRunning = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();
@@ -2210,6 +2260,7 @@ async function checkAndFillForm() {
 
             if (errorText.includes('Not approved')) {
                 if (currentDataIndex + 1 >= dataArray.length) {
+                    clearSheerIDData(); // Clear SheerID data when stopping
                     isRunning = false;
                     chrome.storage.local.set({ 'veterans-is-running': false });
                     updateUIOnStop();
@@ -2303,6 +2354,7 @@ async function checkAndFillForm() {
                 sendStatus(`❌ ${errorType}, trying next data...`, 'info');
 
                 if (currentDataIndex + 1 >= dataArray.length) {
+                    clearSheerIDData(); // Clear SheerID data when stopping
                     isRunning = false;
                     chrome.storage.local.set({ 'veterans-is-running': false });
                     updateUIOnStop();
@@ -2401,6 +2453,7 @@ async function checkAndFillForm() {
 
             // Check if there's more data
             if (currentDataIndex + 1 >= dataArray.length) {
+                clearSheerIDData(); // Clear SheerID data when stopping
                 isRunning = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();
@@ -2443,6 +2496,7 @@ async function checkAndFillForm() {
 
             // Check if there's more data
             if (currentDataIndex + 1 >= dataArray.length) {
+                clearSheerIDData(); // Clear SheerID data when stopping
                 isRunning = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();
@@ -2655,11 +2709,34 @@ async function fillForm() {
         sendStatus('📝 Selecting branch...', 'info');
         const branchButton = await waitForElement('#sid-branch-of-service + button', 10000);
         if (!branchButton) throw new Error('Branch button not found');
-        branchButton.click();
-        await waitForElement('#sid-branch-of-service-menu', 10000);
-        await delay(1000);
-        const branchItems = document.querySelectorAll('#sid-branch-of-service-menu .sid-input-select-list__item');
-        if (branchItems.length === 0) throw new Error('Branch items not found');
+
+        // Retry logic for branch items - sometimes loads slowly
+        let branchItems = [];
+        const maxBranchRetries = 3;
+
+        for (let attempt = 1; attempt <= maxBranchRetries; attempt++) {
+            branchButton.click();
+            await waitForElement('#sid-branch-of-service-menu', 10000);
+            await delay(1000);
+
+            branchItems = document.querySelectorAll('#sid-branch-of-service-menu .sid-input-select-list__item');
+
+            if (branchItems.length > 0) {
+                console.log(`✅ Branch items found on attempt ${attempt}`);
+                break;
+            }
+
+            console.log(`⚠️ Branch items not found, attempt ${attempt}/${maxBranchRetries}`);
+
+            if (attempt < maxBranchRetries) {
+                // Close the menu and wait before retrying
+                document.body.click(); // Click outside to close menu
+                await delay(1500);
+                sendStatus(`📝 Branch chưa load, thử lại ${attempt + 1}/${maxBranchRetries}...`, 'info');
+            }
+        }
+
+        if (branchItems.length === 0) throw new Error('Branch items not found after ' + maxBranchRetries + ' attempts');
 
         let matched = false;
         const branchUpper = branch.toUpperCase().trim();
