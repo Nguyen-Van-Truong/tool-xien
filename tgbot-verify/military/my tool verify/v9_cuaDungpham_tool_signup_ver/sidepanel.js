@@ -76,6 +76,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUIPanelStatus(statusData.message, statusData.type || 'info');
                 }
             }
+            // When VPN log changes, update VPN log display
+            if (changes['veterans-vpn-log']) {
+                const vpnLogEl = document.getElementById('veterans-vpn-log');
+                if (vpnLogEl) {
+                    vpnLogEl.value = changes['veterans-vpn-log'].newValue || '';
+                }
+            }
         }
     });
 
@@ -914,6 +921,57 @@ function setupPanelHandlers() {
                 };
                 console.log(`✅ Auto Clear SheerID mode: ${mode}`);
                 updateUIPanelStatus(`🔒 Clear SheerID: ${modeLabels[mode]}`, 'info');
+            });
+        });
+    }
+
+    // Auto Retry on Error checkbox and wait time
+    const autoRetryCheckbox = document.getElementById('veterans-auto-retry-enabled');
+    const retryWaitTimeInput = document.getElementById('veterans-retry-wait-time');
+
+    if (autoRetryCheckbox && retryWaitTimeInput) {
+        // Load saved settings
+        chrome.storage.local.get(['veterans-auto-retry-enabled', 'veterans-retry-wait-time'], (result) => {
+            autoRetryCheckbox.checked = result['veterans-auto-retry-enabled'] || false;
+            retryWaitTimeInput.value = result['veterans-retry-wait-time'] || 90;
+        });
+
+        // Save checkbox on change
+        autoRetryCheckbox.addEventListener('change', () => {
+            const isEnabled = autoRetryCheckbox.checked;
+            chrome.storage.local.set({ 'veterans-auto-retry-enabled': isEnabled }, () => {
+                updateUIPanelStatus(`🔄 Tự động thử lại: ${isEnabled ? 'BẬT' : 'TẮT'}`, 'info');
+            });
+        });
+
+        // Save wait time on change
+        retryWaitTimeInput.addEventListener('change', () => {
+            let waitTime = parseInt(retryWaitTimeInput.value) || 90;
+            waitTime = Math.max(10, Math.min(600, waitTime)); // Clamp 10-600
+            retryWaitTimeInput.value = waitTime;
+            chrome.storage.local.set({ 'veterans-retry-wait-time': waitTime }, () => {
+                updateUIPanelStatus(`⏳ Thời gian chờ: ${waitTime} giây`, 'info');
+            });
+        });
+    }
+
+    // Rotate IP API input - load and save
+    const rotateIpApiInput = document.getElementById('veterans-rotate-ip-api');
+    if (rotateIpApiInput) {
+        chrome.storage.local.get(['veterans-rotate-ip-api'], (result) => {
+            if (result['veterans-rotate-ip-api']) {
+                rotateIpApiInput.value = result['veterans-rotate-ip-api'];
+            }
+        });
+
+        rotateIpApiInput.addEventListener('change', () => {
+            const apiUrl = rotateIpApiInput.value.trim();
+            chrome.storage.local.set({ 'veterans-rotate-ip-api': apiUrl }, () => {
+                if (apiUrl) {
+                    updateUIPanelStatus(`🔄 Đã lưu link đổi IP`, 'success');
+                } else {
+                    updateUIPanelStatus(`🔄 Đã xóa link đổi IP`, 'info');
+                }
             });
         });
     }

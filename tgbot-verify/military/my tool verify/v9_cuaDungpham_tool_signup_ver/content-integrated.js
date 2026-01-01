@@ -1823,6 +1823,100 @@ function doClearSheerID() {
     });
 }
 
+// Flag to prevent multiple retry attempts running simultaneously
+let isRetrying = false;
+
+// Send VPN-specific log to sidepanel
+function sendVPNLog(message) {
+    chrome.storage.local.set({ 'veterans-vpn-log': message });
+}
+
+// Handle VPN/IP error with retry logic
+async function handleVPNError() {
+    // Prevent multiple calls
+    if (isRetrying) {
+        console.log('⚠️ Already retrying, ignoring duplicate call');
+        return false;
+    }
+    isRetrying = true;
+
+    clearSheerIDData('error');
+
+    // Get retry settings
+    const result = await new Promise(resolve => {
+        chrome.storage.local.get(['veterans-auto-retry-enabled', 'veterans-retry-wait-time', 'veterans-rotate-ip-api'], resolve);
+    });
+
+    const autoRetryEnabled = result['veterans-auto-retry-enabled'] || false;
+    const waitSeconds = result['veterans-retry-wait-time'] || 90;
+    const rotateIpApiUrl = result['veterans-rotate-ip-api'] || '';
+
+    if (!autoRetryEnabled) {
+        // Stop immediately
+        isRunning = false;
+        chrome.storage.local.set({ 'veterans-is-running': false });
+        updateUIOnStop();
+        sendStatus('🚫 VPN/PROXY Error: Đã dừng. Bật "Tự động thử lại" để retry.', 'error');
+        isRetrying = false;
+        return false;
+    }
+
+    // Call rotate IP API if configured
+    if (rotateIpApiUrl) {
+        sendStatus('🔄 Đang gọi API đổi IP...', 'info');
+        try {
+            const response = await fetch(rotateIpApiUrl);
+            if (response.ok) {
+                const text = await response.text();
+                console.log('✅ Rotate IP API response:', text);
+                // Show truncated response in log
+                const shortText = text.length > 50 ? text.substring(0, 50) + '...' : text;
+                sendStatus(`✅ API đổi IP: ${shortText}`, 'success');
+            } else {
+                console.log('⚠️ Rotate IP API error:', response.status);
+                sendStatus(`⚠️ Lỗi API đổi IP: HTTP ${response.status}`, 'error');
+            }
+        } catch (error) {
+            console.log('⚠️ Rotate IP API failed:', error.message);
+            sendStatus(`⚠️ Lỗi API đổi IP: ${error.message}`, 'error');
+        }
+        await delay(2000); // Wait for IP to change
+    }
+
+    sendStatus(`⏳ Đợi ${waitSeconds}s rồi thử lại...`, 'info');
+    sendVPNLog(`⏳ Đợi ${waitSeconds}s rồi thử lại...`);
+
+    // Countdown with status updates
+    for (let i = waitSeconds; i > 0; i--) {
+        if (!isRunning) {
+            sendStatus('⏹️ Đã dừng trong lúc đợi retry', 'info');
+            sendVPNLog('⏹️ Đã dừng trong lúc đợi retry');
+            isRetrying = false;
+            return false;
+        }
+
+        // Update VPN log every second
+        sendVPNLog(`⏳ Còn ${i} giây...\n🔄 API: ${rotateIpApiUrl ? '✅' : '❌'}`);
+
+        if (i % 10 === 0 || i <= 5) {
+            sendStatus(`⏳ Còn ${i} giây trước khi thử lại...`, 'info');
+        }
+
+        await delay(1000);
+    }
+
+    // Clear SheerID before retry
+    clearSheerIDData('error');
+
+    sendStatus('🔄 Đang thử lại sau lỗi VPN...', 'info');
+    sendVPNLog('🔄 Đang thử lại...');
+
+    // Navigate back to chatgpt to restart process
+    isRetrying = false;
+    window.location.href = 'https://chatgpt.com';
+    return true; // Indicates retry
+}
+
 // ============================================
 // VERIFICATION FUNCTIONS (from veterans verify)
 // ============================================
@@ -1868,15 +1962,8 @@ async function startVerificationLoop() {
 
         // Check for sourcesUnavailable error in URL
         if (currentUrl.includes('sourcesUnavailable') || currentUrl.includes('Error sourcesUnavailable')) {
-            console.log('🚫 sourcesUnavailable error detected in URL, stopping tool...');
-            clearSheerIDData('error'); // Clear SheerID data on VPN error
-            isRunning = false;
-            chrome.storage.local.set({ 'veterans-is-running': false });
-            updateUIOnStop();
-            sendStatus(
-                '🚫 VPN/PROXY Error: sourcesUnavailable detected. Please change VPN/PROXY and restart.',
-                'error'
-            );
+            console.log('🚫 sourcesUnavailable error detected in URL');
+            await handleVPNError();
             return;
         }
 
@@ -2230,11 +2317,7 @@ async function checkAndFillForm() {
 
     const currentUrl = window.location.href;
     if (currentUrl.includes('sourcesUnavailable') || currentUrl.includes('Error sourcesUnavailable')) {
-        clearSheerIDData('error'); // Clear SheerID data on VPN error
-        isRunning = false;
-        chrome.storage.local.set({ 'veterans-is-running': false });
-        updateUIOnStop();
-        sendStatus('🚫 VPN/PROXY Error: sourcesUnavailable detected. Please change VPN/PROXY and restart.', 'error');
+        await handleVPNError();
         return;
     }
 
@@ -2250,11 +2333,7 @@ async function checkAndFillForm() {
                 errorText.includes('having difficulty verifying') ||
                 errorText.includes('sourcesUnavailable') ||
                 errorText.toLowerCase().includes('sources unavailable')) {
-                clearSheerIDData('error'); // Clear SheerID data on VPN error
-                isRunning = false;
-                chrome.storage.local.set({ 'veterans-is-running': false });
-                updateUIOnStop();
-                sendStatus('🚫 VPN/PROXY Error: Unable to verify. Please change VPN/PROXY and restart.', 'error');
+                await handleVPNError();
                 return;
             }
 
