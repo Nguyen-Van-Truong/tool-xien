@@ -2,6 +2,7 @@
 """
 Automation Engine
 Điều phối toàn bộ flow: Login → Signup → Verify
+Sử dụng State Machine cho signup flow
 """
 
 import time
@@ -11,7 +12,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
 from handlers.login_handler import LoginHandler
-from handlers.signup_handler import SignupHandler
+from handlers.state_signup_handler import StateBasedSignupHandler
 from handlers.verify_handler import VerifyHandler
 from utils.human_behavior import random_delay
 
@@ -21,7 +22,7 @@ import config
 class AutomationEngine:
     """
     Main automation engine
-    Điều phối: Detection → Signup (nếu cần) → Verify (nếu có data)
+    Điều phối: Detection → Signup (state machine) → Verify (nếu có data)
     """
     
     CHATGPT_URL = "https://chatgpt.com"
@@ -50,7 +51,7 @@ class AutomationEngine:
         
         # Initialize handlers
         self.login_handler = LoginHandler(driver, self._log)
-        self.signup_handler = SignupHandler(driver, account, self._log)
+        self.signup_handler = StateBasedSignupHandler(driver, account, self._log)
         
         if veteran_data:
             self.verify_handler = VerifyHandler(driver, veteran_data, self._log)
@@ -100,9 +101,9 @@ class AutomationEngine:
                     "message": "Already logged in"
                 }
             
-            # Step 3: Not logged in - try signup
-            self._log("🔐 Not logged in, starting signup...")
-            signup_result = self._run_signup()
+            # Step 3: Not logged in - run state-based signup
+            self._log("🔐 Not logged in, starting signup (state machine)...")
+            signup_result = self.signup_handler.run_signup()
             
             if not signup_result.get("success"):
                 return signup_result
@@ -111,104 +112,10 @@ class AutomationEngine:
             if self.veteran_data and not skip_verify:
                 return self._run_verification()
             
-            return {
-                "success": True,
-                "status": "success",
-                "message": "Signup successful"
-            }
+            return signup_result
             
         except Exception as e:
             self._log(f"❌ Error: {e}", "error")
-            return {
-                "success": False,
-                "status": "error",
-                "message": str(e)
-            }
-    
-    def _run_signup(self) -> Dict:
-        """
-        Chạy signup flow
-        
-        Returns:
-            Dict result
-        """
-        try:
-            # Click signup button
-            if not self.login_handler.click_signup_button():
-                return {
-                    "success": False,
-                    "status": "failed",
-                    "message": "Signup button not found"
-                }
-            
-            random_delay(2, 3)
-            
-            # Fill email
-            if not self.signup_handler.fill_email():
-                return {
-                    "success": False,
-                    "status": "failed",
-                    "message": "Failed to fill email"
-                }
-            
-            random_delay(2, 3)
-            
-            # Fill password
-            if not self.signup_handler.fill_password():
-                return {
-                    "success": False,
-                    "status": "failed",
-                    "message": "Failed to fill password"
-                }
-            
-            random_delay(3, 5)
-            
-            # Check if need OTP
-            current_url = self.driver.current_url.lower()
-            
-            if "email-verification" in current_url or "verify" in current_url:
-                self._log("📧 OTP verification required")
-                if not self.signup_handler.handle_otp():
-                    return {
-                        "success": False,
-                        "status": "failed",
-                        "message": "OTP verification failed"
-                    }
-            
-            random_delay(3, 5)
-            
-            # Check for About You page
-            self.signup_handler.fill_about_you()
-            
-            random_delay(2, 3)
-            
-            # Final check - are we logged in now?
-            if self.login_handler.is_logged_in():
-                self._log("✅ Signup successful!", "success")
-                return {
-                    "success": True,
-                    "status": "success",
-                    "message": "Signup successful"
-                }
-            
-            # Check for common errors
-            body_text = self.driver.find_element(By.TAG_NAME, 'body').text or ""
-            
-            if "already" in body_text.lower() and "exist" in body_text.lower():
-                return {
-                    "success": False,
-                    "status": "exists",
-                    "message": "Account already exists"
-                }
-            
-            return {
-                "success": False,
-                "status": "unknown",
-                "message": "Signup completed but status unclear"
-            }
-            
-        except Exception as e:
-            self._log(f"❌ Signup error: {e}", "error")
             return {
                 "success": False,
                 "status": "error",

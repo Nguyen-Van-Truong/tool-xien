@@ -29,7 +29,7 @@ class SignupHandler:
     
     def fill_email(self) -> bool:
         """
-        Điền email và click Continue
+        Điền email và click Continue (like v10)
         
         Returns:
             True nếu thành công
@@ -40,12 +40,14 @@ class SignupHandler:
                 'input[name*="email" i]',
                 'input[placeholder*="email" i]',
                 'input[id*="email" i]',
+                'input[autocomplete="email"]',
             ]
             
             email_input = None
             for sel in email_selectors:
-                email_input = wait_for_element(self.driver, sel, timeout=10)
+                email_input = wait_for_element(self.driver, sel, timeout=15)
                 if email_input:
+                    self.log(f"✅ Found email input with: {sel}")
                     break
             
             if not email_input:
@@ -64,25 +66,61 @@ class SignupHandler:
                 arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
             """, email_input)
             
-            random_delay(0.5, 1)
+            random_delay(1, 1.5)
             
-            # Click Continue button
-            continue_texts = ["Continue", "Next", "Tiếp tục"]
-            continue_btn = find_button_by_text(self.driver, continue_texts)
+            # Click Continue button - V10 STYLE
+            if self._click_continue_button():
+                self.log("✅ Email submitted")
+                return True
             
-            if continue_btn:
-                success, _ = click_element(self.driver, continue_btn)
-                if success:
-                    self.log("✅ Email submitted")
-                    return True
-            
-            # Try Enter key
+            # Fallback: Enter key
             email_input.send_keys(Keys.ENTER)
             self.log("✅ Email submitted (Enter key)")
             return True
             
         except Exception as e:
             self.log(f"❌ Email error: {e}")
+            return False
+    
+    def _click_continue_button(self) -> bool:
+        """
+        Click Continue button - Logic từ v10
+        Selectors: button[type=submit], XPATH contains Continue, data-dd-action-name
+        """
+        try:
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+            
+            wait = WebDriverWait(self.driver, 5)
+            
+            # V10 selectors
+            selectors = [
+                (By.CSS_SELECTOR, 'button[type="submit"]'),
+                (By.XPATH, "//button[contains(., 'Continue')]"),
+                (By.CSS_SELECTOR, 'button[data-dd-action-name="Continue"]'),
+                (By.XPATH, "//button[contains(normalize-space(text()), 'Continue')]"),
+            ]
+            
+            for by, selector in selectors:
+                try:
+                    button = wait.until(EC.element_to_be_clickable((by, selector)))
+                    if button and not button.get_attribute('disabled'):
+                        # Check không phải nút Google
+                        btn_text = (button.text or '').lower()
+                        if 'google' in btn_text or 'microsoft' in btn_text or 'apple' in btn_text:
+                            continue
+                        
+                        success, method = click_element(self.driver, button, scroll_first=False)
+                        if success:
+                            self.log(f"✅ Clicked Continue ({method})")
+                            random_delay(1, 1.5)
+                            return True
+                except:
+                    continue
+            
+            return False
+        except Exception as e:
+            self.log(f"⚠️ Continue button error: {e}")
             return False
     
     def fill_password(self) -> bool:

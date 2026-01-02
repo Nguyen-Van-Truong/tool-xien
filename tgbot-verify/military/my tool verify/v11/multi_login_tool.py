@@ -25,7 +25,7 @@ from PyQt6.QtGui import QFont, QColor, QPalette, QTextCharFormat, QTextCursor
 
 import config
 from browser_manager import BrowserManager, BrowserInstance
-from signup_automation import SignupAutomation
+from automation_engine import create_automation, AutomationEngine
 
 
 class LogSignal(QObject):
@@ -452,7 +452,14 @@ class MultiLoginTool(QMainWindow):
         self.message_queue.put(("log", message, level, browser_id))
     
     def _load_data_file(self):
-        """Load accounts from file"""
+        """
+        Load accounts from file
+        
+        Supported formats:
+        - 4 fields: email|password|token|clientId
+        - 6 fields: email|password|emailLogin|passEmail|token|clientId
+        - 12 fields: email|password|emailLogin|passEmail|token|clientId|first|last|branch|month|day|year
+        """
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Data File", "", "Text files (*.txt);;All files (*.*)"
         )
@@ -469,7 +476,29 @@ class MultiLoginTool(QMainWindow):
             for line in lines:
                 parts = [p.strip() for p in line.split('|')]
                 
-                if len(parts) >= 6:
+                # 12-field format: signup + verify data
+                if len(parts) >= 12:
+                    accounts.append({
+                        'email': parts[0],
+                        'password': parts[1],
+                        'emailLogin': parts[2],
+                        'passEmail': parts[3],
+                        'refreshToken': parts[4],
+                        'clientId': parts[5],
+                        # Verify data
+                        'first': parts[6],
+                        'last': parts[7],
+                        'branch': parts[8],
+                        'month': parts[9],
+                        'day': parts[10],
+                        'year': parts[11],
+                        'original': line,
+                        'status': 'pending',
+                        'browser_id': None,
+                        'message': ''
+                    })
+                # 6-field format: signup only
+                elif len(parts) >= 6:
                     accounts.append({
                         'email': parts[0],
                         'password': parts[1],
@@ -482,6 +511,7 @@ class MultiLoginTool(QMainWindow):
                         'browser_id': None,
                         'message': ''
                     })
+                # 4-field format: minimal
                 elif len(parts) >= 4:
                     accounts.append({
                         'email': parts[0],
@@ -501,12 +531,20 @@ class MultiLoginTool(QMainWindow):
             self._update_stats_display()
             self._update_accounts_table()
             
+            # Count accounts with verify data
+            verify_count = sum(1 for a in accounts if 'first' in a)
+            
             self.file_label.setText(os.path.basename(file_path))
             self.file_label.setStyleSheet("color: #4ec9b0;")
-            self.count_label.setText(f"{len(accounts)} accounts")
+            
+            if verify_count > 0:
+                self.count_label.setText(f"{len(accounts)} accounts ({verify_count} with verify)")
+            else:
+                self.count_label.setText(f"{len(accounts)} accounts")
+            
             self.start_btn.setEnabled(len(accounts) > 0)
             
-            self.log(f"✅ Loaded {len(accounts)} accounts", "success")
+            self.log(f"✅ Loaded {len(accounts)} accounts ({verify_count} with verify data)", "success")
             self._save_state()
             
         except Exception as e:
@@ -652,18 +690,26 @@ class MultiLoginTool(QMainWindow):
             self.message_queue.put(("create_browser_tab", instance.id, account['email']))
             
             # Create logger with browser_id
-            def browser_logger(message: str, browser_id=instance.id):
-                self.message_queue.put(("log", message, "info", browser_id))
+            def browser_logger(message: str, level: str = "info", browser_id=instance.id):
+                self.message_queue.put(("log", message, level, browser_id))
             
-            # Run signup automation  
-            automation = SignupAutomation(
+            # Use new AutomationEngine (handles both signup and verify)
+            automation = create_automation(
                 driver=instance.driver,
                 account=account,
                 logger=browser_logger,
                 instance_id=instance.id
             )
             
-            result = automation.run_signup_flow()
+            # Check if account has verify data (12 fields)
+            has_verify_data = all(key in account for key in ['first', 'last', 'branch', 'month', 'day', 'year'])
+            
+            if has_verify_data:
+                browser_logger("🎖️ Account has verify data, will run full flow", "info")
+                result = automation.run()  # Runs signup + verify
+            else:
+                browser_logger("📝 Account has signup data only", "info")
+                result = automation.run_signup_only()  # Runs signup only
             
             # Keep browser open based on config
             if not config.KEEP_BROWSER_OPEN:
