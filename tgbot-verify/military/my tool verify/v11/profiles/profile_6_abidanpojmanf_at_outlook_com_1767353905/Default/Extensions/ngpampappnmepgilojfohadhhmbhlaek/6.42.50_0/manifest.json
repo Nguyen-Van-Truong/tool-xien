@@ -1,0 +1,43 @@
+{
+   "action": {
+      "default_icon": {
+         "16": "images/logo16.png",
+         "32": "images/logo32.png"
+      }
+   },
+   "author": "Tonec FZE",
+   "background": {
+      "service_worker": "background.js"
+   },
+   "content_scripts": [ {
+      "all_frames": true,
+      "js": [ "content.js" ],
+      "matches": [ "*://*/*" ],
+      "run_at": "document_start"
+   } ],
+   "default_locale": "en",
+   "description": "__MSG_extension_desc__",
+   "externally_connectable": {
+      "matches": [ "*://*.internetdownloadmanager.com/*", "*://*.tonec.com/*" ]
+   },
+   "homepage_url": "http://www.internetdownloadmanager.com/",
+   "host_permissions": [ "\u003Call_urls>" ],
+   "icons": {
+      "128": "images/logo128.png",
+      "16": "images/logo16.png",
+      "48": "images/logo48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAutN8/aVCnWWo01YitMu1kREcX+50UY//YxrPd0XXSLTK0mEJqPRYbcgxjxAfUc1+eHtFbWvR5BDQvip0+3chrMpGfG+Fwn/aQkaZj7T6gEqbHQElqoncCtXaDTRvo0M7Pj0RWjc1dTV+COlhHZI4RIw4TmL1SAvwO/1+VUgg4ohTjFNKhcSsz89kUbaPqfMfFk1UbrI3pkCHTUNCu0+doN7KQDbH1QBlYxt3ajsd15hzhca/dT4eDfew1nHRADOF5A4JNEuDHoyR/ETvn/CZgNeSo2lWNyYp/xpxRR6Fygjhjf4rNoRm/CtdCCF6mPNjbOkvIU8nQJQvvj08QZ3yFQIDAQAB",
+   "manifest_version": 3,
+   "minimum_chrome_version": "109.0",
+   "name": "IDM Integration Module",
+   "optional_permissions": [ "notifications", "system.display" ],
+   "permissions": [ "scripting", "tabs", "cookies", "contextMenus", "webNavigation", "webRequest", "declarativeNetRequest", "downloads", "downloads.shelf", "downloads.ui", "management", "storage", "proxy", "nativeMessaging" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "6.42.50",
+   "web_accessible_resources": [ {
+      "matches": [ "*://*/*" ],
+      "resources": [ "document.js", "debug.js", "captured.js", "captured.html" ],
+      "use_dynamic_url": false
+   } ]
+}

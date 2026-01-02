@@ -1,0 +1,6 @@
+cd "E:\tool xien\tgbot-verify\military\my tool verify\v11"
+
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python multi_login_tool.py

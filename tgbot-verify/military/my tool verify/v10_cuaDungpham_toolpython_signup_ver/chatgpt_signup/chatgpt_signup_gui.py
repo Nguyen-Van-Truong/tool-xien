@@ -70,6 +70,10 @@ class ChatGPTSignupGUI(QMainWindow):
         self.log_signal = LogSignal()
         self.log_signal.log_message.connect(self._append_log)
         
+        # Initialize file logging
+        self.log_file = open('debug.log', 'a', encoding='utf-8')
+        self.log_file.write(f"\n\n{'='*60}\nNew session started at {datetime.now().isoformat()}\n{'='*60}\n")
+        
         # Setup dark theme
         self.setup_dark_theme()
         
@@ -363,6 +367,13 @@ class ChatGPTSignupGUI(QMainWindow):
     def log(self, message, tag="info"):
         """Thread-safe logging"""
         self.message_queue.put(("log", message, tag))
+        # Also write to file
+        try:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            self.log_file.write(f"[{timestamp}] [{tag.upper()}] {message}\n")
+            self.log_file.flush()
+        except:
+            pass
     
     def _append_log(self, message, tag):
         """Append log message to text edit"""
@@ -789,6 +800,35 @@ class ChatGPTSignupGUI(QMainWindow):
             # Lock released - driver created successfully
             driver.set_page_load_timeout(30)
             
+            # Auto-arrange browser windows in grid layout
+            try:
+                # Window size settings - larger size to prevent layout issues
+                window_width = 800
+                window_height = 900
+                
+                # Calculate grid position based on index
+                # Get screen size (default to 1920x1080 if not available)
+                screen_width = 1920
+                screen_height = 1080
+                
+                # Calculate how many windows fit per row
+                cols = max(1, screen_width // window_width)
+                
+                # Calculate row and column for this window
+                col = index % cols
+                row = index // cols
+                
+                # Calculate position
+                x_pos = col * window_width
+                y_pos = row * window_height
+                
+                # Set window to FULLSCREEN for faster operation
+                driver.maximize_window()
+                
+                self.log(f"🪟 Window {index + 1}: FULLSCREEN", "info")
+            except Exception as e:
+                self.log(f"⚠️ Could not arrange window: {str(e)}", "warning")
+            
             # Navigate to ChatGPT
             self.log(f"🌐 Navigating to ChatGPT for {account['email']}", "info")
             driver.get('https://chatgpt.com')
@@ -1004,12 +1044,45 @@ class ChatGPTSignupGUI(QMainWindow):
                     # No OTP = account already existed, this was a login
                     self.log(f"✅ Login SUCCESS (account exists) for {account['email']}", "success")
                     self.handle_exists(account)
-                driver.quit()
+                # driver.quit()  # Keep browser open for inspection
                 return
+            
+            # Still on email-verification or auth page - wait and retry
+            elif 'email-verification' in current_url or 'auth.openai.com' in current_url:
+                self.log(f"⏳ Still on auth page, waiting for redirect for {account['email']}...", "info")
+                
+                # Wait for redirect (up to 30 seconds)
+                for wait_check in range(15):
+                    time.sleep(2)
+                    current_url = driver.current_url
+                    
+                    # Check if redirected to homepage
+                    if 'chatgpt.com' in current_url and 'auth' not in current_url and 'verify' not in current_url:
+                        self.log(f"✅ Redirected to homepage for {account['email']}", "success")
+                        if otp_requested:
+                            self.handle_success(account)
+                        else:
+                            self.handle_exists(account)
+                        # driver.quit()  # Keep browser open for inspection
+                        return
+                    
+                    # Check if logged in by looking at page content
+                    if self.is_logged_in(driver):
+                        self.log(f"✅ Login detected for {account['email']}", "success")
+                        self.handle_exists(account)
+                        # driver.quit()  # Keep browser open for inspection
+                        return
+                
+                # If still stuck after waiting, treat as exists (account likely valid)
+                self.log(f"ℹ️ Account already exists for {account['email']}", "info")
+                self.handle_exists(account)
+                # driver.quit()  # Keep browser open for inspection
+                return
+            
             else:
                 raise Exception(f"Unexpected URL after processing: {current_url}")
             
-            driver.quit()
+            # driver.quit()  # Keep browser open for inspection
             
         except Exception as e:
             error_msg = str(e)
@@ -1056,7 +1129,8 @@ class ChatGPTSignupGUI(QMainWindow):
             
             if driver:
                 try:
-                    driver.quit()
+                    # driver.quit()  # Keep browser open for inspection
+                    pass
                 except:
                     pass
             
@@ -1352,30 +1426,62 @@ class ChatGPTSignupGUI(QMainWindow):
             raise Exception(f"Failed to click Sign Up: {str(e)}")
     
     def fill_email(self, driver, email):
-        """Fill email input"""
+        """Fill email input with detailed debugging"""
         try:
-            wait = WebDriverWait(driver, 10)
+            # Log current state for debugging
+            current_url = driver.current_url
+            self.log(f"🔍 [DEBUG] fill_email - Current URL: {current_url}", "info")
             
-            # Try multiple selectors
+            # Take page source snapshot for debugging
+            try:
+                page_source = driver.page_source
+                self.log(f"🔍 [DEBUG] Page source length: {len(page_source)} chars", "info")
+                
+                # Check if we have any inputs on page
+                all_inputs = driver.find_elements(By.TAG_NAME, "input")
+                self.log(f"🔍 [DEBUG] Found {len(all_inputs)} input elements on page", "info")
+                for inp in all_inputs[:5]:  # Log first 5 inputs
+                    try:
+                        inp_type = inp.get_attribute("type") or "unknown"
+                        inp_name = inp.get_attribute("name") or "no-name"
+                        inp_id = inp.get_attribute("id") or "no-id"
+                        self.log(f"🔍 [DEBUG] Input: type={inp_type}, name={inp_name}, id={inp_id}", "info")
+                    except:
+                        pass
+            except Exception as debug_e:
+                self.log(f"🔍 [DEBUG] Error getting page info: {str(debug_e)}", "warning")
+            
+            # Wait longer for page to fully load
+            wait = WebDriverWait(driver, 30)  # Increased timeout
+            
+            # Try multiple selectors with logging
             selectors = [
                 (By.CSS_SELECTOR, 'input[type="email"]'),
                 (By.CSS_SELECTOR, 'input[name*="email" i]'),
                 (By.CSS_SELECTOR, 'input[id*="email" i]'),
-                (By.ID, 'email')
+                (By.CSS_SELECTOR, 'input[placeholder*="email" i]'),
+                (By.ID, 'email'),
+                (By.ID, 'email-input'),
+                (By.CSS_SELECTOR, 'input[autocomplete="email"]'),
             ]
             
             for by, selector in selectors:
                 try:
+                    self.log(f"🔍 [DEBUG] Trying selector: {selector}", "info")
                     email_input = wait.until(EC.presence_of_element_located((by, selector)))
-                    email_input.clear()
-                    email_input.send_keys(email)
-                    self.log(f"✅ Filled email: {email}", "success")
-                    
-                    # Click Continue button
-                    time.sleep(1)
-                    self.click_continue_button(driver)
-                    return
-                except:
+                    if email_input.is_displayed():
+                        email_input.clear()
+                        email_input.send_keys(email)
+                        self.log(f"✅ Filled email: {email} (using {selector})", "success")
+                        
+                        # Click Continue button
+                        time.sleep(1)
+                        self.click_continue_button(driver)
+                        return
+                    else:
+                        self.log(f"⚠️ [DEBUG] Found but not displayed: {selector}", "warning")
+                except Exception as sel_e:
+                    self.log(f"⚠️ [DEBUG] Selector {selector} failed: {str(sel_e)[:50]}", "warning")
                     continue
             
             raise Exception("Email input not found")

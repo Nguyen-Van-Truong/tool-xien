@@ -1,0 +1,4 @@
+PyQt6>=6.4.0
+selenium>=4.15.0
+undetected-chromedriver>=3.5.0
+requests>=2.28.0
