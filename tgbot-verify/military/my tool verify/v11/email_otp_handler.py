@@ -195,6 +195,32 @@ class EmailOTPHandler:
             }
 
 
+# Helper function for simple import
+def get_otp_from_email(
+    email_login: str,
+    email_password: str,
+    refresh_token: str,
+    client_id: str,
+    max_retries: int = None,
+    logger=None
+) -> str:
+    """
+    Helper function để lấy OTP (wrapper cho EmailOTPHandler)
+    
+    Returns:
+        OTP string hoặc None nếu thất bại
+    """
+    handler = EmailOTPHandler(logger=logger)
+    result = handler.get_otp_with_retry(
+        email_login=email_login,
+        email_password=email_password,
+        refresh_token=refresh_token,
+        client_id=client_id,
+        max_retries=max_retries
+    )
+    return result.get('otp')
+
+
 # Test function
 if __name__ == "__main__":
     handler = EmailOTPHandler()
