@@ -1,0 +1,6 @@
+# Format: email-chatgpt|pass-chatgpt|email-login|pass-email|refresh_token|client_id
+# Thay thế các giá trị dưới đây bằng thông tin thực tế của bạn
+
+user1@example.com|password123|login@example.com|loginpass|your_refresh_token_here|your_client_id_here
+user2@example.com|password456|login2@example.com|loginpass2|your_refresh_token_here2|your_client_id_here2
+

@@ -13,6 +13,8 @@ let stats = {
 let currentEmail = ''; // For verify email generation
 let mailRetryCount = 0;
 const MAX_MAIL_RETRIES = 10;
+let signupRetryCount = 0; // Track signup retry attempts
+const MAX_SIGNUP_RETRIES = 3; // Max retries when signup fails
 
 // Listen for storage changes to sync isRunning immediately when STOP is pressed
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -1263,6 +1265,7 @@ async function handleAboutYou(data) {
 
                 // Mark signup as completed
                 chatgptAccount.signupCompleted = true;
+                signupRetryCount = 0; // Reset retry counter on success
                 chrome.storage.local.set({ 'chatgpt-account': chatgptAccount });
 
                 // Navigate to veterans-claim page and start verify
@@ -1281,31 +1284,19 @@ async function handleAboutYou(data) {
             } else {
                 // Không chuyển trang sau khi click Continue -> Lỗi
                 sendStatus('❌ Error: Page did not change after filling information', 'error');
-
-                // Đánh dấu thất bại
-                stats.processed++;
-                stats.failed++;
-                updateStats();
-
-                // Move to next account
-                currentDataIndex++;
-                chrome.storage.local.set({
-                    'chatgpt-signup-current-index': currentDataIndex,
-                    'chatgpt-signup-stats': stats
-                });
-
-                // Continue with next account after delay
-                await delay(3000);
-                await startSignupLoop();
+                await handleSignupError('Page did not change after filling information');
+                return;
             }
         } else {
-            throw new Error('Continue button not found');
+            sendStatus('❌ Error: Continue button not found', 'error');
+            await handleSignupError('Continue button not found');
+            return;
         }
 
     } catch (error) {
         console.error('❌ Error in handleAboutYou:', error);
         sendStatus('❌ Error filling information: ' + error.message, 'error');
-        throw error;
+        await handleSignupError(error.message);
     }
 }
 
@@ -1829,6 +1820,59 @@ let isRetrying = false;
 // Send VPN-specific log to sidepanel
 function sendVPNLog(message) {
     chrome.storage.local.set({ 'veterans-vpn-log': message });
+}
+
+// Handle signup error with retry logic (clear all, go to chatgpt.com, retry up to 3 times)
+async function handleSignupError(errorMessage) {
+    signupRetryCount++;
+
+    if (signupRetryCount > MAX_SIGNUP_RETRIES) {
+        sendStatus(`❌ Signup failed after ${MAX_SIGNUP_RETRIES} retries: ${errorMessage}`, 'error');
+
+        // Move to next account
+        stats.processed++;
+        stats.failed++;
+        updateStats();
+
+        currentDataIndex++;
+        signupRetryCount = 0; // Reset for next account
+
+        chrome.storage.local.set({
+            'chatgpt-signup-current-index': currentDataIndex,
+            'chatgpt-signup-stats': stats
+        });
+
+        await delay(2000);
+        await startSignupLoop();
+        return false;
+    }
+
+    sendStatus(`🔄 Signup lỗi, thử lại lần ${signupRetryCount}/${MAX_SIGNUP_RETRIES}... Đang clear cookies...`, 'info');
+
+    // Clear all cookies via background script
+    try {
+        await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ action: 'clearCookies' }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.log('⚠️ Cookie clear message error:', chrome.runtime.lastError.message);
+                    resolve(); // Continue anyway
+                } else {
+                    console.log('✅ Cookies cleared via background');
+                    resolve();
+                }
+            });
+        });
+    } catch (e) {
+        console.log('⚠️ Cookie clear failed:', e.message);
+    }
+
+    sendStatus(`🔄 Đã clear, quay lại ChatGPT... (lần ${signupRetryCount}/${MAX_SIGNUP_RETRIES})`, 'info');
+
+    // Wait and navigate back to chatgpt.com
+    await delay(2000);
+    window.location.href = 'https://chatgpt.com';
+
+    return true; // Indicates retry in progress
 }
 
 // Handle VPN/IP error with retry logic

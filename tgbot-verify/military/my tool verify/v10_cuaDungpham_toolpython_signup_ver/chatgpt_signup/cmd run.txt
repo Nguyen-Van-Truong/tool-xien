@@ -1,0 +1,4 @@
+cd "E:\tool xien\tgbot-verify\military\my tool verify\v10_cuaDungpham_toolpython_signup_ver\chatgpt_signup"
+.\install_and_run.bat
+
+.\quick_run.bat
