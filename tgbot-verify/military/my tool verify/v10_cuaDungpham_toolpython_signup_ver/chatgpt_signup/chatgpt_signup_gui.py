@@ -61,6 +61,7 @@ class ChatGPTSignupGUI(QMainWindow):
         self.threads = []
         self.max_threads = 1
         self.thread_lock = threading.Lock()
+        self.driver_creation_lock = threading.Lock()  # Lock to prevent chromedriver conflicts
         self.current_index = 0
         self.summary_shown = False
         
@@ -713,55 +714,69 @@ class ChatGPTSignupGUI(QMainWindow):
                 else:
                     self.log("⚠️ No browser found, using default ChromeDriver", "warning")
             
-            # Use undetected-chromedriver to avoid bot detection (REAL BROWSER MODE)
-            if UC_AVAILABLE:
-                try:
-                    self.log("🚀 Starting browser in REAL mode (undetected-chromedriver)...", "info")
-                    
-                    # Create options for undetected-chromedriver
-                    uc_options = uc.ChromeOptions()
-                    uc_options.add_argument(f'--user-data-dir={profile_dir}')
-                    uc_options.add_argument('--disable-dev-shm-usage')
-                    uc_options.add_argument('--no-sandbox')
-                    uc_options.add_argument('--disable-gpu')
-                    
-                    # Try to use undetected-chromedriver with error handling
+            # Use lock to prevent chromedriver file conflicts when multiple threads start simultaneously
+            with self.driver_creation_lock:
+                # Use undetected-chromedriver to avoid bot detection (REAL BROWSER MODE)
+                if UC_AVAILABLE:
                     try:
-                        # Use custom browser executable if provided
-                        if browser_executable:
-                            driver = uc.Chrome(
-                                browser_executable_path=browser_executable,
-                                user_data_dir=profile_dir,
-                                options=uc_options,
-                                version_main=None,  # Auto-detect Chrome version
-                                use_subprocess=True
-                            )
-                        else:
-                            driver = uc.Chrome(
-                                user_data_dir=profile_dir,
-                                options=uc_options,
-                                version_main=None,
-                                use_subprocess=True
-                            )
+                        self.log("🚀 Starting browser in REAL mode (undetected-chromedriver)...", "info")
                         
-                        self.log("✅ Browser opened in REAL mode (not detected as bot)", "success")
-                    except (OSError, ConnectionError) as network_error:
-                        # Network error when trying to download ChromeDriver - fallback immediately
-                        self.log(f"⚠️ Network error with undetected-chromedriver (cannot download ChromeDriver): {str(network_error)}", "warning")
-                        self.log("⚠️ Falling back to regular Chrome...", "warning")
-                        raise  # Re-raise to trigger fallback
-                    except Exception as uc_error:
-                        # Check if it's a URL/network related error
-                        error_str = str(uc_error).lower()
-                        if 'urlopen error' in error_str or 'unreachable host' in error_str or 'socket operation' in error_str:
-                            self.log(f"⚠️ Network error with undetected-chromedriver (cannot download ChromeDriver): {str(uc_error)}", "warning")
+                        # Create options for undetected-chromedriver
+                        uc_options = uc.ChromeOptions()
+                        uc_options.add_argument(f'--user-data-dir={profile_dir}')
+                        uc_options.add_argument('--disable-dev-shm-usage')
+                        uc_options.add_argument('--no-sandbox')
+                        uc_options.add_argument('--disable-gpu')
+                        
+                        # Try to use undetected-chromedriver with error handling
+                        try:
+                            # Use custom browser executable if provided
+                            if browser_executable:
+                                driver = uc.Chrome(
+                                    browser_executable_path=browser_executable,
+                                    user_data_dir=profile_dir,
+                                    options=uc_options,
+                                    version_main=None,  # Auto-detect Chrome version
+                                    use_subprocess=True
+                                )
+                            else:
+                                driver = uc.Chrome(
+                                    user_data_dir=profile_dir,
+                                    options=uc_options,
+                                    version_main=None,
+                                    use_subprocess=True
+                                )
+                            
+                            self.log("✅ Browser opened in REAL mode (not detected as bot)", "success")
+                        except (OSError, ConnectionError) as network_error:
+                            # Network error when trying to download ChromeDriver - fallback immediately
+                            self.log(f"⚠️ Network error with undetected-chromedriver (cannot download ChromeDriver): {str(network_error)}", "warning")
                             self.log("⚠️ Falling back to regular Chrome...", "warning")
-                        else:
-                            self.log(f"⚠️ undetected-chromedriver error: {str(uc_error)}", "warning")
-                            self.log("⚠️ Falling back to regular Chrome...", "warning")
-                        raise  # Re-raise to trigger fallback
-                except Exception as e:
-                    # Fallback to regular Chrome
+                            raise  # Re-raise to trigger fallback
+                        except Exception as uc_error:
+                            # Check if it's a URL/network related error
+                            error_str = str(uc_error).lower()
+                            if 'urlopen error' in error_str or 'unreachable host' in error_str or 'socket operation' in error_str:
+                                self.log(f"⚠️ Network error with undetected-chromedriver (cannot download ChromeDriver): {str(uc_error)}", "warning")
+                                self.log("⚠️ Falling back to regular Chrome...", "warning")
+                            else:
+                                self.log(f"⚠️ undetected-chromedriver error: {str(uc_error)}", "warning")
+                                self.log("⚠️ Falling back to regular Chrome...", "warning")
+                            raise  # Re-raise to trigger fallback
+                    except Exception as e:
+                        # Fallback to regular Chrome
+                        chrome_options = Options()
+                        chrome_options.add_argument(f'--user-data-dir={profile_dir}')
+                        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+                        chrome_options.add_experimental_option('useAutomationExtension', False)
+                        if browser_executable:
+                            chrome_options.binary_location = browser_executable
+                        driver = webdriver.Chrome(options=chrome_options)
+                        self.log("✅ Using regular Chrome (with anti-detection flags)", "info")
+                else:
+                    # Fallback: Use regular Chrome with minimal automation flags
+                    self.log("⚠️ undetected-chromedriver not available, using regular Chrome (may be detected)", "warning")
                     chrome_options = Options()
                     chrome_options.add_argument(f'--user-data-dir={profile_dir}')
                     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
@@ -770,19 +785,8 @@ class ChatGPTSignupGUI(QMainWindow):
                     if browser_executable:
                         chrome_options.binary_location = browser_executable
                     driver = webdriver.Chrome(options=chrome_options)
-                    self.log("✅ Using regular Chrome (with anti-detection flags)", "info")
-            else:
-                # Fallback: Use regular Chrome with minimal automation flags
-                self.log("⚠️ undetected-chromedriver not available, using regular Chrome (may be detected)", "warning")
-                chrome_options = Options()
-                chrome_options.add_argument(f'--user-data-dir={profile_dir}')
-                chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-                chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-                chrome_options.add_experimental_option('useAutomationExtension', False)
-                if browser_executable:
-                    chrome_options.binary_location = browser_executable
-                driver = webdriver.Chrome(options=chrome_options)
             
+            # Lock released - driver created successfully
             driver.set_page_load_timeout(30)
             
             # Navigate to ChatGPT
@@ -820,9 +824,56 @@ class ChatGPTSignupGUI(QMainWindow):
             self.fill_email(driver, account['email'])
             time.sleep(2)
             
-            # Fill password
-            self.fill_password(driver, account['password'])
-            time.sleep(3)
+            # Check URL state after email - browser may skip password page
+            current_url = driver.current_url
+            self.log(f"🔍 After email, URL is: {current_url[:60]}...", "info")
+            
+            # Case 1: Already on OTP/verification page (browser remembered password)
+            if 'email-verification' in current_url or 'verify' in current_url.lower():
+                self.log(f"📧 Browser skipped password, already on OTP page for {account['email']}", "info")
+                otp_requested = True  # Mark as signup flow
+                # Continue to OTP handling below
+            
+            # Case 2: On password page (create-account or log-in)
+            elif 'auth.openai.com' in current_url and 'password' in current_url:
+                is_login = 'log-in' in current_url
+                if is_login:
+                    self.log(f"🔐 On LOGIN password page for {account['email']}", "info")
+                else:
+                    self.log(f"🔐 On SIGNUP password page for {account['email']}", "info")
+                
+                # Fill password with retry
+                password_filled = self.fill_password_with_retry(driver, account['password'])
+                if not password_filled:
+                    raise Exception("Failed to fill password after retries")
+                time.sleep(3)
+                
+                # If login, no OTP expected
+                if is_login:
+                    otp_requested = False
+            
+            # Case 3: Still on same page or chatgpt.com
+            elif 'chatgpt.com' in current_url:
+                # May already be logged in, check
+                if self.is_logged_in(driver):
+                    self.log(f"✅ Already logged in after email for {account['email']}", "success")
+                    otp_requested = False
+                else:
+                    # Try to fill password anyway
+                    try:
+                        self.fill_password_with_retry(driver, account['password'])
+                        time.sleep(3)
+                    except:
+                        self.log(f"⚠️ No password form found, checking state...", "warning")
+            
+            # Case 4: Other auth.openai.com pages
+            else:
+                # Try to fill password
+                try:
+                    self.fill_password_with_retry(driver, account['password'])
+                    time.sleep(3)
+                except Exception as e:
+                    self.log(f"⚠️ Password fill failed: {str(e)}, checking URL...", "warning")
             
             # Handle OTP verification with retry logic
             if 'email-verification' in driver.current_url or 'verify' in driver.current_url.lower():
@@ -1359,6 +1410,47 @@ class ChatGPTSignupGUI(QMainWindow):
             raise Exception("Password input not found")
         except Exception as e:
             raise Exception(f"Failed to fill password: {str(e)}")
+    
+    def fill_password_with_retry(self, driver, password):
+        """Fill password input with retry logic (like extension)"""
+        max_attempts = 15
+        
+        selectors = [
+            (By.CSS_SELECTOR, 'input[name="new-password"]'),
+            (By.CSS_SELECTOR, 'input[id*="-new-password"]'),
+            (By.CSS_SELECTOR, 'input[type="password"][placeholder="Password"]'),
+            (By.CSS_SELECTOR, 'input[type="password"][name*="password" i]'),
+            (By.CSS_SELECTOR, 'input[type="password"]')
+        ]
+        
+        for attempt in range(max_attempts):
+            # Check if we're still on a password page
+            current_url = driver.current_url
+            if 'email-verification' in current_url or 'verify' in current_url.lower():
+                self.log("📧 Redirected to OTP page, skipping password fill", "info")
+                return True  # Consider this success, password was auto-filled
+            
+            for by, selector in selectors:
+                try:
+                    password_input = driver.find_element(by, selector)
+                    if password_input and password_input.is_displayed():
+                        password_input.clear()
+                        password_input.send_keys(password)
+                        self.log(f"✅ Filled password (attempt {attempt + 1})", "success")
+                        
+                        # Click Continue button
+                        time.sleep(1)
+                        self.click_continue_button(driver)
+                        return True
+                except:
+                    continue
+            
+            # Wait before retry
+            if attempt < max_attempts - 1:
+                time.sleep(0.5)
+        
+        self.log(f"⚠️ Password input not found after {max_attempts} attempts", "warning")
+        return False
     def click_continue_button(self, driver):
         """lick Continue button"""
         try:
