@@ -13,10 +13,14 @@ from datetime import datetime
 import string
 import time
 import os
+import sys
+import signal
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ===================== CONFIG =====================
+# Global shutdown flag - để dừng tất cả threads khi Ctrl+C
+shutdown_event = threading.Event()
 API_URL = "https://www.vlm.cem.va.gov/api/v1.1/gcio/profile/search/advanced"
 MAX_RETRIES = 3  # Retry 3 times per request
 RETRY_DELAY = 2  # Wait 2 seconds between retries
@@ -105,12 +109,20 @@ class SessionManager:
     def reset_session(self):
         """Reset session khi gặp nhiều lỗi (như xóa cookies và mở ẩn danh mới)"""
         print(f"[{self.letter}] 🔄 Resetting session... waiting {SESSION_RESET_WAIT}s")
-        time.sleep(SESSION_RESET_WAIT)
+        # Use interruptible sleep
+        for _ in range(SESSION_RESET_WAIT * 10):
+            if shutdown_event.is_set():
+                break
+            time.sleep(0.1)
         self.create_new_session()
     
     def fetch(self, params: dict) -> tuple:
         """Fetch với retry logic"""
         for attempt in range(MAX_RETRIES):
+            # Check shutdown flag
+            if shutdown_event.is_set():
+                return (None, None)
+                
             try:
                 response = self.client.post(API_URL, json=params)
                 status = response.status_code
@@ -124,14 +136,21 @@ class SessionManager:
                 # Server error - retry
                 if status in [502, 503, 504]:
                     if attempt < MAX_RETRIES - 1:
-                        time.sleep(RETRY_DELAY + attempt)
+                        # Interruptible delay
+                        for _ in range(int((RETRY_DELAY + attempt) * 10)):
+                            if shutdown_event.is_set():
+                                return (None, None)
+                            time.sleep(0.1)
                         continue
                 
                 return (status, None)
                 
             except Exception as e:
                 if attempt < MAX_RETRIES - 1:
-                    time.sleep(RETRY_DELAY)
+                    for _ in range(RETRY_DELAY * 10):
+                        if shutdown_event.is_set():
+                            return (None, None)
+                        time.sleep(0.1)
                     continue
                 return (None, None)
         
@@ -221,6 +240,11 @@ def scrape_letter(letter: str, start_page: int, end_page: int, output_file: str,
     consecutive_errors = 0  # Track consecutive server errors
     
     for page in range(start_page, end_page + 1):
+        # Check shutdown flag
+        if shutdown_event.is_set():
+            print(f"[{letter.upper()}] ⛔ Stopping due to shutdown signal...")
+            break
+            
         params = {
             "lastName": letter,
             "dobTo": "2025-12-31",
@@ -280,7 +304,11 @@ def scrape_letter(letter: str, start_page: int, end_page: int, output_file: str,
             print(f"[{letter.upper()}] 💾 Saved {len(batch_veterans)} veterans")
             batch_veterans = []
         
-        time.sleep(REQUEST_DELAY)  # Wait between requests
+        # Use interruptible sleep
+        for _ in range(REQUEST_DELAY * 10):
+            if shutdown_event.is_set():
+                break
+            time.sleep(0.1)
     
     # Save remaining
     if batch_veterans:
@@ -345,16 +373,36 @@ def main():
     grand_total = 0
     
     print(f"\n🚀 Starting {len(letters)} letters with {args.threads} thread(s)...\n")
+    print("💡 Press Ctrl+C to stop gracefully\n")
+    
+    # Signal handler for graceful shutdown
+    def signal_handler(sig, frame):
+        print("\n\n⚠️ Ctrl+C detected! Signaling all threads to stop...")
+        shutdown_event.set()
+    
+    signal.signal(signal.SIGINT, signal_handler)
     
     try:
         with ThreadPoolExecutor(max_workers=args.threads) as executor:
             futures = {executor.submit(scrape_letter_wrapper, task): task[0] for task in tasks}
             
             for future in as_completed(futures):
-                letter, count = future.result()
-                grand_total += count
+                if shutdown_event.is_set():
+                    # Cancel pending futures
+                    for f in futures:
+                        f.cancel()
+                    break
+                try:
+                    letter, count = future.result(timeout=1)
+                    grand_total += count
+                except Exception:
+                    pass
     except KeyboardInterrupt:
-        print("\n\n⚠️ Interrupted by user! Saving progress...")
+        print("\n\n⚠️ Force interrupted! Setting shutdown flag...")
+        shutdown_event.set()
+    except Exception as e:
+        print(f"\n\n❌ Error: {e}")
+        shutdown_event.set()
     
     print(f"\n" + "=" * 60)
     print(f"✅ COMPLETE! Total veterans: {grand_total}")

@@ -1,6 +1,0 @@
-
-cd "E:\tool xien\tgbot-verify\military\my tool verify\v9_cuaDungpham_tool_signup_ver"
-
-python vlm_scraper_v2.py -s 81 -e 120 -o new_veterans_page81-120.txt --dob 1963 --dob-to 1990 --clear -t 3
-
-python vlm_scraper_v2.py -s 40 -e 120 -o new_veterans_1930-1962_page40-120.txt --dob 1930 --dob-to 1962 --clear -t 3
