@@ -3,8 +3,7 @@ cd "tgbot-verify/military/my tool verify/v9_cuaDungpham_tool_signup_ver/scrapdat
     ---cao data
 python vlm_scraper_v2.py -s 81 -e 120 -o new_veterans_page81-120.txt --dob 1963 --dob-to 1990 --clear -t 3
 
-python vlm_scraper_v2.py -s 121 -e 160 -o new_veterans_1930-1991_page121-160.txt --dob 1930 --dob-to 1991 --clear -t 3
 
-python vlm_scraper_v2.py -s 161 -e 200 -o new_veterans_1930-1991_page121-160.txt --dob 1930 --dob-to 1991 --clear -t 3
+python vlm_scraper_v2.py -s 401 -e 500 -o new_veterans_1946-1987_page401-500.txt --dob 1946 --dob-to 1987 --clear -t 3
 
-
+python vlm_scraper_v2.py -s 501 -e 1000 -o new_veterans_1946-1987_page501-1000.txt --dob 1946 --dob-to 1987 --clear -t 3

@@ -7,7 +7,7 @@ Live | 5518276654000041|12|2029|748 $0.5 Checked - OshekharO 1gpt1y 1adobe
 
 Live | 5518276538726126|05|2028|048 $0.5 Checked - OshekharO 1gpt1y
 Live | 5518276713013084|09|2029|834 $0.5 Checked - OshekharO 1gpt1y
-Live | 5518276574684700|11|2030|874 $0.5 Checked - OshekharO 1gpt1y
+Live | 5518276574684700|11|2030|874 $0.5 Checked - OshekharO 1gpt1y  [DUPLICATE x2]
 Live | 5518276706236767|01|2027|251 $0.5 Checked - OshekharO 1adobe, 1gpt1y
 Live | 5518276150540474|06|2030|333 $0.5 Checked - OshekharO 1gpt1y
 Live | 5518276121376826|08|2027|716 $0.5 Checked - OshekharO 1gpt1y
@@ -356,5 +356,151 @@ Live | 5518272183063576|09|2030|430 $0.5 Checked - OshekharO
 Live | 5518272142570711|11|2030|118 $0.5 Checked - OshekharO
 Live | 5518278106578863|11|2029|276 $0.5 Checked - OshekharO
 Live | 5518276752552141|07|2031|241 $0.5 Checked - OshekharO
-Live | 5518276233415009|06|2031|273 $0.5 Checked - OshekharO  1adobe, 1gpt1y  [DUPLICATE x2]
-Live | 5518276233415009|07|2031|273 $0.5 Checked - OshekharO  da123123  [DUPLICATE x2]
+Live | 5518276233415009|06|2031|273 $0.5 Checked - OshekharO
+
+
+
+Live | 5518271863370863|07|2030|366 $0.5 Checked - OshekharO
+Live | 5518276467362539|09|2031|817 $0.5 Checked - OshekharO
+Live | 5518278037035678|01|2028|804 $0.5 Checked - OshekharO
+Live | 5518270355046783|03|2030|201 $0.5 Checked - OshekharO
+Live | 5518270753023442|12|2028|442 $0.5 Checked - OshekharO
+Live | 5518275656206556|12|2031|863 $0.5 Checked - OshekharO
+Live | 5518273841262402|05|2030|701 $0.5 Checked - OshekharO
+Live | 5518277313227330|04|2030|244 $0.5 Checked - OshekharO
+Live | 5518276857362289|07|2031|120 $0.5 Checked - OshekharO
+Live | 5518276177201324|08|2030|248 $0.5 Checked - OshekharO
+Live | 5518271375040269|12|2029|470 $0.5 Checked - OshekharO
+Live | 5518270147437662|03|2029|066 $0.5 Checked - OshekharO
+Live | 5518277724538606|09|2028|218 $0.5 Checked - OshekharO
+Live | 5518271018488750|11|2031|373 $0.5 Checked - OshekharO
+Live | 5518276244431250|10|2030|225 $0.5 Checked - OshekharO
+Live | 5518270885305030|12|2031|224 $0.5 Checked - OshekharO
+Live | 5518278225525241|04|2030|437 $0.5 Checked - OshekharO
+Live | 5518270546605612|07|2030|846 $0.5 Checked - OshekharO
+Live | 5518272118681575|09|2029|754 $0.5 Checked - OshekharO
+Live | 5518274175711238|08|2028|037 $0.5 Checked - OshekharO
+Live | 5518270252244101|12|2028|655 $0.5 Checked - OshekharO
+Live | 5518274806633306|09|2030|734 $0.5 Checked - OshekharO
+Live | 5518270326708404|09|2028|783 $0.5 Checked - OshekharO
+Live | 5518273384411150|07|2029|085 $0.5 Checked - OshekharO
+Live | 5518273217073367|08|2028|581 $0.5 Checked - OshekharO
+Live | 5518274624607755|02|2030|280 $0.5 Checked - OshekharO
+Live | 5518273853610365|03|2028|778 $0.5 Checked - OshekharO
+Live | 5518276840480123|01|2031|051 $0.5 Checked - OshekharO
+Live | 5518278100847108|04|2029|683 $0.5 Checked - OshekharO
+Live | 5518272303238256|02|2030|503 $0.5 Checked - OshekharO
+Live | 5518275716352085|03|2030|108 $0.5 Checked - OshekharO
+Live | 5518277350126122|07|2031|646 $0.5 Checked - OshekharO
+Live | 5518272308682342|12|2031|052 $0.5 Checked - OshekharO
+Live | 5518270784732276|08|2029|686 $0.5 Checked - OshekharO
+Live | 5518273717186826|07|2030|033 $0.5 Checked - OshekharO
+Live | 5518273863143233|03|2030|225 $0.5 Checked - OshekharO
+Live | 5518274276531279|03|2029|075 $0.5 Checked - OshekharO
+Live | 5518274426523531|11|2031|400 $0.5 Checked - OshekharO
+Live | 5518275508488725|01|2028|311 $0.5 Checked - OshekharO
+Live | 5518270654122434|01|2028|822 $0.5 Checked - OshekharO
+Live | 5518277412522805|10|2031|473 $0.5 Checked - OshekharO
+Live | 5518278776326320|09|2030|787 $0.5 Checked - OshekharO
+Live | 5518273022358011|02|2030|782 $0.5 Checked - OshekharO
+Live | 5518271300406726|08|2030|372 $0.5 Checked - OshekharO
+Live | 5518270560506217|02|2030|242 $0.5 Checked - OshekharO
+Live | 5518275812528844|11|2028|044 $0.5 Checked - OshekharO
+Live | 5518273827380350|06|2028|056 $0.5 Checked - OshekharO
+Live | 5518277604177855|09|2031|637 $0.5 Checked - OshekharO
+Live | 5518275171118740|08|2029|383 $0.5 Checked - OshekharO
+Live | 5518274373805410|04|2031|371 $0.5 Checked - OshekharO
+Live | 5518278018436374|06|2029|240 $0.5 Checked - OshekharO
+Live | 5518278060341076|11|2030|443 $0.5 Checked - OshekharO
+Live | 5518274313233285|08|2028|786 $0.5 Checked - OshekharO
+Live | 5518277126821451|11|2029|860 $0.5 Checked - OshekharO
+Live | 5518272164451428|11|2028|558 $0.5 Checked - OshekharO
+Live | 5518270675644739|04|2029|036 $0.5 Checked - OshekharO
+Live | 5518273604650454|04|2031|887 $0.5 Checked - OshekharO
+Live | 5518276708808035|11|2031|514 $0.5 Checked - OshekharO
+Live | 5518270050808859|10|2030|217 $0.5 Checked - OshekharO
+Live | 5518273842151885|12|2031|455 $0.5 Checked - OshekharO
+Live | 5518271586485428|02|2029|857 $0.5 Checked - OshekharO
+Live | 5518270125488182|01|2029|204 $0.5 Checked - OshekharO
+Live | 5518275572713362|10|2029|075 $0.5 Checked - OshekharO
+Live | 5518277017368711|05|2028|556 $0.5 Checked - OshekharO
+Live | 5518278816075259|07|2028|162 $0.5 Checked - OshekharO
+Live | 5518275353852355|07|2031|507 $0.5 Checked - OshekharO
+Live | 5518278261613307|08|2030|005 $0.5 Checked - OshekharO
+Live | 5518275108557663|08|2029|346 $0.5 Checked - OshekharO
+Live | 5518274855441510|04|2030|582 $0.5 Checked - OshekharO
+Live | 5518275624642759|07|2031|533 $0.5 Checked - OshekharO
+Live | 5518273826152487|04|2031|210 $0.5 Checked - OshekharO
+Live | 5518277086743018|03|2029|311 $0.5 Checked - OshekharO
+Live | 5518277258880424|09|2028|300 $0.5 Checked - OshekharO
+Live | 5518277275750428|07|2030|625 $0.5 Checked - OshekharO
+Live | 5518270380241326|03|2030|762 $0.5 Checked - OshekharO
+Live | 5518277713767737|04|2030|676 $0.5 Checked - OshekharO
+Live | 5518274163125052|11|2031|556 $0.5 Checked - OshekharO
+Live | 5518278772430787|08|2028|223 $0.5 Checked - OshekharO
+Live | 5518271215470551|07|2030|435 $0.5 Checked - OshekharO
+Live | 5518277821186440|08|2030|300 $0.5 Checked - OshekharO
+Live | 5518275318788322|08|2030|335 $0.5 Checked - OshekharO
+Live | 5518270502724472|03|2028|433 $0.5 Checked - OshekharO
+Live | 5518270740156735|09|2030|611 $0.5 Checked - OshekharO
+Live | 5518270777016729|03|2031|468 $0.5 Checked - OshekharO
+Live | 5518270238207354|12|2029|322 $0.5 Checked - OshekharO
+Live | 5518270215646343|02|2028|762 $0.5 Checked - OshekharO
+Live | 5518274513056361|02|2028|415 $0.5 Checked - OshekharO
+Live | 5518275467763381|04|2031|118 $0.5 Checked - OshekharO
+Live | 5518275045112416|07|2031|117 $0.5 Checked - OshekharO
+Live | 5518278865343087|11|2028|725 $0.5 Checked - OshekharO
+Live | 5518277200708061|06|2031|807 $0.5 Checked - OshekharO
+Live | 5518276032247108|06|2031|414 $0.5 Checked - OshekharO
+Live | 5518277752285021|12|2028|210 $0.5 Checked - OshekharO
+Live | 5518270757673614|10|2030|630 $0.5 Checked - OshekharO
+Live | 5518277718868738|08|2030|433 $0.5 Checked - OshekharO
+Live | 5518270134548059|05|2030|633 $0.5 Checked - OshekharO
+Live | 5518278126788534|07|2029|655 $0.5 Checked - OshekharO
+Live | 5518278686538501|04|2029|533 $0.5 Checked - OshekharO
+Live | 5518270378621281|07|2028|388 $0.5 Checked - OshekharO
+Live | 5518271744563785|01|2029|357 $0.5 Checked - OshekharO
+Live | 5518277133153450|11|2030|120 $0.5 Checked - OshekharO
+Live | 5518278775134444|02|2028|705 $0.5 Checked - OshekharO
+Live | 5518278460418342|08|2030|320 $0.5 Checked - OshekharO
+Live | 5518274308732473|02|2029|207 $0.5 Checked - OshekharO
+Live | 5518276836888123|12|2028|621 $0.5 Checked - OshekharO
+Live | 5518271258471474|12|2030|843 $0.5 Checked - OshekharO
+Live | 5518270601723680|05|2031|340 $0.5 Checked - OshekharO
+Live | 5518272746208254|02|2031|650 $0.5 Checked - OshekharO
+Live | 5518276042506253|11|2029|516 $0.5 Checked - OshekharO
+Live | 5518274120505719|04|2031|175 $0.5 Checked - OshekharO
+Live | 5518277508711874|02|2028|486 $0.5 Checked - OshekharO
+Live | 5518278608666109|12|2030|070 $0.5 Checked - OshekharO
+Live | 5518274538637476|12|2030|262 $0.5 Checked - OshekharO
+Live | 5518275400732758|05|2031|121 $0.5 Checked - OshekharO
+Live | 5518275147536843|09|2028|637 $0.5 Checked - OshekharO
+Live | 5518277520636117|11|2031|862 $0.5 Checked - OshekharO
+Live | 5518272181470203|10|2031|180 $0.5 Checked - OshekharO
+Live | 5518278134557665|09|2031|678 $0.5 Checked - OshekharO
+Live | 5518271758573100|03|2029|387 $0.5 Checked - OshekharO
+Live | 5518270414467368|03|2031|204 $0.5 Checked - OshekharO
+Live | 5518278544381706|04|2030|782 $0.5 Checked - OshekharO
+Live | 5518273170855719|07|2030|453 $0.5 Checked - OshekharO
+Live | 5518273665213481|04|2030|222 $0.5 Checked - OshekharO
+Live | 5518270885764244|11|2028|132 $0.5 Checked - OshekharO
+Live | 5518272681730478|10|2031|456 $0.5 Checked - OshekharO
+Live | 5518270861873753|08|2029|218 $0.5 Checked - OshekharO
+Live | 5518270511486758|01|2030|368 $0.5 Checked - OshekharO
+Live | 5518271118803411|09|2031|034 $0.5 Checked - OshekharO
+Live | 5518271445755151|05|2029|876 $0.5 Checked - OshekharO
+Live | 5518277026368645|10|2029|134 $0.5 Checked - OshekharO
+Live | 5518273248616317|09|2028|120 $0.5 Checked - OshekharO
+Live | 5518278153761016|10|2031|781 $0.5 Checked - OshekharO
+Live | 5518272173476689|06|2029|001 $0.5 Checked - OshekharO
+Live | 5518272815122469|06|2028|335 $0.5 Checked - OshekharO
+Live | 5518273343822828|08|2029|240 $0.5 Checked - OshekharO
+Live | 5518270514153553|04|2028|425 $0.5 Checked - OshekharO
+Live | 5518273083510039|07|2030|128 $0.5 Checked - OshekharO
+Live | 5518273542645343|02|2030|763 $0.5 Checked - OshekharO
+Live | 5518276527527519|01|2028|187 $0.5 Checked - OshekharO
+Live | 5518272837083517|04|2031|802 $0.5 Checked - OshekharO
+Live | 5518273573238539|11|2031|433 $0.5 Checked - OshekharO
+Live | 5518273306228583|03|2031|237 $0.5 Checked - OshekharO
+
+Live | 5518276574684700|16|2030|874 $0.5 Checked - OshekharO 1gpt1y  [DUPLICATE x2]
