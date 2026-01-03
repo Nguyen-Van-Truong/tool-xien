@@ -2938,7 +2938,8 @@ async function fillForm() {
         await delay(200);
 
         if (!dischargeDayInput || !dischargeYearInput) throw new Error('Discharge date inputs not found');
-        dischargeDayInput.value = '1';
+        const randomDay = Math.floor(Math.random() * 31) + 1; // Random day 1-31
+        dischargeDayInput.value = randomDay.toString();
         dischargeDayInput.dispatchEvent(new Event('input', { bubbles: true }));
         dischargeDayInput.dispatchEvent(new Event('change', { bubbles: true }));
         await delay(200);
