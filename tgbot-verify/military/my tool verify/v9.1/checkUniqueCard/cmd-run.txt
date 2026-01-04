@@ -1,0 +1,3 @@
+    ----check the
+cd "E:\tool xien\tgbot-verify\military\my tool verify\v9_cuaDungpham_tool_signup_ver\checkUniqueCard"
+python check_duplicate_cards.py cards.txt
