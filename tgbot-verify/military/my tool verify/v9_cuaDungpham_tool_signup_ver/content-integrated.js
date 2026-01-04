@@ -14,6 +14,8 @@ let stats = {
 let currentEmail = ''; // For verify email generation
 let mailRetryCount = 0;
 const MAX_MAIL_RETRIES = 10;
+let resendCount = 0;  // Track how many times we've clicked Re-send
+const MAX_RESEND_TRIES = 3;  // Max times to click Re-send button
 let signupRetryCount = 0; // Track signup retry attempts
 const MAX_SIGNUP_RETRIES = 3; // Max retries when signup fails
 
@@ -1982,6 +1984,7 @@ async function startVerificationLoop() {
 
     const currentData = dataArray[currentDataIndex];
     mailRetryCount = 0; // Reset mail retry count for new data
+    resendCount = 0;    // Reset resend count for new data
     currentEmail = ''; // Reset email for new data (will be auto-generated)
 
     // Calculate the correct position
@@ -3136,8 +3139,34 @@ async function readMailAndVerify() {
         if (emails.length === 0) {
             mailRetryCount++;
             if (mailRetryCount >= MAX_MAIL_RETRIES) {
-                sendStatus('❌ Max retries reached for reading mail, stopping tool', 'error');
+                // Try to click Re-send button before giving up
+                if (resendCount < MAX_RESEND_TRIES) {
+                    const resendBtn = document.querySelector('button');
+                    // Find button with "Re-send" or "Resend" text
+                    const buttons = document.querySelectorAll('button');
+                    let foundResend = false;
+                    for (const btn of buttons) {
+                        const btnText = (btn.innerText || btn.textContent || '').toLowerCase();
+                        if (btnText.includes('re-send') || btnText.includes('resend')) {
+                            btn.click();
+                            resendCount++;
+                            mailRetryCount = 0;  // Reset mail retry count
+                            foundResend = true;
+                            sendStatus(`📧 Clicked Re-send button (${resendCount}/${MAX_RESEND_TRIES}), waiting for email...`, 'info');
+                            await delay(5000);  // Wait for email to be re-sent
+                            if (!isRunning) return;
+                            await readMailAndVerify();
+                            return;
+                        }
+                    }
+                    if (!foundResend) {
+                        sendStatus('❌ Re-send button not found, stopping tool', 'error');
+                    }
+                }
+
+                sendStatus(`❌ Max retries reached for reading mail (resend ${resendCount}/${MAX_RESEND_TRIES}), stopping tool`, 'error');
                 mailRetryCount = 0;
+                resendCount = 0;
                 isRunning = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();
