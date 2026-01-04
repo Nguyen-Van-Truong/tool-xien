@@ -8,7 +8,8 @@ let currentAccountIndex = 0; // Current account being processed
 let stats = {
     processed: 0,
     success: 0,
-    failed: 0
+    failed: 0,
+    limit: 0  // Verification Limit Exceeded count
 };
 let currentEmail = ''; // For verify email generation
 let mailRetryCount = 0;
@@ -2414,6 +2415,45 @@ async function checkAndFillForm() {
                 await startVerificationLoop();
                 return;
             }
+
+            // Check for Verification Limit Exceeded in error div
+            const errorTextLower = errorText.toLowerCase();
+            if (errorTextLower.includes('verification limit exceeded') ||
+                errorTextLower.includes('already redeemed') ||
+                errorTextLower.includes('limit exceeded')) {
+
+                console.log('❌ Verification Limit Exceeded detected in error div');
+                sendStatus('❌ Verification Limit Exceeded, trying next data...', 'info');
+                stats.limit++;  // Track Limit Exceeded
+
+                if (currentDataIndex + 1 >= dataArray.length) {
+                    clearSheerIDData();
+                    isRunning = false;
+                    chrome.storage.local.set({ 'veterans-is-running': false });
+                    updateUIOnStop();
+                    sendStatus('❌ All data failed, no more to try', 'error');
+                    return;
+                }
+
+                removeProcessedData();
+                stats.processed++;
+                stats.failed++;
+                updateStats();
+                chrome.storage.local.set({
+                    'veterans-current-index': currentDataIndex,
+                    'veterans-is-running': true
+                });
+
+                await delay(2000);
+                if (!isRunning) return;
+
+                window.location.href = 'https://chatgpt.com/veterans-claim';
+                await delay(5000);
+                if (!isRunning) return;
+
+                await startVerificationLoop();
+                return;
+            }
         }
 
         // First check: Are we actually on SheerID page? CRITICAL CHECK
@@ -2464,17 +2504,24 @@ async function checkAndFillForm() {
             }
 
             // Handle errors that should move to next data (Not approved, Verification Limit Exceeded, etc.)
+            const bodyTextLower = bodyText.toLowerCase();
             if (bodyText.includes('Not approved') ||
-                bodyText.includes('Verification Limit Exceeded') ||
-                bodyText.includes('limit exceeded') ||
+                bodyTextLower.includes('verification limit exceeded') ||
+                bodyTextLower.includes('already redeemed') ||
+                bodyTextLower.includes('limit exceeded') ||
                 bodyText.includes('Error')) {
 
                 const errorType = bodyText.includes('Not approved') ? 'Not approved' :
-                    bodyText.includes('Verification Limit Exceeded') || bodyText.includes('limit exceeded') ? 'Verification Limit Exceeded' :
+                    (bodyTextLower.includes('verification limit exceeded') || bodyTextLower.includes('already redeemed') || bodyTextLower.includes('limit exceeded')) ? 'Verification Limit Exceeded' :
                         'Error';
 
                 console.log(`❌ ${errorType} detected in body text, moving to next data...`);
                 sendStatus(`❌ ${errorType}, trying next data...`, 'info');
+
+                // Track Verification Limit Exceeded
+                if (errorType === 'Verification Limit Exceeded') {
+                    stats.limit++;
+                }
 
                 if (currentDataIndex + 1 >= dataArray.length) {
                     clearSheerIDData(); // Clear SheerID data when stopping
@@ -2568,11 +2615,13 @@ async function checkAndFillForm() {
             chrome.storage.local.set({ 'veterans-is-running': false });
             sendStatus('🚫 VPN/PROXY Error: Unable to verify. Please change VPN/PROXY and restart.', 'error');
             return;
-        } else if (headingText.includes('Verification Limit Exceeded') ||
-            headingText.includes('limit exceeded')) {
+        } else if (headingText.toLowerCase().includes('verification limit exceeded') ||
+            headingText.toLowerCase().includes('limit exceeded') ||
+            headingText.toLowerCase().includes('already redeemed')) {
             // Verification Limit Exceeded - try next data (same as Not approved)
             console.log('❌ Verification Limit Exceeded detected, moving to next data...');
             sendStatus('❌ Verification Limit Exceeded, trying next data...', 'info');
+            stats.limit++;  // Track Limit Exceeded
 
             // Check if there's more data
             if (currentDataIndex + 1 >= dataArray.length) {
@@ -2938,8 +2987,21 @@ async function fillForm() {
         await delay(200);
 
         if (!dischargeDayInput || !dischargeYearInput) throw new Error('Discharge date inputs not found');
-        const randomDay = Math.floor(Math.random() * 31) + 1; // Random day 1-31
-        dischargeDayInput.value = randomDay.toString();
+
+        // Get discharge day setting from storage
+        const dischargeDaySetting = await new Promise((resolve) => {
+            chrome.storage.local.get(['veterans-random-discharge-day', 'veterans-default-discharge-day'], (result) => {
+                const isRandom = result['veterans-random-discharge-day'] || false;
+                const defaultDay = result['veterans-default-discharge-day'] || 1;
+                if (isRandom) {
+                    resolve(Math.floor(Math.random() * 31) + 1); // Random day 1-31
+                } else {
+                    resolve(defaultDay);
+                }
+            });
+        });
+
+        dischargeDayInput.value = dischargeDaySetting.toString();
         dischargeDayInput.dispatchEvent(new Event('input', { bubbles: true }));
         dischargeDayInput.dispatchEvent(new Event('change', { bubbles: true }));
         await delay(200);
@@ -2965,6 +3027,54 @@ async function fillForm() {
 
         await delay(5000);
         if (!isRunning) return;
+
+        // Check if we reached "Check your email" step
+        // If not, it's likely a Verification Limit Exceeded error
+        const bodyText = document.body.innerText || document.body.textContent || '';
+        const heading = document.querySelector('h1');
+        const headingText = heading ? (heading.innerText || heading.textContent || '') : '';
+
+        const reachedEmailStep = headingText.toLowerCase().includes('check your email') ||
+            bodyText.toLowerCase().includes('check your email') ||
+            bodyText.toLowerCase().includes('email has been sent');
+
+        if (!reachedEmailStep) {
+            // Didn't reach email step = likely Limit Exceeded
+            console.log('❌ Did not reach email step after form submit, counting as Limit');
+            sendStatus('❌ Verification Limit Exceeded (không qua được bước gửi email), trying next data...', 'info');
+            stats.limit++;
+
+            if (currentDataIndex + 1 >= dataArray.length) {
+                clearSheerIDData();
+                isRunning = false;
+                chrome.storage.local.set({ 'veterans-is-running': false });
+                updateUIOnStop();
+                sendStatus('❌ All data failed, no more to try', 'error');
+                return;
+            }
+
+            removeProcessedData();
+            stats.processed++;
+            stats.failed++;
+            updateStats();
+            chrome.storage.local.set({
+                'veterans-current-index': currentDataIndex,
+                'veterans-is-running': true
+            });
+
+            currentEmail = '';
+            mailRetryCount = 0;
+
+            await delay(2000);
+            if (!isRunning) return;
+
+            window.location.href = 'https://chatgpt.com/veterans-claim';
+            await delay(5000);
+            if (!isRunning) return;
+
+            await startVerificationLoop();
+            return;
+        }
 
         await checkAndFillForm();
     } catch (error) {

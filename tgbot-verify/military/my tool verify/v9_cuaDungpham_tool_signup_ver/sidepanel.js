@@ -6,7 +6,7 @@ let dataArray = []; // Veterans data array
 let chatgptAccount = null; // Current ChatGPT account
 let accountsArray = []; // Array of ALL loaded accounts
 let currentAccountIndex = 0; // Current account being processed
-let stats = { processed: 0, success: 0, failed: 0 };
+let stats = { processed: 0, success: 0, failed: 0, limit: 0 };
 let currentDataIndex = 0;
 let isRunning = false;
 let currentEmail = '';
@@ -261,6 +261,10 @@ function updateUIPanel() {
     if (successEl) successEl.textContent = stats.success || 0;
     if (failedEl) failedEl.textContent = stats.failed || 0;
 
+    // Limit counter
+    const limitEl = document.getElementById('veterans-panel-limit');
+    if (limitEl) limitEl.textContent = stats.limit || 0;
+
     // Update current veteran details
     if (currentDataIndex < dataArray.length && dataArray.length > 0) {
         const veteran = dataArray[currentDataIndex];
@@ -436,7 +440,7 @@ function setupPanelHandlers() {
                 // Reset local state
                 dataArray = [];
                 currentDataIndex = 0;
-                stats = { processed: 0, success: 0, failed: 0 };
+                stats = { processed: 0, success: 0, failed: 0, limit: 0 };
                 isRunning = false;
 
                 // Save to storage
@@ -673,7 +677,7 @@ function setupPanelHandlers() {
                     'veterans-data-list': dataListString,
                     'veterans-current-index': 0,
                     'veterans-is-running': true,
-                    'veterans-stats': { processed: 0, success: 0, failed: 0 },
+                    'veterans-stats': { processed: 0, success: 0, failed: 0, limit: 0 },
                     'veterans-active-tab-id': null // Will be set below with actual tab ID
                 }, () => {
                     console.log('✅ Data saved to storage');
@@ -773,7 +777,7 @@ function setupPanelHandlers() {
                 chrome.storage.local.get(['veterans-data-array', 'veterans-current-index', 'veterans-stats'], (storageResult) => {
                     let localDataArray = storageResult['veterans-data-array'] || [];
                     let localCurrentIndex = storageResult['veterans-current-index'] || 0;
-                    let localStats = storageResult['veterans-stats'] || { processed: 0, success: 0, failed: 0 };
+                    let localStats = storageResult['veterans-stats'] || { processed: 0, success: 0, failed: 0, limit: 0 };
 
                     if (localDataArray.length === 0) {
                         updateUIPanelStatus('⚠️ No data to skip', 'info');
@@ -921,6 +925,39 @@ function setupPanelHandlers() {
                 };
                 console.log(`✅ Auto Clear SheerID mode: ${mode}`);
                 updateUIPanelStatus(`🔒 Clear SheerID: ${modeLabels[mode]}`, 'info');
+            });
+        });
+    }
+
+    // Random Discharge Day checkbox and default day
+    const randomDischargeDayCheckbox = document.getElementById('veterans-random-discharge-day');
+    const defaultDischargeDayInput = document.getElementById('veterans-default-discharge-day');
+
+    if (randomDischargeDayCheckbox && defaultDischargeDayInput) {
+        // Load saved settings
+        chrome.storage.local.get(['veterans-random-discharge-day', 'veterans-default-discharge-day'], (result) => {
+            randomDischargeDayCheckbox.checked = result['veterans-random-discharge-day'] || false;
+            defaultDischargeDayInput.value = result['veterans-default-discharge-day'] || 1;
+        });
+
+        // Save checkbox on change
+        randomDischargeDayCheckbox.addEventListener('change', () => {
+            const isRandom = randomDischargeDayCheckbox.checked;
+            chrome.storage.local.set({ 'veterans-random-discharge-day': isRandom }, () => {
+                console.log(`✅ Random Discharge Day: ${isRandom ? 'Enabled' : 'Disabled'}`);
+                updateUIPanelStatus(`🎲 Random Discharge Day: ${isRandom ? 'Bật' : 'Tắt'}`, 'info');
+            });
+        });
+
+        // Save default day on change
+        defaultDischargeDayInput.addEventListener('change', () => {
+            let day = parseInt(defaultDischargeDayInput.value) || 1;
+            if (day < 1) day = 1;
+            if (day > 31) day = 31;
+            defaultDischargeDayInput.value = day;
+            chrome.storage.local.set({ 'veterans-default-discharge-day': day }, () => {
+                console.log(`✅ Default Discharge Day: ${day}`);
+                updateUIPanelStatus(`📅 Default Discharge Day: ${day}`, 'info');
             });
         });
     }

@@ -458,6 +458,10 @@
                     <span class="veterans-stats-label">Failed:</span>
                     <span id="veterans-panel-failed" class="veterans-stats-value error">0</span>
                 </div>
+                <div class="veterans-stats-item">
+                    <span class="veterans-stats-label">Limit:</span>
+                    <span id="veterans-panel-limit" class="veterans-stats-value" style="color: #fbbf24;">0</span>
+                </div>
             </div>
 
             <div class="veterans-form-section">
@@ -562,6 +566,24 @@
                         <option value="on-error">Chỉ clear khi lỗi IP/VPN</option>
                         <option value="never">Không bao giờ clear</option>
                     </select>
+                </div>
+                <!-- Random Discharge Day Option -->
+                <div
+                    style="margin-bottom: 10px; padding: 8px; background: rgba(30, 30, 46, 0.6); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <input type="checkbox" id="veterans-random-discharge-day"
+                            style="width: 16px; height: 16px; cursor: pointer;">
+                        <label for="veterans-random-discharge-day"
+                            style="font-size: 11px; color: #e4e4e7; cursor: pointer; font-weight: 600;">
+                            🎲 Random Discharge Day (1-31)
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <label style="font-size: 10px; color: #a1a1aa; white-space: nowrap;">Default day:</label>
+                        <input id="veterans-default-discharge-day" type="number" class="veterans-input" value="1"
+                            min="1" max="31" style="font-size: 10px; padding: 6px; width: 60px; text-align: center;">
+                        <span style="font-size: 9px; color: #71717a;">(dùng khi không random)</span>
+                    </div>
                 </div>
                 <!-- Clear Buttons -->
                 <div style="display: flex; gap: 8px;">
