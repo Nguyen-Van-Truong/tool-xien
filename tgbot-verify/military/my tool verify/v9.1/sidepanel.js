@@ -10,6 +10,8 @@ let stats = { processed: 0, success: 0, failed: 0, limit: 0 };
 let currentDataIndex = 0;
 let isRunning = false;
 let currentEmail = '';
+let manualConsecutiveLimitErrors = 0; // Track consecutive limit/429 errors for manual verify
+const MAX_MANUAL_CONSECUTIVE_LIMIT = 5;
 
 // Month name to number mapping for API
 const MONTH_TO_NUM_PANEL = {
@@ -1368,9 +1370,11 @@ function setupPanelHandlers() {
                         updateApiDirectLog(`✅ API Response: ${currentStep}`);
 
                         if (currentStep === 'success') {
+                            manualConsecutiveLimitErrors = 0; // Reset on success
                             updateApiDirectLog('🎉 VERIFICATION SUCCESS!');
                             updateUIPanelStatus('🎉 Manual API Verify: SUCCESS!', 'success');
                         } else if (currentStep === 'emailLoop') {
+                            manualConsecutiveLimitErrors = 0; // Reset on success
                             updateApiDirectLog('📧 Email sent! Auto-checking in 5s...');
                             updateUIPanelStatus('📧 Manual API Verify: Check email!', 'info');
                             
@@ -1399,6 +1403,31 @@ function setupPanelHandlers() {
                             }
                         }
                     } else {
+                        const errorMsg = (response.error || 'Unknown').toLowerCase();
+                        const detailsStr = (response.details || '').toLowerCase();
+                        
+                        // Check if 429 or limit error
+                        const isLimitError = errorMsg.includes('429') || 
+                            errorMsg.includes('limit') || 
+                            errorMsg.includes('redeemed') ||
+                            errorMsg.includes('rate') ||
+                            detailsStr.includes('429') ||
+                            detailsStr.includes('limit') ||
+                            detailsStr.includes('redeemed');
+                        
+                        if (isLimitError) {
+                            manualConsecutiveLimitErrors++;
+                            updateApiDirectLog(`🚫 Limit Error (${manualConsecutiveLimitErrors}/${MAX_MANUAL_CONSECUTIVE_LIMIT})`);
+                            
+                            if (manualConsecutiveLimitErrors >= MAX_MANUAL_CONSECUTIVE_LIMIT) {
+                                updateApiDirectLog(`🛑 ${MAX_MANUAL_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`);
+                                updateApiDirectLog('⚠️ Cần đổi IP/VPN trước khi tiếp tục!');
+                                updateUIPanelStatus('🛑 Rate Limit - Đổi IP/VPN!', 'error');
+                            }
+                        } else {
+                            manualConsecutiveLimitErrors = 0; // Reset for non-limit errors
+                        }
+                        
                         updateApiDirectLog('❌ API Error: ' + (response.error || 'Unknown'));
                         if (response.details) {
                             // Try to parse error details

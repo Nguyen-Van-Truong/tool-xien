@@ -18,6 +18,26 @@ let resendCount = 0;  // Track how many times we've clicked Re-send
 const MAX_RESEND_TRIES = 3;  // Max times to click Re-send button
 let signupRetryCount = 0; // Track signup retry attempts
 const MAX_SIGNUP_RETRIES = 3; // Max retries when signup fails
+let consecutiveLimitErrors = 0; // Track consecutive limit/429 errors (will be loaded from storage)
+const MAX_CONSECUTIVE_LIMIT = 5; // Stop after this many consecutive limit errors
+
+// Load consecutiveLimitErrors from storage on startup
+chrome.storage.local.get(['veterans-consecutive-limit-errors'], (result) => {
+    consecutiveLimitErrors = result['veterans-consecutive-limit-errors'] || 0;
+    console.log('📊 Loaded consecutiveLimitErrors:', consecutiveLimitErrors);
+});
+
+// Helper function to update and save consecutiveLimitErrors
+function incrementLimitErrors() {
+    consecutiveLimitErrors++;
+    chrome.storage.local.set({ 'veterans-consecutive-limit-errors': consecutiveLimitErrors });
+    return consecutiveLimitErrors;
+}
+
+function resetLimitErrors() {
+    consecutiveLimitErrors = 0;
+    chrome.storage.local.set({ 'veterans-consecutive-limit-errors': 0 });
+}
 
 // Month name to number mapping for API
 const MONTH_TO_NUM = {
@@ -145,10 +165,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
 
             currentDataIndex = 0;
-            stats = { processed: 0, success: 0, failed: 0 };
+            stats = { processed: 0, success: 0, failed: 0, limit: 0 };
             isRunning = true;
             currentEmail = '';
             mailRetryCount = 0;
+            resetLimitErrors(); // Reset limit errors when starting fresh
 
             // Save to storage
             chrome.storage.local.set({
@@ -2420,6 +2441,9 @@ async function clickVerifyButton() {
 
 // Handle verification success - switch to next account if available
 async function handleVerificationSuccess() {
+    // Reset consecutive limit errors on success
+    resetLimitErrors();
+    
     // Mark current success
     removeProcessedData(false);
     stats.processed++;
@@ -2560,8 +2584,20 @@ async function checkAndFillForm() {
                 errorTextLower.includes('limit exceeded')) {
 
                 console.log('❌ Verification Limit Exceeded detected in error div');
-                sendStatus('❌ Verification Limit Exceeded, trying next data...', 'info');
+                const currentLimitCount1 = incrementLimitErrors();
                 stats.limit++;  // Track Limit Exceeded
+                sendStatus(`❌ Verification Limit (${currentLimitCount1}/${MAX_CONSECUTIVE_LIMIT}), trying next data...`, 'info');
+
+                // Check if too many consecutive limit errors
+                if (currentLimitCount1 >= MAX_CONSECUTIVE_LIMIT) {
+                    clearSheerIDData();
+                    isRunning = false;
+                    chrome.storage.local.set({ 'veterans-is-running': false });
+                    updateUIOnStop();
+                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
+                    sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                    return;
+                }
 
                 if (currentDataIndex + 1 >= dataArray.length) {
                     clearSheerIDData();
@@ -2648,16 +2684,34 @@ async function checkAndFillForm() {
                 bodyTextLower.includes('limit exceeded') ||
                 bodyText.includes('Error')) {
 
+                const isLimitError = bodyTextLower.includes('verification limit exceeded') || 
+                    bodyTextLower.includes('already redeemed') || 
+                    bodyTextLower.includes('limit exceeded');
+                    
                 const errorType = bodyText.includes('Not approved') ? 'Not approved' :
-                    (bodyTextLower.includes('verification limit exceeded') || bodyTextLower.includes('already redeemed') || bodyTextLower.includes('limit exceeded')) ? 'Verification Limit Exceeded' :
-                        'Error';
+                    isLimitError ? 'Verification Limit Exceeded' : 'Error';
+
+                // Track consecutive limit errors
+                let currentLimitCount5 = consecutiveLimitErrors;
+                if (isLimitError) {
+                    currentLimitCount5 = incrementLimitErrors();
+                    stats.limit++;
+                } else {
+                    resetLimitErrors(); // Reset for non-limit errors
+                }
 
                 console.log(`❌ ${errorType} detected in body text, moving to next data...`);
-                sendStatus(`❌ ${errorType}, trying next data...`, 'info');
+                sendStatus(`❌ ${errorType}${isLimitError ? ` (${currentLimitCount5}/${MAX_CONSECUTIVE_LIMIT})` : ''}, trying next data...`, 'info');
 
-                // Track Verification Limit Exceeded
-                if (errorType === 'Verification Limit Exceeded') {
-                    stats.limit++;
+                // Check if too many consecutive limit errors
+                if (currentLimitCount5 >= MAX_CONSECUTIVE_LIMIT) {
+                    clearSheerIDData();
+                    isRunning = false;
+                    chrome.storage.local.set({ 'veterans-is-running': false });
+                    updateUIOnStop();
+                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
+                    sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                    return;
                 }
 
                 if (currentDataIndex + 1 >= dataArray.length) {
@@ -2785,13 +2839,40 @@ async function checkAndFillForm() {
                         return;
                     }
                 } catch (error) {
+                    const errorMsg = error.message.toLowerCase();
                     sendStatus(`API Direct Error: ${error.message}`, 'error');
+                    
                     // Check if VPN/IP error
-                    if (error.message.includes('sourcesUnavailable') || error.message.includes('unable to verify')) {
+                    if (errorMsg.includes('sourcesunavailable') || errorMsg.includes('unable to verify')) {
                         await handleVPNError();
                         return;
                     }
-                    // Other errors - move to next data
+                    
+                    // Check if 429 or limit error
+                    const isLimitError = errorMsg.includes('429') || 
+                        errorMsg.includes('limit') || 
+                        errorMsg.includes('redeemed') ||
+                        errorMsg.includes('rate');
+                    
+                    if (isLimitError) {
+                        const currentLimitCount2 = incrementLimitErrors();
+                        stats.limit++;
+                        sendStatus(`🚫 Limit Error (${currentLimitCount2}/${MAX_CONSECUTIVE_LIMIT})`, 'error');
+                        
+                        if (currentLimitCount2 >= MAX_CONSECUTIVE_LIMIT) {
+                            clearSheerIDData();
+                            isRunning = false;
+                            chrome.storage.local.set({ 'veterans-is-running': false });
+                            updateUIOnStop();
+                            sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
+                            sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                            return;
+                        }
+                    } else {
+                        resetLimitErrors(); // Reset for non-limit errors
+                    }
+                    
+                    // Move to next data
                     if (currentDataIndex + 1 >= dataArray.length) {
                         clearSheerIDData();
                         isRunning = false;
@@ -2836,9 +2917,21 @@ async function checkAndFillForm() {
             headingText.toLowerCase().includes('limit exceeded') ||
             headingText.toLowerCase().includes('already redeemed')) {
             // Verification Limit Exceeded - try next data (same as Not approved)
-            console.log('❌ Verification Limit Exceeded detected, moving to next data...');
-            sendStatus('❌ Verification Limit Exceeded, trying next data...', 'info');
+            const currentLimitCount3 = incrementLimitErrors();
             stats.limit++;  // Track Limit Exceeded
+            console.log(`❌ Verification Limit Exceeded detected (${currentLimitCount3}/${MAX_CONSECUTIVE_LIMIT})`);
+            sendStatus(`❌ Verification Limit (${currentLimitCount3}/${MAX_CONSECUTIVE_LIMIT}), trying next data...`, 'info');
+
+            // Check if too many consecutive limit errors
+            if (currentLimitCount3 >= MAX_CONSECUTIVE_LIMIT) {
+                clearSheerIDData();
+                isRunning = false;
+                chrome.storage.local.set({ 'veterans-is-running': false });
+                updateUIOnStop();
+                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
+                sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                return;
+            }
 
             // Check if there's more data
             if (currentDataIndex + 1 >= dataArray.length) {
@@ -3257,9 +3350,21 @@ async function fillForm() {
 
         if (!reachedEmailStep) {
             // Didn't reach email step = likely Limit Exceeded
-            console.log('❌ Did not reach email step after form submit, counting as Limit');
-            sendStatus('❌ Verification Limit Exceeded (không qua được bước gửi email), trying next data...', 'info');
+            const currentLimitCount4 = incrementLimitErrors();
             stats.limit++;
+            console.log(`❌ Did not reach email step after form submit (${currentLimitCount4}/${MAX_CONSECUTIVE_LIMIT})`);
+            sendStatus(`❌ Verification Limit (${currentLimitCount4}/${MAX_CONSECUTIVE_LIMIT}) - không qua bước email`, 'info');
+
+            // Check if too many consecutive limit errors
+            if (currentLimitCount4 >= MAX_CONSECUTIVE_LIMIT) {
+                clearSheerIDData();
+                isRunning = false;
+                chrome.storage.local.set({ 'veterans-is-running': false });
+                updateUIOnStop();
+                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
+                sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                return;
+            }
 
             if (currentDataIndex + 1 >= dataArray.length) {
                 clearSheerIDData();
