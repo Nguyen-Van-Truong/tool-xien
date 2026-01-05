@@ -2284,8 +2284,9 @@ async function handleSignupError(errorMessage) {
     return true; // Indicates retry in progress
 }
 
-// Handle VPN/IP error with retry logic
-async function handleVPNError() {
+// Handle VPN/IP error or Limit exceeded with retry logic
+// reason: 'vpn' (IP/VPN error) or 'limit' (consecutive limit exceeded)
+async function handleAutoRetry(reason = 'vpn') {
     // Prevent multiple calls
     if (isRetrying) {
         console.log('⚠️ Already retrying, ignoring duplicate call');
@@ -2293,7 +2294,13 @@ async function handleVPNError() {
     }
     isRetrying = true;
 
-    clearSheerIDData('error');
+    const reasonLabel = reason === 'limit' ? 'Limit Error' : 'VPN/IP Error';
+    clearSheerIDData(reason === 'limit' ? 'limit' : 'error');
+
+    // Reset limit errors counter when retrying
+    if (reason === 'limit') {
+        resetLimitErrors();
+    }
 
     // Get retry settings
     const result = await new Promise(resolve => {
@@ -2309,14 +2316,18 @@ async function handleVPNError() {
         isRunning = false;
         chrome.storage.local.set({ 'veterans-is-running': false });
         updateUIOnStop();
-        sendStatus('🚫 VPN/PROXY Error: Đã dừng. Bật "Tự động thử lại" để retry.', 'error');
+        sendStatus(`🚫 ${reasonLabel}: Đã dừng. Bật "Tự động thử lại" để retry.`, 'error');
         isRetrying = false;
         return false;
     }
 
+    sendStatus(`🔄 ${reasonLabel} - Sẽ tự động thử lại...`, 'info');
+    sendVPNLog(`🔄 ${reasonLabel} detected`);
+
     // Call rotate IP API if configured
     if (rotateIpApiUrl) {
         sendStatus('🔄 Đang gọi API đổi IP...', 'info');
+        sendVPNLog('🔄 Đang gọi API đổi IP...');
         try {
             const response = await fetch(rotateIpApiUrl);
             if (response.ok) {
@@ -2325,6 +2336,7 @@ async function handleVPNError() {
                 // Show truncated response in log
                 const shortText = text.length > 50 ? text.substring(0, 50) + '...' : text;
                 sendStatus(`✅ API đổi IP: ${shortText}`, 'success');
+                sendVPNLog(`✅ IP đổi: ${shortText}`);
             } else {
                 console.log('⚠️ Rotate IP API error:', response.status);
                 sendStatus(`⚠️ Lỗi API đổi IP: HTTP ${response.status}`, 'error');
@@ -2349,7 +2361,7 @@ async function handleVPNError() {
         }
 
         // Update VPN log every second
-        sendVPNLog(`⏳ Còn ${i} giây...\n🔄 API: ${rotateIpApiUrl ? '✅' : '❌'}`);
+        sendVPNLog(`⏳ Còn ${i} giây...\n🔄 API: ${rotateIpApiUrl ? '✅' : '❌'}\n📊 Reason: ${reasonLabel}`);
 
         if (i % 10 === 0 || i <= 5) {
             sendStatus(`⏳ Còn ${i} giây trước khi thử lại...`, 'info');
@@ -2359,15 +2371,25 @@ async function handleVPNError() {
     }
 
     // Clear SheerID before retry
-    clearSheerIDData('error');
+    clearSheerIDData(reason === 'limit' ? 'limit' : 'error');
 
-    sendStatus('🔄 Đang thử lại sau lỗi VPN...', 'info');
+    sendStatus(`🔄 Đang thử lại sau ${reasonLabel}...`, 'info');
     sendVPNLog('🔄 Đang thử lại...');
 
     // Navigate back to chatgpt to restart process
     isRetrying = false;
     window.location.href = 'https://chatgpt.com';
     return true; // Indicates retry
+}
+
+// Wrapper for VPN error (backward compatibility)
+async function handleVPNError() {
+    return await handleAutoRetry('vpn');
+}
+
+// Handle limit exceeded error
+async function handleLimitError() {
+    return await handleAutoRetry('limit');
 }
 
 // ============================================
@@ -2555,10 +2577,8 @@ async function startVerificationLoop() {
                         sendStatus(`🚫 Limit Error (${currentLimitCount}/${MAX_CONSECUTIVE_LIMIT})`, 'error');
                         
                         if (currentLimitCount >= MAX_CONSECUTIVE_LIMIT) {
-                            sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                            isRunning = false;
-                            chrome.storage.local.set({ 'veterans-is-running': false });
-                            updateUIOnStop();
+                            sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`, 'error');
+                            await handleLimitError(); // Auto retry if enabled
                             return;
                         }
                     }
@@ -3022,12 +3042,8 @@ async function checkAndFillForm() {
 
                 // Check if too many consecutive limit errors
                 if (currentLimitCount1 >= MAX_CONSECUTIVE_LIMIT) {
-                    clearSheerIDData('limit'); // Clear on limit exceeded
-                    isRunning = false;
-                    chrome.storage.local.set({ 'veterans-is-running': false });
-                    updateUIOnStop();
-                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                    sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`, 'error');
+                    await handleLimitError(); // Auto retry if enabled
                     return;
                 }
 
@@ -3137,12 +3153,8 @@ async function checkAndFillForm() {
 
                 // Check if too many consecutive limit errors
                 if (currentLimitCount5 >= MAX_CONSECUTIVE_LIMIT) {
-                    clearSheerIDData('limit'); // Clear on limit exceeded
-                    isRunning = false;
-                    chrome.storage.local.set({ 'veterans-is-running': false });
-                    updateUIOnStop();
-                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                    sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`, 'error');
+                    await handleLimitError(); // Auto retry if enabled
                     return;
                 }
 
@@ -3292,12 +3304,8 @@ async function checkAndFillForm() {
                         sendStatus(`🚫 Limit Error (${currentLimitCount2}/${MAX_CONSECUTIVE_LIMIT})`, 'error');
                         
                         if (currentLimitCount2 >= MAX_CONSECUTIVE_LIMIT) {
-                            clearSheerIDData('limit'); // Clear on limit exceeded
-                            isRunning = false;
-                            chrome.storage.local.set({ 'veterans-is-running': false });
-                            updateUIOnStop();
-                            sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                            sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                            sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`, 'error');
+                            await handleLimitError(); // Auto retry if enabled
                             return;
                         }
                     } else {
@@ -3356,12 +3364,8 @@ async function checkAndFillForm() {
 
             // Check if too many consecutive limit errors
             if (currentLimitCount3 >= MAX_CONSECUTIVE_LIMIT) {
-                clearSheerIDData('limit'); // Clear on limit exceeded
-                isRunning = false;
-                chrome.storage.local.set({ 'veterans-is-running': false });
-                updateUIOnStop();
-                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`, 'error');
+                await handleLimitError(); // Auto retry if enabled
                 return;
             }
 
@@ -3789,12 +3793,8 @@ async function fillForm() {
 
             // Check if too many consecutive limit errors
             if (currentLimitCount4 >= MAX_CONSECUTIVE_LIMIT) {
-                clearSheerIDData('limit'); // Clear on limit exceeded
-                isRunning = false;
-                chrome.storage.local.set({ 'veterans-is-running': false });
-                updateUIOnStop();
-                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
+                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`, 'error');
+                await handleLimitError(); // Auto retry if enabled
                 return;
             }
 
