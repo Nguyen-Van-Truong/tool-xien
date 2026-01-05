@@ -2016,19 +2016,20 @@ function removeProcessedData(keepRunning = true) {
 }
 
 // Helper function to clear SheerID data (respects mode setting)
-// reason: 'normal' (after each veteran) or 'error' (on IP/VPN error)
+// reason: 'normal' (after each veteran), 'error' (on IP/VPN error), 'limit' (on consecutive limit exceeded)
 function clearSheerIDData(reason = 'normal') {
     chrome.storage.local.get(['veterans-clear-sheerid-mode'], (result) => {
-        // Default to 'always' if not set
-        const mode = result['veterans-clear-sheerid-mode'] || 'always';
+        // Default to 'on-error' if not set
+        const mode = result['veterans-clear-sheerid-mode'] || 'on-error';
 
         // Check if we should clear based on mode and reason
         let shouldClear = false;
 
         if (mode === 'always') {
             shouldClear = true;
-        } else if (mode === 'on-error' && reason === 'error') {
-            shouldClear = true;
+        } else if (mode === 'on-error') {
+            // Clear on IP/VPN error OR limit exceeded
+            shouldClear = (reason === 'error' || reason === 'limit');
         } else if (mode === 'never') {
             shouldClear = false;
         }
@@ -2039,6 +2040,7 @@ function clearSheerIDData(reason = 'normal') {
         }
 
         // Perform the clear
+        console.log(`🔒 Clearing SheerID (mode: ${mode}, reason: ${reason})`);
         doClearSheerID();
     });
 }
@@ -3020,7 +3022,7 @@ async function checkAndFillForm() {
 
                 // Check if too many consecutive limit errors
                 if (currentLimitCount1 >= MAX_CONSECUTIVE_LIMIT) {
-                    clearSheerIDData();
+                    clearSheerIDData('limit'); // Clear on limit exceeded
                     isRunning = false;
                     chrome.storage.local.set({ 'veterans-is-running': false });
                     updateUIOnStop();
@@ -3135,7 +3137,7 @@ async function checkAndFillForm() {
 
                 // Check if too many consecutive limit errors
                 if (currentLimitCount5 >= MAX_CONSECUTIVE_LIMIT) {
-                    clearSheerIDData();
+                    clearSheerIDData('limit'); // Clear on limit exceeded
                     isRunning = false;
                     chrome.storage.local.set({ 'veterans-is-running': false });
                     updateUIOnStop();
@@ -3290,7 +3292,7 @@ async function checkAndFillForm() {
                         sendStatus(`🚫 Limit Error (${currentLimitCount2}/${MAX_CONSECUTIVE_LIMIT})`, 'error');
                         
                         if (currentLimitCount2 >= MAX_CONSECUTIVE_LIMIT) {
-                            clearSheerIDData();
+                            clearSheerIDData('limit'); // Clear on limit exceeded
                             isRunning = false;
                             chrome.storage.local.set({ 'veterans-is-running': false });
                             updateUIOnStop();
@@ -3354,7 +3356,7 @@ async function checkAndFillForm() {
 
             // Check if too many consecutive limit errors
             if (currentLimitCount3 >= MAX_CONSECUTIVE_LIMIT) {
-                clearSheerIDData();
+                clearSheerIDData('limit'); // Clear on limit exceeded
                 isRunning = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();
@@ -3787,7 +3789,7 @@ async function fillForm() {
 
             // Check if too many consecutive limit errors
             if (currentLimitCount4 >= MAX_CONSECUTIVE_LIMIT) {
-                clearSheerIDData();
+                clearSheerIDData('limit'); // Clear on limit exceeded
                 isRunning = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();

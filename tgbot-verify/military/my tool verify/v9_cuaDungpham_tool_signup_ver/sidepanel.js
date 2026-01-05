@@ -820,6 +820,18 @@ function setupPanelHandlers() {
                 }
 
                 // Start verification - save data to storage and send message
+                updateUIPanelStatus('🔒 Clearing SheerID before start...', 'info');
+
+                // Clear SheerID data before starting
+                chrome.runtime.sendMessage({ action: 'clearSheerID' }, (response) => {
+                    if (response && response.success) {
+                        console.log('✅ SheerID cleared before start');
+                    }
+                });
+
+                // Small delay to ensure clear completes
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 updateUIPanelStatus('🚀 Starting verification...', 'info');
 
                 // Save data to storage first
@@ -1066,8 +1078,8 @@ function setupPanelHandlers() {
     if (clearSheerIDModeSelect) {
         // Load saved setting
         chrome.storage.local.get(['veterans-clear-sheerid-mode'], (result) => {
-            // Default to 'always' if not set
-            const mode = result['veterans-clear-sheerid-mode'] || 'always';
+            // Default to 'on-error' if not set
+            const mode = result['veterans-clear-sheerid-mode'] || 'on-error';
             clearSheerIDModeSelect.value = mode;
         });
 
@@ -1077,7 +1089,7 @@ function setupPanelHandlers() {
             chrome.storage.local.set({ 'veterans-clear-sheerid-mode': mode }, () => {
                 const modeLabels = {
                     'always': 'Luôn clear',
-                    'on-error': 'Chỉ khi lỗi IP/VPN',
+                    'on-error': 'Chỉ khi lỗi IP/VPN hoặc Limit',
                     'never': 'Không bao giờ'
                 };
                 console.log(`✅ Auto Clear SheerID mode: ${mode}`);
