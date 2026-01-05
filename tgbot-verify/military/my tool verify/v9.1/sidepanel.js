@@ -11,6 +11,158 @@ let currentDataIndex = 0;
 let isRunning = false;
 let currentEmail = '';
 
+// Month name to number mapping for API
+const MONTH_TO_NUM_PANEL = {
+    "January": "01", "February": "02", "March": "03", "April": "04",
+    "May": "05", "June": "06", "July": "07", "August": "08",
+    "September": "09", "October": "10", "November": "11", "December": "12"
+};
+
+// Update API Direct Log
+function updateApiDirectLog(message) {
+    const logEl = document.getElementById('api-direct-log');
+    if (logEl) {
+        const now = new Date();
+        const time = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const newLine = `[${time}] ${message}`;
+        const currentText = logEl.value || '';
+        const lines = currentText.split('\n').filter(l => l.trim());
+        if (lines.length >= 20) {
+            lines.shift();
+        }
+        lines.push(newLine);
+        logEl.value = lines.join('\n');
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+}
+
+// Extract verificationId from URL
+function extractVerificationIdFromUrl(url) {
+    const match = url.match(/verificationId=([a-f0-9]+)/i);
+    return match ? match[1] : null;
+}
+
+// Generate new email for Manual Verify
+async function generateEmailForManual() {
+    try {
+        updateApiDirectLog('📧 Generating email...');
+        
+        // Get random domains
+        const domainsResponse = await fetch('https://tinyhost.shop/api/random-domains/?limit=10');
+        if (!domainsResponse.ok) {
+            throw new Error('Failed to fetch domains');
+        }
+        
+        const domainsData = await domainsResponse.json();
+        const domains = domainsData.domains || [];
+        if (domains.length === 0) {
+            throw new Error('No domains available');
+        }
+        
+        const randomDomain = domains[Math.floor(Math.random() * domains.length)];
+        
+        // Generate random username
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let username = '';
+        for (let i = 0; i < 16; i++) {
+            username += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        
+        const email = `${username}@${randomDomain}`;
+        updateApiDirectLog(`✅ Email: ${email}`);
+        return email;
+        
+    } catch (error) {
+        updateApiDirectLog(`❌ Gen email error: ${error.message}`);
+        return null;
+    }
+}
+
+// Check email for verification link
+async function checkEmailForLink(email) {
+    try {
+        const [username, domain] = email.split('@');
+        if (!username || !domain) {
+            throw new Error('Invalid email format');
+        }
+        
+        updateApiDirectLog(`📬 Checking inbox: ${email}`);
+        
+        const response = await fetch(`https://tinyhost.shop/api/email/${domain}/${username}/?page=1&limit=20`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch emails');
+        }
+        
+        const data = await response.json();
+        const emails = data.emails || [];
+        
+        if (emails.length === 0) {
+            updateApiDirectLog('📭 No emails yet. Try again in a few seconds...');
+            return null;
+        }
+        
+        // Sort by date (newest first)
+        emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // Find SheerID verification link
+        for (const mail of emails) {
+            if (mail.html_body) {
+                const match = mail.html_body.match(/https:\/\/services\.sheerid\.com\/verify\/[^"'\s<>]+/i);
+                if (match) {
+                    const link = match[0].replace(/&amp;/g, '&');
+                    updateApiDirectLog('✅ Found verification link!');
+                    return link;
+                }
+            }
+            if (mail.body) {
+                const match = mail.body.match(/https:\/\/services\.sheerid\.com\/verify\/[^"'\s<>()]+/i);
+                if (match) {
+                    const link = match[0].replace(/&amp;/g, '&');
+                    updateApiDirectLog('✅ Found verification link!');
+                    return link;
+                }
+            }
+        }
+        
+        updateApiDirectLog('📭 No verification link found in emails yet...');
+        return null;
+        
+    } catch (error) {
+        updateApiDirectLog(`❌ Check email error: ${error.message}`);
+        return null;
+    }
+}
+
+// Update Manual Veteran Display
+function updateManualVeteranDisplay() {
+    const display = document.getElementById('manual-veteran-display');
+    if (!display) return;
+    
+    chrome.storage.local.get(['veterans-data-array', 'veterans-current-index'], (result) => {
+        const data = result['veterans-data-array'] || [];
+        const idx = result['veterans-current-index'] || 0;
+        
+        if (data.length === 0) {
+            display.textContent = 'Chưa load data - load file VETERANS trước';
+            display.style.color = '#f87171';
+            return;
+        }
+        
+        if (idx >= data.length) {
+            display.textContent = 'Đã hết data - load thêm hoặc reset';
+            display.style.color = '#fbbf24';
+            return;
+        }
+        
+        const vet = data[idx];
+        display.innerHTML = `
+            <div>${vet.first} ${vet.last} (${idx + 1}/${data.length})</div>
+            <div style="color: #a1a1aa; font-size: 9px;">${vet.branch} | ${vet.month} ${vet.day}, ${vet.year}</div>
+        `;
+        display.style.color = '#34d399';
+    });
+}
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     setupPanelHandlers();
@@ -27,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (changes['veterans-data-array']) {
                 dataArray = changes['veterans-data-array'].newValue || [];
                 updateUIPanel();
+                updateManualVeteranDisplay();
             }
             if (changes['veterans-is-running']) {
                 isRunning = changes['veterans-is-running'].newValue || false;
@@ -43,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (changes['veterans-current-index']) {
                 currentDataIndex = changes['veterans-current-index'].newValue || 0;
                 updateUIPanel();
+                updateManualVeteranDisplay();
             }
             // When data-list changes, update button states
             if (changes['veterans-data-list']) {
@@ -992,6 +1146,23 @@ function setupPanelHandlers() {
         });
     }
 
+    // API Direct Mode checkbox
+    const apiDirectCheckbox = document.getElementById('veterans-api-direct-mode');
+    if (apiDirectCheckbox) {
+        // Load saved setting
+        chrome.storage.local.get(['veterans-api-direct-mode'], (result) => {
+            apiDirectCheckbox.checked = result['veterans-api-direct-mode'] || false;
+        });
+        
+        // Save on change
+        apiDirectCheckbox.addEventListener('change', () => {
+            const isEnabled = apiDirectCheckbox.checked;
+            chrome.storage.local.set({ 'veterans-api-direct-mode': isEnabled }, () => {
+                updateUIPanelStatus(`API Direct Mode: ${isEnabled ? 'BẬT' : 'TẮT'}`, 'info');
+            });
+        });
+    }
+
     // Rotate IP API input - load and save
     const rotateIpApiInput = document.getElementById('veterans-rotate-ip-api');
     if (rotateIpApiInput) {
@@ -1095,6 +1266,238 @@ function setupPanelHandlers() {
             }
         });
     }
+
+    // Manual API Verify button handler
+    const manualVerifyBtn = document.getElementById('manual-verify-btn');
+    const manualSheeridLink = document.getElementById('manual-sheerid-link');
+    const manualVerifyEmail = document.getElementById('manual-verify-email');
+
+    if (manualVerifyBtn && manualSheeridLink && manualVerifyEmail) {
+        manualVerifyBtn.addEventListener('click', async () => {
+            const link = manualSheeridLink.value.trim();
+            let email = manualVerifyEmail.value.trim();
+
+            // Validate link
+            if (!link) {
+                updateApiDirectLog('❌ Vui lòng paste SheerID link!');
+                return;
+            }
+            
+            // Auto generate email if empty
+            if (!email) {
+                updateApiDirectLog('📧 No email, auto-generating...');
+                manualVerifyBtn.disabled = true;
+                manualVerifyBtn.textContent = '⏳ Gen email...';
+                
+                email = await generateEmailForManual();
+                if (!email) {
+                    manualVerifyBtn.disabled = false;
+                    manualVerifyBtn.textContent = '🚀 VERIFY (API)';
+                    return;
+                }
+                manualVerifyEmail.value = email;
+            }
+
+            // Extract verificationId
+            const verificationId = extractVerificationIdFromUrl(link);
+            if (!verificationId) {
+                updateApiDirectLog('❌ Không tìm thấy verificationId trong link!');
+                updateApiDirectLog('Link cần có dạng: ...?verificationId=abc123...');
+                return;
+            }
+
+            updateApiDirectLog(`🔍 Found verificationId: ${verificationId.substring(0, 10)}...`);
+
+            // Get current veteran data
+            chrome.storage.local.get(['veterans-data-array', 'veterans-current-index'], async (result) => {
+                const localDataArray = result['veterans-data-array'] || [];
+                const localCurrentIndex = result['veterans-current-index'] || 0;
+
+                if (localDataArray.length === 0 || localCurrentIndex >= localDataArray.length) {
+                    updateApiDirectLog('❌ Không có veteran data! Load file VETERANS trước.');
+                    return;
+                }
+
+                const veteranData = localDataArray[localCurrentIndex];
+                updateApiDirectLog(`👤 Veteran: ${veteranData.first} ${veteranData.last}`);
+                updateApiDirectLog(`🌿 Branch: ${veteranData.branch}`);
+                updateApiDirectLog(`📧 Email: ${email}`);
+
+                // Format birth date
+                const monthNum = MONTH_TO_NUM_PANEL[veteranData.month] || "01";
+                const dayPadded = String(veteranData.day).padStart(2, '0');
+                const birthDate = `${veteranData.year}-${monthNum}-${dayPadded}`;
+                updateApiDirectLog(`🎂 Birth: ${birthDate}`);
+
+                // Disable button
+                manualVerifyBtn.disabled = true;
+                manualVerifyBtn.textContent = '⏳ Verifying...';
+
+                updateApiDirectLog('🚀 Calling SheerID API...');
+
+                // Call background script for API verification
+                chrome.runtime.sendMessage({
+                    action: 'sheeridVerify',
+                    verificationId: verificationId,
+                    veteranData: {
+                        first: veteranData.first,
+                        last: veteranData.last,
+                        branch: veteranData.branch,
+                        birthDate: birthDate,
+                        dischargeDate: '2025-12-01'
+                    },
+                    email: email
+                }, async (response) => {
+                    // Re-enable button
+                    manualVerifyBtn.disabled = false;
+                    manualVerifyBtn.textContent = '🚀 VERIFY (API)';
+
+                    if (chrome.runtime.lastError) {
+                        updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
+                        return;
+                    }
+
+                    if (!response) {
+                        updateApiDirectLog('❌ No response from background!');
+                        return;
+                    }
+
+                    if (response.success) {
+                        const result = response.result;
+                        const currentStep = result.currentStep || 'unknown';
+                        updateApiDirectLog(`✅ API Response: ${currentStep}`);
+
+                        if (currentStep === 'success') {
+                            updateApiDirectLog('🎉 VERIFICATION SUCCESS!');
+                            updateUIPanelStatus('🎉 Manual API Verify: SUCCESS!', 'success');
+                        } else if (currentStep === 'emailLoop') {
+                            updateApiDirectLog('📧 Email sent! Auto-checking in 5s...');
+                            updateUIPanelStatus('📧 Manual API Verify: Check email!', 'info');
+                            
+                            // Auto check email after 5 seconds
+                            setTimeout(async () => {
+                                updateApiDirectLog('📬 Auto-checking email...');
+                                const emailLink = await checkEmailForLink(email);
+                                
+                                const linkResult = document.getElementById('manual-email-link-result');
+                                const linkEl = document.getElementById('manual-email-link');
+                                
+                                if (emailLink && linkResult && linkEl) {
+                                    linkEl.href = emailLink;
+                                    linkEl.textContent = emailLink.length > 60 ? emailLink.substring(0, 60) + '...' : emailLink;
+                                    linkEl.dataset.fullLink = emailLink;
+                                    linkResult.style.display = 'block';
+                                    updateApiDirectLog('✅ Link found! Click or copy link ở trên.');
+                                } else {
+                                    updateApiDirectLog('📭 No link yet. Click "📬 Check" to retry.');
+                                }
+                            }, 5000);
+                        } else {
+                            updateApiDirectLog(`⚠️ Status: ${currentStep}`);
+                            if (result.errorIds) {
+                                updateApiDirectLog(`⚠️ Errors: ${JSON.stringify(result.errorIds)}`);
+                            }
+                        }
+                    } else {
+                        updateApiDirectLog('❌ API Error: ' + (response.error || 'Unknown'));
+                        if (response.details) {
+                            // Try to parse error details
+                            try {
+                                const details = JSON.parse(response.details);
+                                if (details.errorIds) {
+                                    updateApiDirectLog('⚠️ Errors: ' + JSON.stringify(details.errorIds));
+                                }
+                                if (details.currentStep) {
+                                    updateApiDirectLog('⚠️ Step: ' + details.currentStep);
+                                }
+                            } catch (e) {
+                                updateApiDirectLog('⚠️ Details: ' + response.details.substring(0, 100));
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    }
+    
+    
+    // Manual Generate Email button
+    const manualGenEmailBtn = document.getElementById('manual-gen-email-btn');
+    const manualEmailInput = document.getElementById('manual-verify-email');
+    if (manualGenEmailBtn && manualEmailInput) {
+        manualGenEmailBtn.addEventListener('click', async () => {
+            manualGenEmailBtn.disabled = true;
+            manualGenEmailBtn.textContent = '⏳...';
+            
+            const email = await generateEmailForManual();
+            if (email) {
+                manualEmailInput.value = email;
+            }
+            
+            manualGenEmailBtn.disabled = false;
+            manualGenEmailBtn.textContent = '📧 Gen';
+        });
+    }
+    
+    // Manual Check Email button
+    const manualCheckEmailBtn = document.getElementById('manual-check-email-btn');
+    const manualEmailLinkResult = document.getElementById('manual-email-link-result');
+    const manualEmailLink = document.getElementById('manual-email-link');
+    if (manualCheckEmailBtn && manualEmailInput) {
+        manualCheckEmailBtn.addEventListener('click', async () => {
+            const email = manualEmailInput.value.trim();
+            if (!email) {
+                updateApiDirectLog('❌ Nhập email trước khi check!');
+                return;
+            }
+            
+            manualCheckEmailBtn.disabled = true;
+            manualCheckEmailBtn.textContent = '⏳...';
+            
+            const link = await checkEmailForLink(email);
+            
+            if (link && manualEmailLinkResult && manualEmailLink) {
+                manualEmailLink.href = link;
+                manualEmailLink.textContent = link.length > 60 ? link.substring(0, 60) + '...' : link;
+                manualEmailLink.dataset.fullLink = link;
+                manualEmailLinkResult.style.display = 'block';
+            }
+            
+            manualCheckEmailBtn.disabled = false;
+            manualCheckEmailBtn.textContent = '📬 Check';
+        });
+    }
+    
+    // Copy Link button
+    const manualCopyLinkBtn = document.getElementById('manual-copy-link-btn');
+    if (manualCopyLinkBtn && manualEmailLink) {
+        manualCopyLinkBtn.addEventListener('click', () => {
+            const fullLink = manualEmailLink.dataset.fullLink || manualEmailLink.href;
+            navigator.clipboard.writeText(fullLink).then(() => {
+                updateApiDirectLog('📋 Link copied!');
+                manualCopyLinkBtn.textContent = '✓';
+                setTimeout(() => {
+                    manualCopyLinkBtn.textContent = 'Copy';
+                }, 1500);
+            }).catch(err => {
+                updateApiDirectLog('❌ Copy failed: ' + err.message);
+            });
+        });
+    }
+    
+    // API Log Clear button
+    const apiLogClearBtn = document.getElementById('api-log-clear-btn');
+    if (apiLogClearBtn) {
+        apiLogClearBtn.addEventListener('click', () => {
+            const logEl = document.getElementById('api-direct-log');
+            if (logEl) {
+                logEl.value = 'Cleared. Ready for manual verify...';
+            }
+        });
+    }
+    
+    // Initial update of manual veteran display
+    updateManualVeteranDisplay();
 }
 
 // Load saved data into panel

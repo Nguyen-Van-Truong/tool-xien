@@ -216,6 +216,113 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
         })();
         return true;
+    } else if (message.action === 'sheeridVerify') {
+        // SheerID API verification (bypass CORS)
+        (async () => {
+            try {
+                const SHEERID_BASE_URL = "https://services.sheerid.com/rest/v2/verification";
+                const ORGANIZATIONS = {
+                    "Army": {id: 4070, name: "Army"},
+                    "Navy": {id: 4072, name: "Navy"},
+                    "Air Force": {id: 4073, name: "Air Force"},
+                    "Marine Corps": {id: 4071, name: "Marine Corps"},
+                    "Coast Guard": {id: 4074, name: "Coast Guard"}
+                };
+                
+                const { verificationId, veteranData, email } = message;
+                
+                console.log('🚀 SheerID Verify - Starting...');
+                console.log('   verificationId:', verificationId);
+                console.log('   veteran:', veteranData.first, veteranData.last);
+                console.log('   branch:', veteranData.branch);
+                console.log('   email:', email);
+                
+                // Step 1: collectMilitaryStatus
+                console.log('📤 Step 1: collectMilitaryStatus...');
+                const step1Url = `${SHEERID_BASE_URL}/${verificationId}/step/collectMilitaryStatus`;
+                console.log('   URL:', step1Url);
+                
+                const step1Response = await fetch(step1Url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: "VETERAN" })
+                });
+                
+                console.log('   Response status:', step1Response.status);
+                
+                if (!step1Response.ok) {
+                    const errorText = await step1Response.text();
+                    console.log('❌ Step 1 failed:', errorText);
+                    sendResponse({ success: false, error: `Step 1 failed: ${step1Response.status}`, details: errorText });
+                    return;
+                }
+                
+                const step1Result = await step1Response.json();
+                console.log('✅ Step 1 result:', JSON.stringify(step1Result).substring(0, 200));
+                
+                const currentStep = step1Result.currentStep;
+                console.log('   currentStep:', currentStep);
+                
+                // Check if step 1 succeeded - allow different valid steps
+                if (currentStep !== 'collectInactiveMilitaryPersonalInfo') {
+                    // If already at success or emailLoop, return that
+                    if (currentStep === 'success' || currentStep === 'emailLoop') {
+                        console.log('✅ Already completed:', currentStep);
+                        sendResponse({ success: true, result: step1Result });
+                        return;
+                    }
+                    console.log('❌ Unexpected step:', currentStep);
+                    sendResponse({ success: false, error: 'Unexpected step after Step 1', step: currentStep, result: step1Result });
+                    return;
+                }
+                
+                // Step 2: collectInactiveMilitaryPersonalInfo
+                console.log('📤 Step 2: collectInactiveMilitaryPersonalInfo...');
+                const submissionUrl = step1Result.submissionUrl || 
+                    `${SHEERID_BASE_URL}/${verificationId}/step/collectInactiveMilitaryPersonalInfo`;
+                console.log('   URL:', submissionUrl);
+                
+                const org = ORGANIZATIONS[veteranData.branch] || ORGANIZATIONS["Navy"];
+                console.log('   organization:', org);
+                
+                const payload = {
+                    firstName: veteranData.first,
+                    lastName: veteranData.last,
+                    birthDate: veteranData.birthDate,
+                    email: email,
+                    organization: org,
+                    dischargeDate: veteranData.dischargeDate || "2025-12-01",
+                    metadata: {}
+                };
+                console.log('   payload:', JSON.stringify(payload));
+                
+                const step2Response = await fetch(submissionUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                console.log('   Response status:', step2Response.status);
+                
+                if (!step2Response.ok) {
+                    const errorText = await step2Response.text();
+                    console.log('❌ Step 2 failed:', errorText);
+                    sendResponse({ success: false, error: `Step 2 failed: ${step2Response.status}`, details: errorText });
+                    return;
+                }
+                
+                const step2Result = await step2Response.json();
+                console.log('✅ Step 2 result:', JSON.stringify(step2Result).substring(0, 200));
+                console.log('   Final step:', step2Result.currentStep);
+                
+                sendResponse({ success: true, result: step2Result });
+                
+            } catch (error) {
+                console.error('❌ SheerID Verify Error:', error);
+                sendResponse({ success: false, error: error.message });
+            }
+        })();
+        return true; // Keep channel open for async
     }
     return true;
 });

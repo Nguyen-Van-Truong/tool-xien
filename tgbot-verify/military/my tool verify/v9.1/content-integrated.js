@@ -19,6 +19,26 @@ const MAX_RESEND_TRIES = 3;  // Max times to click Re-send button
 let signupRetryCount = 0; // Track signup retry attempts
 const MAX_SIGNUP_RETRIES = 3; // Max retries when signup fails
 
+// Month name to number mapping for API
+const MONTH_TO_NUM = {
+    "January": "01", "February": "02", "March": "03", "April": "04",
+    "May": "05", "June": "06", "July": "07", "August": "08",
+    "September": "09", "October": "10", "November": "11", "December": "12"
+};
+
+// Extract verificationId from URL
+function extractVerificationId(url) {
+    const match = url.match(/verificationId=([a-f0-9]+)/i);
+    return match ? match[1] : null;
+}
+
+// Format date to YYYY-MM-DD
+function formatDateForAPI(year, monthName, day) {
+    const monthNum = MONTH_TO_NUM[monthName] || "01";
+    const dayPadded = String(day).padStart(2, '0');
+    return `${year}-${monthNum}-${dayPadded}`;
+}
+
 // Listen for storage changes to sync isRunning immediately when STOP is pressed
 chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes['veterans-is-running']) {
@@ -2178,6 +2198,60 @@ function generateRandomString(length = 12) {
     return result;
 }
 
+// Verify using API Direct (via background script to bypass CORS)
+async function verifyByAPI() {
+    if (!isRunning) {
+        console.log('⏹️ Tool stopped, exiting verifyByAPI');
+        return;
+    }
+    
+    const currentUrl = window.location.href;
+    const verificationId = extractVerificationId(currentUrl);
+    
+    if (!verificationId) {
+        throw new Error('Khong tim thay verificationId trong URL. Hay dam bao dang o trang SheerID.');
+    }
+    
+    const data = dataArray[currentDataIndex];
+    const birthDate = formatDateForAPI(data.year, data.month, data.day);
+    
+    // Get discharge date setting
+    const dischargeDaySetting = await new Promise((resolve) => {
+        chrome.storage.local.get(['veterans-random-discharge-day', 'veterans-default-discharge-day'], (result) => {
+            const isRandom = result['veterans-random-discharge-day'] || false;
+            const defaultDay = result['veterans-default-discharge-day'] || 1;
+            resolve(isRandom ? Math.floor(Math.random() * 31) + 1 : defaultDay);
+        });
+    });
+    const dischargeDate = `2025-12-${String(dischargeDaySetting).padStart(2, '0')}`;
+    
+    sendStatus(`API Direct: Verifying ${data.first} ${data.last}...`, 'info');
+    
+    // Call background script to make API request (bypass CORS)
+    const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+            action: 'sheeridVerify',
+            verificationId: verificationId,
+            veteranData: {
+                first: data.first,
+                last: data.last,
+                branch: data.branch,
+                birthDate: birthDate,
+                dischargeDate: dischargeDate
+            },
+            email: currentEmail
+        }, resolve);
+    });
+    
+    if (!response || !response.success) {
+        const errorMsg = response?.error || 'Unknown API error';
+        throw new Error(`API Error: ${errorMsg}`);
+    }
+    
+    const result = response.result;
+    return result;
+}
+
 async function clickVerifyButton() {
     if (!isRunning) {
         console.log('⏹️ Tool stopped, exiting clickVerifyButton');
@@ -2601,8 +2675,88 @@ async function checkAndFillForm() {
             throw new Error('Page heading not found and form not detected on SheerID page');
         }
 
+        // Check API Direct Mode setting
+        const settings = await new Promise(resolve => {
+            chrome.storage.local.get(['veterans-api-direct-mode'], resolve);
+        });
+        const useApiDirect = settings['veterans-api-direct-mode'] || false;
+
         if (headingText.includes('Unlock this Military-Only Offer')) {
             if (!currentEmail) await generateNewEmail();
+            
+            if (useApiDirect) {
+                // Use API Direct mode
+                sendStatus('API Direct Mode: Calling SheerID API...', 'info');
+                try {
+                    const result = await verifyByAPI();
+                    const currentStep = result.currentStep;
+                    
+                    if (currentStep === 'success') {
+                        sendStatus('API Direct: Verification SUCCESS!', 'success');
+                        await handleVerificationSuccess();
+                        return;
+                    } else if (currentStep === 'emailLoop') {
+                        sendStatus('API Direct: Check email to complete verification', 'info');
+                        await readMailAndVerify();
+                        return;
+                    } else {
+                        sendStatus(`API Direct: Unexpected status = ${currentStep}`, 'error');
+                        // Move to next data
+                        if (currentDataIndex + 1 >= dataArray.length) {
+                            clearSheerIDData();
+                            isRunning = false;
+                            chrome.storage.local.set({ 'veterans-is-running': false });
+                            updateUIOnStop();
+                            sendStatus('❌ All data failed, no more to try', 'error');
+                            return;
+                        }
+                        removeProcessedData();
+                        stats.processed++;
+                        stats.failed++;
+                        updateStats();
+                        currentEmail = '';
+                        mailRetryCount = 0;
+                        await delay(2000);
+                        if (!isRunning) return;
+                        window.location.href = 'https://chatgpt.com/veterans-claim';
+                        await delay(5000);
+                        if (!isRunning) return;
+                        await startVerificationLoop();
+                        return;
+                    }
+                } catch (error) {
+                    sendStatus(`API Direct Error: ${error.message}`, 'error');
+                    // Check if VPN/IP error
+                    if (error.message.includes('sourcesUnavailable') || error.message.includes('unable to verify')) {
+                        await handleVPNError();
+                        return;
+                    }
+                    // Other errors - move to next data
+                    if (currentDataIndex + 1 >= dataArray.length) {
+                        clearSheerIDData();
+                        isRunning = false;
+                        chrome.storage.local.set({ 'veterans-is-running': false });
+                        updateUIOnStop();
+                        sendStatus('❌ All data failed, no more to try', 'error');
+                        return;
+                    }
+                    removeProcessedData();
+                    stats.processed++;
+                    stats.failed++;
+                    updateStats();
+                    currentEmail = '';
+                    mailRetryCount = 0;
+                    await delay(2000);
+                    if (!isRunning) return;
+                    window.location.href = 'https://chatgpt.com/veterans-claim';
+                    await delay(5000);
+                    if (!isRunning) return;
+                    await startVerificationLoop();
+                    return;
+                }
+            }
+            
+            // Browser automation mode (existing code)
             sendStatus('✅ Found verification form, filling...', 'success');
             await delay(1000);
             if (!isRunning) return;
