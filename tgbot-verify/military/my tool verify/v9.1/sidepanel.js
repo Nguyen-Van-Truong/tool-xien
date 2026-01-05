@@ -1421,6 +1421,70 @@ function setupPanelHandlers() {
     }
     
     
+    // Manual Get Link button - calls ChatGPT API to create verification
+    const manualGetLinkBtn = document.getElementById('manual-get-link-btn');
+    if (manualGetLinkBtn && manualSheeridLink) {
+        manualGetLinkBtn.addEventListener('click', async () => {
+            updateApiDirectLog('🔓 Getting verification link from ChatGPT...');
+            manualGetLinkBtn.disabled = true;
+            manualGetLinkBtn.textContent = '⏳...';
+            
+            // Send message to content script on ChatGPT page
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (!tabs[0]) {
+                    updateApiDirectLog('❌ No active tab found!');
+                    manualGetLinkBtn.disabled = false;
+                    manualGetLinkBtn.textContent = '🔓 Get';
+                    return;
+                }
+                
+                const currentUrl = tabs[0].url || '';
+                if (!currentUrl.includes('chatgpt.com') && !currentUrl.includes('services.sheerid.com')) {
+                    updateApiDirectLog('❌ Please open ChatGPT or SheerID page!');
+                    updateApiDirectLog('Go to: https://chatgpt.com/veterans-claim');
+                    manualGetLinkBtn.disabled = false;
+                    manualGetLinkBtn.textContent = '🔓 Get';
+                    return;
+                }
+                
+                // If already on SheerID with verificationId, just get URL
+                if (currentUrl.includes('services.sheerid.com') && currentUrl.includes('verificationId=')) {
+                    manualSheeridLink.value = currentUrl;
+                    updateApiDirectLog('✅ Got link from current page!');
+                    manualGetLinkBtn.disabled = false;
+                    manualGetLinkBtn.textContent = '🔓 Get';
+                    return;
+                }
+                
+                chrome.tabs.sendMessage(tabs[0].id, {
+                    action: 'createVerification'
+                }, (response) => {
+                    manualGetLinkBtn.disabled = false;
+                    manualGetLinkBtn.textContent = '🔓 Get';
+                    
+                    if (chrome.runtime.lastError) {
+                        updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
+                        updateApiDirectLog('Try refreshing the ChatGPT page');
+                        return;
+                    }
+                    
+                    if (!response) {
+                        updateApiDirectLog('❌ No response from content script');
+                        return;
+                    }
+                    
+                    if (response.success && response.link) {
+                        manualSheeridLink.value = response.link;
+                        updateApiDirectLog('✅ Got verification link!');
+                        updateApiDirectLog(`📎 ${response.link.substring(0, 50)}...`);
+                    } else {
+                        updateApiDirectLog('❌ Failed: ' + (response.error || 'Unknown error'));
+                    }
+                });
+            });
+        });
+    }
+    
     // Manual Generate Email button
     const manualGenEmailBtn = document.getElementById('manual-gen-email-btn');
     const manualEmailInput = document.getElementById('manual-verify-email');

@@ -170,6 +170,66 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.storage.local.set({ 'veterans-is-running': false });
         sendStatus('⏹️ Process stopped', 'info');
         sendResponse({ success: true });
+    } else if (message.action === 'createVerification') {
+        // Get current URL if on SheerID page, or get link from page
+        (async () => {
+            try {
+                const currentUrl = window.location.href;
+                console.log('🔓 Getting verification link, current URL:', currentUrl);
+                
+                // If already on SheerID page, return current URL
+                if (currentUrl.includes('services.sheerid.com') && currentUrl.includes('verificationId=')) {
+                    console.log('✅ Already on SheerID page, returning URL');
+                    sendResponse({ success: true, link: currentUrl });
+                    return;
+                }
+                
+                // If on veterans-claim page, try to click verify button and wait for redirect
+                if (currentUrl.includes('chatgpt.com/veterans-claim') || currentUrl.includes('chatgpt.com')) {
+                    console.log('📍 On ChatGPT page, looking for verify button...');
+                    
+                    // Look for the verify button
+                    const buttons = document.querySelectorAll('a, button');
+                    let verifyBtn = null;
+                    for (const btn of buttons) {
+                        const text = (btn.innerText || btn.textContent || '').toLowerCase();
+                        const href = btn.href || '';
+                        if (text.includes('verify') || text.includes('claim') || href.includes('veterans-claim')) {
+                            verifyBtn = btn;
+                            break;
+                        }
+                    }
+                    
+                    if (verifyBtn) {
+                        console.log('✅ Found verify button, clicking...');
+                        verifyBtn.click();
+                        
+                        // Wait for redirect and return new URL
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        
+                        const newUrl = window.location.href;
+                        if (newUrl.includes('services.sheerid.com') && newUrl.includes('verificationId=')) {
+                            sendResponse({ success: true, link: newUrl });
+                            return;
+                        } else {
+                            sendResponse({ success: false, error: 'Redirected but not to SheerID. Current: ' + newUrl.substring(0, 50) });
+                            return;
+                        }
+                    } else {
+                        // No button found, check if there's a direct link in page
+                        sendResponse({ success: false, error: 'Verify button not found. Go to chatgpt.com/veterans-claim first.' });
+                        return;
+                    }
+                }
+                
+                sendResponse({ success: false, error: 'Not on ChatGPT or SheerID page' });
+                
+            } catch (error) {
+                console.error('❌ createVerification error:', error);
+                sendResponse({ success: false, error: error.message });
+            }
+        })();
+        return true; // Keep channel open for async
     }
     return true;
 });
