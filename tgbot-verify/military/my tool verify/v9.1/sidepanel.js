@@ -1353,6 +1353,9 @@ function setupPanelHandlers() {
                     // Re-enable button
                     manualVerifyBtn.disabled = false;
                     manualVerifyBtn.textContent = '🚀 VERIFY (API)';
+                    
+                    // Clear link input after verify (each verification_id is single-use)
+                    manualSheeridLink.value = '';
 
                     if (chrome.runtime.lastError) {
                         updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
@@ -1450,67 +1453,150 @@ function setupPanelHandlers() {
     }
     
     
-    // Manual Get Link button - calls ChatGPT API to create verification
+    // Manual Get Link button - calls ChatGPT API via content script
     const manualGetLinkBtn = document.getElementById('manual-get-link-btn');
     if (manualGetLinkBtn && manualSheeridLink) {
         manualGetLinkBtn.addEventListener('click', async () => {
-            updateApiDirectLog('🔓 Getting verification link from ChatGPT...');
+            updateApiDirectLog('🔓 Getting verification link...');
             manualGetLinkBtn.disabled = true;
             manualGetLinkBtn.textContent = '⏳...';
             
-            // Send message to content script on ChatGPT page
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (!tabs[0]) {
-                    updateApiDirectLog('❌ No active tab found!');
-                    manualGetLinkBtn.disabled = false;
-                    manualGetLinkBtn.textContent = '🔓 Get';
-                    return;
-                }
+            // Check if current tab is on SheerID with verificationId
+            chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+                const currentUrl = tabs[0]?.url || '';
+                const currentTabId = tabs[0]?.id;
                 
-                const currentUrl = tabs[0].url || '';
-                if (!currentUrl.includes('chatgpt.com') && !currentUrl.includes('services.sheerid.com')) {
-                    updateApiDirectLog('❌ Please open ChatGPT or SheerID page!');
-                    updateApiDirectLog('Go to: https://chatgpt.com/veterans-claim');
-                    manualGetLinkBtn.disabled = false;
-                    manualGetLinkBtn.textContent = '🔓 Get';
-                    return;
-                }
-                
-                // If already on SheerID with verificationId, just get URL
+                // If already on SheerID with verificationId, just get URL from page
                 if (currentUrl.includes('services.sheerid.com') && currentUrl.includes('verificationId=')) {
                     manualSheeridLink.value = currentUrl;
-                    updateApiDirectLog('✅ Got link from current page!');
+                    updateApiDirectLog('✅ Got link from current SheerID page!');
                     manualGetLinkBtn.disabled = false;
                     manualGetLinkBtn.textContent = '🔓 Get';
                     return;
                 }
                 
-                chrome.tabs.sendMessage(tabs[0].id, {
-                    action: 'createVerification'
-                }, (response) => {
-                    manualGetLinkBtn.disabled = false;
-                    manualGetLinkBtn.textContent = '🔓 Get';
+                // If on ChatGPT page, use content script (has proper cookies context)
+                if (currentUrl.includes('chatgpt.com')) {
+                    updateApiDirectLog('📡 Calling API via content script...');
                     
-                    if (chrome.runtime.lastError) {
-                        updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
-                        updateApiDirectLog('Try refreshing the ChatGPT page');
-                        return;
-                    }
-                    
-                    if (!response) {
-                        updateApiDirectLog('❌ No response from content script');
-                        return;
-                    }
-                    
-                    if (response.success && response.link) {
-                        manualSheeridLink.value = response.link;
-                        updateApiDirectLog('✅ Got verification link!');
-                        updateApiDirectLog(`📎 ${response.link.substring(0, 50)}...`);
+                    chrome.tabs.sendMessage(currentTabId, {
+                        action: 'createVerification'
+                    }, (response) => {
+                        manualGetLinkBtn.disabled = false;
+                        manualGetLinkBtn.textContent = '🔓 Get';
+                        
+                        if (chrome.runtime.lastError) {
+                            updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
+                            updateApiDirectLog('💡 Try refreshing the ChatGPT page');
+                            return;
+                        }
+                        
+                        if (response && response.success && response.link) {
+                            manualSheeridLink.value = response.link;
+                            updateApiDirectLog('✅ Got verification link!');
+                            if (response.verificationId) {
+                                updateApiDirectLog(`🆔 ID: ${response.verificationId}`);
+                            }
+                            updateApiDirectLog(`📎 ${response.link.substring(0, 60)}...`);
+                        } else {
+                            updateApiDirectLog('❌ Failed: ' + (response?.error || 'Unknown'));
+                        }
+                    });
+                    return;
+                }
+                
+                // Not on ChatGPT - try to find a ChatGPT tab
+                chrome.tabs.query({ url: '*://chatgpt.com/*' }, (chatgptTabs) => {
+                    if (chatgptTabs && chatgptTabs.length > 0) {
+                        const chatgptTab = chatgptTabs[0];
+                        updateApiDirectLog(`📡 Found ChatGPT tab, calling API...`);
+                        
+                        chrome.tabs.sendMessage(chatgptTab.id, {
+                            action: 'createVerification'
+                        }, (response) => {
+                            manualGetLinkBtn.disabled = false;
+                            manualGetLinkBtn.textContent = '🔓 Get';
+                            
+                            if (chrome.runtime.lastError) {
+                                updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
+                                updateApiDirectLog('💡 Go to ChatGPT tab and refresh');
+                                return;
+                            }
+                            
+                            if (response && response.success && response.link) {
+                                manualSheeridLink.value = response.link;
+                                updateApiDirectLog('✅ Got verification link!');
+                                if (response.verificationId) {
+                                    updateApiDirectLog(`🆔 ID: ${response.verificationId}`);
+                                }
+                                updateApiDirectLog(`📎 ${response.link.substring(0, 60)}...`);
+                            } else {
+                                updateApiDirectLog('❌ Failed: ' + (response?.error || 'Unknown'));
+                            }
+                        });
                     } else {
-                        updateApiDirectLog('❌ Failed: ' + (response.error || 'Unknown error'));
+                        manualGetLinkBtn.disabled = false;
+                        manualGetLinkBtn.textContent = '🔓 Get';
+                        updateApiDirectLog('❌ No ChatGPT tab found!');
+                        updateApiDirectLog('💡 Open chatgpt.com and login first');
                     }
                 });
             });
+        });
+    }
+    
+    // Manual Refresh Enrollment Status button - uses content script on ChatGPT page
+    const manualRefreshBtn = document.getElementById('manual-refresh-btn');
+    if (manualRefreshBtn) {
+        manualRefreshBtn.addEventListener('click', async () => {
+            updateApiDirectLog('🔄 Refreshing enrollment status...');
+            manualRefreshBtn.disabled = true;
+            manualRefreshBtn.textContent = '⏳';
+            
+            // Find ChatGPT tab to send message
+            chrome.tabs.query({ url: '*://chatgpt.com/*' }, (chatgptTabs) => {
+                if (!chatgptTabs || chatgptTabs.length === 0) {
+                    // Try current tab
+                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                        const currentUrl = tabs[0]?.url || '';
+                        if (!currentUrl.includes('chatgpt.com')) {
+                            manualRefreshBtn.disabled = false;
+                            manualRefreshBtn.textContent = '🔄';
+                            updateApiDirectLog('❌ No ChatGPT tab found!');
+                            updateApiDirectLog('💡 Open chatgpt.com and login first');
+                            return;
+                        }
+                        sendRefreshMessage(tabs[0].id);
+                    });
+                    return;
+                }
+                sendRefreshMessage(chatgptTabs[0].id);
+            });
+            
+            function sendRefreshMessage(tabId) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'refreshEnrollment'
+                }, (response) => {
+                    manualRefreshBtn.disabled = false;
+                    manualRefreshBtn.textContent = '🔄';
+                    
+                    if (chrome.runtime.lastError) {
+                        updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
+                        updateApiDirectLog('💡 Try refreshing the ChatGPT page');
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        updateApiDirectLog('✅ Enrollment status refreshed!');
+                        if (response.data && response.data.verification_id) {
+                            updateApiDirectLog(`🆔 Current ID: ${response.data.verification_id.substring(0, 10)}...`);
+                        }
+                        updateApiDirectLog('💡 Now click "🔓 Get" to get new link');
+                    } else {
+                        updateApiDirectLog('❌ Refresh failed: ' + (response?.error || 'Unknown'));
+                    }
+                });
+            }
         });
     }
     

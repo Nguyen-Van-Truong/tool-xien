@@ -216,6 +216,176 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
         })();
         return true;
+    } else if (message.action === 'refreshEnrollmentStatus') {
+        // Refresh enrollment status before creating new verification
+        (async () => {
+            try {
+                console.log('🔄 [Background] Refreshing enrollment status...');
+                
+                // Get cookies for chatgpt.com
+                const cookies = await chrome.cookies.getAll({ domain: 'chatgpt.com' });
+                const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+                
+                if (!cookieHeader) {
+                    sendResponse({ success: false, error: 'No ChatGPT cookies. Please login first.' });
+                    return;
+                }
+                
+                // Get access token
+                const sessionRes = await fetch('https://chatgpt.com/api/auth/session', {
+                    method: 'GET',
+                    headers: { 'Cookie': cookieHeader, 'Accept': 'application/json' }
+                });
+                
+                if (!sessionRes.ok) {
+                    sendResponse({ success: false, error: `Session failed: ${sessionRes.status}` });
+                    return;
+                }
+                
+                const sessionData = await sessionRes.json();
+                const accessToken = sessionData.accessToken;
+                
+                if (!accessToken) {
+                    sendResponse({ success: false, error: 'No access token. Please login ChatGPT.' });
+                    return;
+                }
+                
+                // Call refresh_enrollment_status
+                const refreshRes = await fetch('https://chatgpt.com/backend-api/veterans/refresh_enrollment_status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Cookie': cookieHeader
+                    },
+                    body: '' // Empty body as per original request
+                });
+                
+                console.log('📊 refresh_enrollment_status status:', refreshRes.status);
+                
+                if (!refreshRes.ok) {
+                    const errorText = await refreshRes.text();
+                    console.log('❌ refresh failed:', errorText);
+                    sendResponse({ success: false, error: `Refresh failed: ${refreshRes.status}` });
+                    return;
+                }
+                
+                // Try to read response (might be empty or JSON)
+                let responseData = null;
+                try {
+                    const text = await refreshRes.text();
+                    if (text) {
+                        responseData = JSON.parse(text);
+                    }
+                } catch (e) {
+                    // Empty response is OK
+                }
+                
+                console.log('✅ Enrollment status refreshed');
+                sendResponse({ success: true, data: responseData });
+                
+            } catch (error) {
+                console.error('❌ refreshEnrollmentStatus error:', error);
+                sendResponse({ success: false, error: error.message });
+            }
+        })();
+        return true;
+    } else if (message.action === 'createVerificationFromBackground') {
+        // Create SheerID verification link via ChatGPT API (works from ANY page!)
+        const CHATGPT_PROGRAM_ID = "690415d58971e73ca187d8c9";
+        
+        (async () => {
+            try {
+                console.log('🔓 [Background] Creating verification link...');
+                
+                // Step 1: Get cookies for chatgpt.com
+                const cookies = await chrome.cookies.getAll({ domain: 'chatgpt.com' });
+                const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+                
+                if (!cookieHeader) {
+                    console.log('❌ No cookies found for chatgpt.com');
+                    sendResponse({ success: false, error: 'No ChatGPT cookies. Please login first.' });
+                    return;
+                }
+                
+                console.log('🍪 Got', cookies.length, 'cookies');
+                
+                // Step 2: Get access token from session API
+                console.log('🔑 Step 1: Getting access token...');
+                const sessionRes = await fetch('https://chatgpt.com/api/auth/session', {
+                    method: 'GET',
+                    headers: {
+                        'Cookie': cookieHeader,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!sessionRes.ok) {
+                    console.log('❌ Session API failed:', sessionRes.status);
+                    sendResponse({ success: false, error: `Session API failed: ${sessionRes.status}. Please login ChatGPT.` });
+                    return;
+                }
+                
+                const sessionData = await sessionRes.json();
+                const accessToken = sessionData.accessToken;
+                
+                if (!accessToken) {
+                    console.log('❌ No accessToken in session:', JSON.stringify(sessionData).substring(0, 100));
+                    sendResponse({ success: false, error: 'No access token. Please login ChatGPT first.' });
+                    return;
+                }
+                
+                console.log('✅ Got accessToken, length:', accessToken.length);
+                
+                // Step 3: Create verification
+                console.log('🚀 Step 2: Creating verification...');
+                const verifyRes = await fetch('https://chatgpt.com/backend-api/veterans/create_verification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Cookie': cookieHeader
+                    },
+                    body: JSON.stringify({
+                        program_id: CHATGPT_PROGRAM_ID
+                    })
+                });
+                
+                console.log('📊 create_verification status:', verifyRes.status);
+                
+                if (!verifyRes.ok) {
+                    const errorText = await verifyRes.text();
+                    console.log('❌ create_verification failed:', errorText);
+                    sendResponse({ success: false, error: `API Error: ${verifyRes.status}`, details: errorText });
+                    return;
+                }
+                
+                const verifyData = await verifyRes.json();
+                console.log('📊 Response:', verifyData);
+                
+                const verificationId = verifyData.verification_id || verifyData.verificationId;
+                
+                if (!verificationId) {
+                    sendResponse({ success: false, error: 'No verification_id in response' });
+                    return;
+                }
+                
+                // Build URL
+                const sheeridUrl = `https://services.sheerid.com/verify/${CHATGPT_PROGRAM_ID}/?verificationId=${verificationId}`;
+                console.log('🎯 Built URL:', sheeridUrl);
+                
+                sendResponse({
+                    success: true,
+                    link: sheeridUrl,
+                    verificationId: verificationId
+                });
+                
+            } catch (error) {
+                console.error('❌ createVerificationFromBackground error:', error);
+                sendResponse({ success: false, error: error.message });
+            }
+        })();
+        return true;
     } else if (message.action === 'sheeridVerify') {
         // SheerID API verification (bypass CORS)
         (async () => {
