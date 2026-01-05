@@ -1,11 +1,4 @@
 // Content script for ChatGPT account signup + verify automation
-
-// Only run in top frame to avoid duplicate execution
-if (window.top !== window) {
-    console.log('⏭️ Content script skipped in iframe');
-    throw new Error('Content script only runs in top frame');
-}
-
 let isRunning = false;
 let currentDataIndex = 0;
 let dataArray = []; // Veterans data array
@@ -25,47 +18,6 @@ let resendCount = 0;  // Track how many times we've clicked Re-send
 const MAX_RESEND_TRIES = 3;  // Max times to click Re-send button
 let signupRetryCount = 0; // Track signup retry attempts
 const MAX_SIGNUP_RETRIES = 3; // Max retries when signup fails
-let consecutiveLimitErrors = 0; // Track consecutive limit/429 errors (will be loaded from storage)
-const MAX_CONSECUTIVE_LIMIT = 5; // Stop after this many consecutive limit errors
-let isReadingEmail = false; // Guard to prevent concurrent email reading
-
-// Load consecutiveLimitErrors from storage on startup
-chrome.storage.local.get(['veterans-consecutive-limit-errors'], (result) => {
-    consecutiveLimitErrors = result['veterans-consecutive-limit-errors'] || 0;
-    console.log('📊 Loaded consecutiveLimitErrors:', consecutiveLimitErrors);
-});
-
-// Helper function to update and save consecutiveLimitErrors
-function incrementLimitErrors() {
-    consecutiveLimitErrors++;
-    chrome.storage.local.set({ 'veterans-consecutive-limit-errors': consecutiveLimitErrors });
-    return consecutiveLimitErrors;
-}
-
-function resetLimitErrors() {
-    consecutiveLimitErrors = 0;
-    chrome.storage.local.set({ 'veterans-consecutive-limit-errors': 0 });
-}
-
-// Month name to number mapping for API
-const MONTH_TO_NUM = {
-    "January": "01", "February": "02", "March": "03", "April": "04",
-    "May": "05", "June": "06", "July": "07", "August": "08",
-    "September": "09", "October": "10", "November": "11", "December": "12"
-};
-
-// Extract verificationId from URL
-function extractVerificationId(url) {
-    const match = url.match(/verificationId=([a-f0-9]+)/i);
-    return match ? match[1] : null;
-}
-
-// Format date to YYYY-MM-DD
-function formatDateForAPI(year, monthName, day) {
-    const monthNum = MONTH_TO_NUM[monthName] || "01";
-    const dayPadded = String(day).padStart(2, '0');
-    return `${year}-${monthNum}-${dayPadded}`;
-}
 
 // Listen for storage changes to sync isRunning immediately when STOP is pressed
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -173,11 +125,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
 
             currentDataIndex = 0;
-            stats = { processed: 0, success: 0, failed: 0, limit: 0 };
+            stats = { processed: 0, success: 0, failed: 0 };
             isRunning = true;
             currentEmail = '';
             mailRetryCount = 0;
-            resetLimitErrors(); // Reset limit errors when starting fresh
 
             // Save to storage
             chrome.storage.local.set({
@@ -199,174 +150,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.storage.local.set({ 'veterans-is-running': false });
         sendStatus('⏹️ Process stopped', 'info');
         sendResponse({ success: true });
-    } else if (message.action === 'createVerification') {
-        // Create verification using ChatGPT API directly (no page redirect needed!)
-        const CHATGPT_PROGRAM_ID = "690415d58971e73ca187d8c9";
-        
-        (async () => {
-            try {
-                const currentUrl = window.location.href;
-                console.log('🔓 Getting verification link, current URL:', currentUrl);
-                
-                // If already on SheerID page, return current URL
-                if (currentUrl.includes('services.sheerid.com') && currentUrl.includes('verificationId=')) {
-                    console.log('✅ Already on SheerID page, returning URL');
-                    sendResponse({ success: true, link: currentUrl });
-                    return;
-                }
-                
-                // Must be on ChatGPT domain to call API (same-origin)
-                if (!currentUrl.includes('chatgpt.com')) {
-                    sendResponse({ success: false, error: 'Must be on chatgpt.com to get verification link' });
-                    return;
-                }
-                
-                console.log('🔑 Step 1: Getting access token from session...');
-                
-                // Step 1: Get access token from session API
-                const sessionRes = await fetch('/api/auth/session', { 
-                    credentials: 'include' 
-                });
-                
-                if (!sessionRes.ok) {
-                    sendResponse({ success: false, error: `Session API failed: ${sessionRes.status}` });
-                    return;
-                }
-                
-                const sessionData = await sessionRes.json();
-                const accessToken = sessionData.accessToken;
-                
-                if (!accessToken) {
-                    sendResponse({ success: false, error: 'No access token found. Please login to ChatGPT first.' });
-                    return;
-                }
-                
-                console.log('✅ Got access token, length:', accessToken.length);
-                console.log('🚀 Step 2: Creating verification...');
-                
-                // Step 2: Call create_verification API
-                const verifyRes = await fetch('/backend-api/veterans/create_verification', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        program_id: CHATGPT_PROGRAM_ID
-                    })
-                });
-                
-                console.log('📊 create_verification status:', verifyRes.status);
-                
-                if (!verifyRes.ok) {
-                    const errorText = await verifyRes.text();
-                    console.error('❌ create_verification failed:', errorText);
-                    sendResponse({ success: false, error: `API Error: ${verifyRes.status}` });
-                    return;
-                }
-                
-                const verifyData = await verifyRes.json();
-                console.log('📊 create_verification response:', verifyData);
-                
-                // Response format: { verification_id: "xxx" }
-                const verificationId = verifyData.verification_id || verifyData.verificationId;
-                
-                if (!verificationId) {
-                    sendResponse({ success: false, error: 'No verification_id in response' });
-                    return;
-                }
-                
-                // Step 3: Build SheerID URL
-                const sheeridUrl = `https://services.sheerid.com/verify/${CHATGPT_PROGRAM_ID}/?verificationId=${verificationId}`;
-                console.log('🎯 Built SheerID URL:', sheeridUrl);
-                
-                sendResponse({ 
-                    success: true, 
-                    link: sheeridUrl,
-                    verificationId: verificationId
-                });
-                
-            } catch (error) {
-                console.error('❌ createVerification error:', error);
-                sendResponse({ success: false, error: error.message });
-            }
-        })();
-        return true; // Keep channel open for async
-    } else if (message.action === 'refreshEnrollment') {
-        // Refresh enrollment status via ChatGPT API
-        (async () => {
-            try {
-                const currentUrl = window.location.href;
-                console.log('🔄 Refreshing enrollment, current URL:', currentUrl);
-                
-                // Must be on ChatGPT domain
-                if (!currentUrl.includes('chatgpt.com')) {
-                    sendResponse({ success: false, error: 'Must be on chatgpt.com' });
-                    return;
-                }
-                
-                console.log('🔑 Getting access token...');
-                
-                // Get access token from session API
-                const sessionRes = await fetch('/api/auth/session', { 
-                    credentials: 'include' 
-                });
-                
-                if (!sessionRes.ok) {
-                    sendResponse({ success: false, error: `Session failed: ${sessionRes.status}` });
-                    return;
-                }
-                
-                const sessionData = await sessionRes.json();
-                const accessToken = sessionData.accessToken;
-                
-                if (!accessToken) {
-                    sendResponse({ success: false, error: 'No access token. Please login.' });
-                    return;
-                }
-                
-                console.log('🔄 Calling refresh_enrollment_status...');
-                
-                // Call refresh_enrollment_status API
-                const refreshRes = await fetch('/backend-api/veterans/refresh_enrollment_status', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    credentials: 'include'
-                });
-                
-                console.log('📊 Refresh status:', refreshRes.status);
-                
-                if (!refreshRes.ok) {
-                    const errorText = await refreshRes.text();
-                    console.error('❌ Refresh failed:', errorText);
-                    sendResponse({ success: false, error: `Refresh failed: ${refreshRes.status}` });
-                    return;
-                }
-                
-                // Parse response
-                let responseData = null;
-                try {
-                    const text = await refreshRes.text();
-                    if (text) {
-                        responseData = JSON.parse(text);
-                        console.log('📊 Refresh response:', responseData);
-                    }
-                } catch (e) {
-                    console.log('📊 Empty response (OK)');
-                }
-                
-                sendResponse({ success: true, data: responseData?.metadata || responseData });
-                
-            } catch (error) {
-                console.error('❌ refreshEnrollment error:', error);
-                sendResponse({ success: false, error: error.message });
-            }
-        })();
-        return true; // Keep channel open for async
     }
     return true;
 });
@@ -2034,168 +1817,6 @@ function doClearSheerID() {
     });
 }
 
-// Move to next veteran and reload page (for API Direct Mode)
-async function moveToNextVeteranAndReload() {
-    if (!isRunning) return;
-    
-    console.log('➡️ Moving to next veteran and reloading page...');
-    
-    // Update stats
-    stats.processed++;
-    stats.failed++;
-    updateStats();
-    
-    // Remove current veteran from array
-    removeProcessedData(true);
-    
-    // Check if more veterans left
-    if (currentDataIndex >= dataArray.length || dataArray.length === 0) {
-        sendStatus('❌ No more veterans to process', 'error');
-        isRunning = false;
-        chrome.storage.local.set({ 'veterans-is-running': false });
-        updateUIOnStop();
-        return;
-    }
-    
-    // Delay before reload
-    await delay(2000);
-    
-    // Reload page to restart with next veteran
-    sendStatus('🔄 Reloading page for next veteran...', 'info');
-    window.location.reload();
-}
-
-// Read email and verify from ChatGPT page context (for API Direct Mode)
-async function readMailAndVerifyFromChatGPT(verificationId) {
-    if (!isRunning) return;
-    
-    // Guard to prevent concurrent email reading
-    if (isReadingEmail) {
-        console.log('⏳ Already reading email (API Direct), skipping duplicate call');
-        return;
-    }
-    isReadingEmail = true;
-    
-    console.log('📧 Reading email for verification link...');
-    sendStatus('📧 Waiting for email verification link...', 'info');
-    
-    const maxAttempts = 10;
-    let attempt = 0;
-    let localResendCount = 0;
-    const MAX_LOCAL_RESEND = 2;
-    
-    try {
-    while (attempt < maxAttempts && isRunning) {
-        attempt++;
-        sendStatus(`📬 Checking email (API Direct)... (${attempt}/${maxAttempts})`, 'info');
-        
-        // Wait a bit before checking
-        await delay(5000);
-        if (!isRunning) return;
-        
-        try {
-            // Read email to find verification link
-            const email = currentEmail;
-            if (!email) {
-                sendStatus('❌ No email to check', 'error');
-                break;
-            }
-            
-            // Parse email correctly - format: username@domain
-            const [username, domain] = email.split('@');
-            if (!username || !domain) {
-                sendStatus('❌ Invalid email format', 'error');
-                break;
-            }
-            
-            // Call email API with correct URL format
-            const response = await fetch(`https://tinyhost.shop/api/email/${domain}/${username}/?page=1&limit=20`, {
-                method: 'GET'
-            });
-            
-            if (!response.ok) {
-                console.log(`📭 Email check ${attempt}: API error ${response.status}`);
-                continue;
-            }
-            
-            const emailsData = await response.json();
-            const emails = emailsData.emails || [];
-            
-            if (emails.length === 0) {
-                console.log(`📭 Email check ${attempt}: No emails found yet`);
-                sendStatus(`📭 No emails found (${attempt}/${maxAttempts})`, 'info');
-                continue;
-            }
-            
-            // Sort by date (newest first)
-            emails.sort((a, b) => {
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
-                return dateB - dateA;
-            });
-            
-            // Look for SheerID verification link
-            let verifyLink = null;
-            for (const mail of emails) {
-                // Check html_body first (most reliable)
-                if (mail.html_body) {
-                    const htmlLinkMatch = mail.html_body.match(/https:\/\/services\.sheerid\.com\/verify\/[^"'\s<>]+/i);
-                    if (htmlLinkMatch) {
-                        verifyLink = htmlLinkMatch[0].replace(/&amp;/g, '&');
-                        break;
-                    }
-                }
-                
-                // Check body field
-                if (mail.body) {
-                    const bodyLinkMatch = mail.body.match(/https:\/\/services\.sheerid\.com\/verify\/[^"'\s<>()]+/i);
-                    if (bodyLinkMatch) {
-                        verifyLink = bodyLinkMatch[0].replace(/&amp;/g, '&');
-                        break;
-                    }
-                }
-            }
-            
-            if (verifyLink) {
-                console.log('✅ Found verification link:', verifyLink);
-                sendStatus('✅ Found email link! Completing verification...', 'success');
-                
-                // Extract token from link and click to complete verification
-                // Navigate to the verification link to complete the process
-                window.location.href = verifyLink;
-                
-                // Wait for page load and then continue verification
-                await delay(5000);
-                if (!isRunning) return;
-                
-                // After redirect, checkAndFillForm will handle the rest
-                await checkAndFillForm();
-                return;
-            }
-            
-        } catch (error) {
-            console.error('Email check error:', error);
-            sendStatus(`⚠️ Email check error: ${error.message}`, 'warning');
-        }
-    }
-    
-    // Timeout - try to resend if possible before giving up
-    if (localResendCount < MAX_LOCAL_RESEND) {
-        // We're on ChatGPT page, can't click resend button
-        // Just log and move on
-        sendStatus('⏰ Email timeout (no resend on ChatGPT page)', 'warning');
-    }
-    
-    sendStatus('⏰ Email timeout, moving to next veteran...', 'warning');
-    stats.processed++;
-    stats.failed++;
-    updateStats();
-    await moveToNextVeteranAndReload();
-    } finally {
-        isReadingEmail = false;
-    }
-}
-
 // Flag to prevent multiple retry attempts running simultaneously
 let isRetrying = false;
 
@@ -2413,140 +2034,13 @@ async function startVerificationLoop() {
             return; // Exit here, checkAndFillForm will handle everything
         }
 
-        // If on ChatGPT veterans-claim page
+        // If on ChatGPT veterans-claim page, click verify button
         if (currentUrl.includes('chatgpt.com/veterans-claim')) {
-            // Check API Direct Mode setting
-            const apiSettings = await new Promise(resolve => {
-                chrome.storage.local.get(['veterans-api-direct-mode'], resolve);
-            });
-            const useApiDirect = apiSettings['veterans-api-direct-mode'] || false;
-            
-            if (useApiDirect) {
-                // API Direct Mode: Call API directly without page redirect
-                console.log('🚀 API Direct Mode: Getting verification link from ChatGPT API...');
-                sendStatus('🔄 API Direct: Refreshing enrollment...', 'info');
-                
-                try {
-                    // Step 1: Refresh enrollment status
-                    const sessionRes = await fetch('/api/auth/session', { credentials: 'include' });
-                    if (!sessionRes.ok) throw new Error('Session failed');
-                    const sessionData = await sessionRes.json();
-                    const accessToken = sessionData.accessToken;
-                    if (!accessToken) throw new Error('No access token');
-                    
-                    await fetch('/backend-api/veterans/refresh_enrollment_status', {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${accessToken}` },
-                        credentials: 'include'
-                    });
-                    console.log('✅ Enrollment refreshed');
-                    
-                    // Step 2: Create new verification
-                    sendStatus('🔄 API Direct: Creating verification...', 'info');
-                    const createRes = await fetch('/backend-api/veterans/create_verification', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${accessToken}`
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify({ program_id: "690415d58971e73ca187d8c9" })
-                    });
-                    
-                    if (!createRes.ok) throw new Error(`Create failed: ${createRes.status}`);
-                    const createData = await createRes.json();
-                    const verificationId = createData.verification_id;
-                    
-                    if (!verificationId) throw new Error('No verification_id in response');
-                    console.log('✅ Got verificationId:', verificationId);
-                    
-                    // Step 3: Generate email if needed
-                    if (!currentEmail) {
-                        await generateNewEmail();
-                    }
-                    
-                    // Step 4: Call SheerID API to verify
-                    sendStatus(`🔄 API Direct: Verifying ${currentData.first} ${currentData.last}...`, 'info');
-                    
-                    const birthDate = formatDateForAPI(currentData.year, currentData.month, currentData.day);
-                    const dischargeDaySetting = await new Promise(resolve => {
-                        chrome.storage.local.get(['veterans-discharge-day'], (result) => {
-                            resolve(result['veterans-discharge-day'] || 1);
-                        });
-                    });
-                    const dischargeDate = `2025-12-${String(dischargeDaySetting).padStart(2, '0')}`;
-                    
-                    const apiResult = await new Promise((resolve) => {
-                        chrome.runtime.sendMessage({
-                            action: 'sheeridVerify',
-                            verificationId: verificationId,
-                            veteranData: {
-                                first: currentData.first,
-                                last: currentData.last,
-                                branch: currentData.branch,
-                                birthDate: birthDate,
-                                dischargeDate: dischargeDate
-                            },
-                            email: currentEmail
-                        }, resolve);
-                    });
-                    
-                    if (!apiResult || !apiResult.success) {
-                        const errorMsg = apiResult?.error || 'API call failed';
-                        throw new Error(errorMsg);
-                    }
-                    
-                    const currentStep = apiResult.result?.currentStep;
-                    console.log('📊 API Result:', currentStep);
-                    
-                    if (currentStep === 'success') {
-                        sendStatus('🎉 API Direct: Verification SUCCESS!', 'success');
-                        resetLimitErrors();
-                        await handleVerificationSuccess();
-                        // After success, page will reload to veterans-claim for next veteran
-                        return;
-                    } else if (currentStep === 'emailLoop') {
-                        sendStatus('📧 API Direct: Check email to complete...', 'info');
-                        resetLimitErrors();
-                        // Need to read email - but stay on this page context
-                        await readMailAndVerifyFromChatGPT(verificationId);
-                        return;
-                    } else {
-                        // Unexpected status - move to next veteran
-                        sendStatus(`⚠️ API Direct: Status = ${currentStep}`, 'warning');
-                        await moveToNextVeteranAndReload();
-                        return;
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ API Direct Error:', error);
-                    const errorMsg = error.message.toLowerCase();
-                    
-                    // Check for limit/429 errors
-                    if (errorMsg.includes('429') || errorMsg.includes('limit') || errorMsg.includes('redeemed')) {
-                        const currentLimitCount = incrementLimitErrors();
-                        sendStatus(`🚫 Limit Error (${currentLimitCount}/${MAX_CONSECUTIVE_LIMIT})`, 'error');
-                        
-                        if (currentLimitCount >= MAX_CONSECUTIVE_LIMIT) {
-                            sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                            isRunning = false;
-                            chrome.storage.local.set({ 'veterans-is-running': false });
-                            updateUIOnStop();
-                            return;
-                        }
-                    }
-                    
-                    sendStatus(`❌ API Direct Error: ${error.message}`, 'error');
-                    await moveToNextVeteranAndReload();
-                    return;
-                }
-            } else {
-                // Normal mode: Click verify button
-                console.log('🔍 On ChatGPT veterans-claim page, clicking verify button...');
-                await clickVerifyButton();
-                // clickVerifyButton will handle redirect to SheerID
-                return;
-            }
+            // Step 1: Click verify button
+            console.log('🔍 On ChatGPT veterans-claim page, clicking verify button...');
+            await clickVerifyButton();
+            // clickVerifyButton will handle redirect to SheerID
+            return;
         }
 
         // If on other ChatGPT pages, navigate to veterans-claim
@@ -2684,60 +2178,6 @@ function generateRandomString(length = 12) {
     return result;
 }
 
-// Verify using API Direct (via background script to bypass CORS)
-async function verifyByAPI() {
-    if (!isRunning) {
-        console.log('⏹️ Tool stopped, exiting verifyByAPI');
-        return;
-    }
-    
-    const currentUrl = window.location.href;
-    const verificationId = extractVerificationId(currentUrl);
-    
-    if (!verificationId) {
-        throw new Error('Khong tim thay verificationId trong URL. Hay dam bao dang o trang SheerID.');
-    }
-    
-    const data = dataArray[currentDataIndex];
-    const birthDate = formatDateForAPI(data.year, data.month, data.day);
-    
-    // Get discharge date setting
-    const dischargeDaySetting = await new Promise((resolve) => {
-        chrome.storage.local.get(['veterans-random-discharge-day', 'veterans-default-discharge-day'], (result) => {
-            const isRandom = result['veterans-random-discharge-day'] || false;
-            const defaultDay = result['veterans-default-discharge-day'] || 1;
-            resolve(isRandom ? Math.floor(Math.random() * 31) + 1 : defaultDay);
-        });
-    });
-    const dischargeDate = `2025-12-${String(dischargeDaySetting).padStart(2, '0')}`;
-    
-    sendStatus(`API Direct: Verifying ${data.first} ${data.last}...`, 'info');
-    
-    // Call background script to make API request (bypass CORS)
-    const response = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({
-            action: 'sheeridVerify',
-            verificationId: verificationId,
-            veteranData: {
-                first: data.first,
-                last: data.last,
-                branch: data.branch,
-                birthDate: birthDate,
-                dischargeDate: dischargeDate
-            },
-            email: currentEmail
-        }, resolve);
-    });
-    
-    if (!response || !response.success) {
-        const errorMsg = response?.error || 'Unknown API error';
-        throw new Error(`API Error: ${errorMsg}`);
-    }
-    
-    const result = response.result;
-    return result;
-}
-
 async function clickVerifyButton() {
     if (!isRunning) {
         console.log('⏹️ Tool stopped, exiting clickVerifyButton');
@@ -2846,9 +2286,6 @@ async function clickVerifyButton() {
 
 // Handle verification success - switch to next account if available
 async function handleVerificationSuccess() {
-    // Reset consecutive limit errors on success
-    resetLimitErrors();
-    
     // Mark current success
     removeProcessedData(false);
     stats.processed++;
@@ -2989,20 +2426,8 @@ async function checkAndFillForm() {
                 errorTextLower.includes('limit exceeded')) {
 
                 console.log('❌ Verification Limit Exceeded detected in error div');
-                const currentLimitCount1 = incrementLimitErrors();
+                sendStatus('❌ Verification Limit Exceeded, trying next data...', 'info');
                 stats.limit++;  // Track Limit Exceeded
-                sendStatus(`❌ Verification Limit (${currentLimitCount1}/${MAX_CONSECUTIVE_LIMIT}), trying next data...`, 'info');
-
-                // Check if too many consecutive limit errors
-                if (currentLimitCount1 >= MAX_CONSECUTIVE_LIMIT) {
-                    clearSheerIDData();
-                    isRunning = false;
-                    chrome.storage.local.set({ 'veterans-is-running': false });
-                    updateUIOnStop();
-                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                    sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
-                    return;
-                }
 
                 if (currentDataIndex + 1 >= dataArray.length) {
                     clearSheerIDData();
@@ -3089,34 +2514,16 @@ async function checkAndFillForm() {
                 bodyTextLower.includes('limit exceeded') ||
                 bodyText.includes('Error')) {
 
-                const isLimitError = bodyTextLower.includes('verification limit exceeded') || 
-                    bodyTextLower.includes('already redeemed') || 
-                    bodyTextLower.includes('limit exceeded');
-                    
                 const errorType = bodyText.includes('Not approved') ? 'Not approved' :
-                    isLimitError ? 'Verification Limit Exceeded' : 'Error';
-
-                // Track consecutive limit errors
-                let currentLimitCount5 = consecutiveLimitErrors;
-                if (isLimitError) {
-                    currentLimitCount5 = incrementLimitErrors();
-                    stats.limit++;
-                } else {
-                    resetLimitErrors(); // Reset for non-limit errors
-                }
+                    (bodyTextLower.includes('verification limit exceeded') || bodyTextLower.includes('already redeemed') || bodyTextLower.includes('limit exceeded')) ? 'Verification Limit Exceeded' :
+                        'Error';
 
                 console.log(`❌ ${errorType} detected in body text, moving to next data...`);
-                sendStatus(`❌ ${errorType}${isLimitError ? ` (${currentLimitCount5}/${MAX_CONSECUTIVE_LIMIT})` : ''}, trying next data...`, 'info');
+                sendStatus(`❌ ${errorType}, trying next data...`, 'info');
 
-                // Check if too many consecutive limit errors
-                if (currentLimitCount5 >= MAX_CONSECUTIVE_LIMIT) {
-                    clearSheerIDData();
-                    isRunning = false;
-                    chrome.storage.local.set({ 'veterans-is-running': false });
-                    updateUIOnStop();
-                    sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                    sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
-                    return;
+                // Track Verification Limit Exceeded
+                if (errorType === 'Verification Limit Exceeded') {
+                    stats.limit++;
                 }
 
                 if (currentDataIndex + 1 >= dataArray.length) {
@@ -3194,115 +2601,8 @@ async function checkAndFillForm() {
             throw new Error('Page heading not found and form not detected on SheerID page');
         }
 
-        // Check API Direct Mode setting
-        const settings = await new Promise(resolve => {
-            chrome.storage.local.get(['veterans-api-direct-mode'], resolve);
-        });
-        const useApiDirect = settings['veterans-api-direct-mode'] || false;
-
         if (headingText.includes('Unlock this Military-Only Offer')) {
             if (!currentEmail) await generateNewEmail();
-            
-            if (useApiDirect) {
-                // Use API Direct mode
-                sendStatus('API Direct Mode: Calling SheerID API...', 'info');
-                try {
-                    const result = await verifyByAPI();
-                    const currentStep = result.currentStep;
-                    
-                    if (currentStep === 'success') {
-                        sendStatus('API Direct: Verification SUCCESS!', 'success');
-                        await handleVerificationSuccess();
-                        return;
-                    } else if (currentStep === 'emailLoop') {
-                        sendStatus('API Direct: Check email to complete verification', 'info');
-                        await readMailAndVerify();
-                        return;
-                    } else {
-                        sendStatus(`API Direct: Unexpected status = ${currentStep}`, 'error');
-                        // Move to next data
-                        if (currentDataIndex + 1 >= dataArray.length) {
-                            clearSheerIDData();
-                            isRunning = false;
-                            chrome.storage.local.set({ 'veterans-is-running': false });
-                            updateUIOnStop();
-                            sendStatus('❌ All data failed, no more to try', 'error');
-                            return;
-                        }
-                        removeProcessedData();
-                        stats.processed++;
-                        stats.failed++;
-                        updateStats();
-                        currentEmail = '';
-                        mailRetryCount = 0;
-                        await delay(2000);
-                        if (!isRunning) return;
-                        window.location.href = 'https://chatgpt.com/veterans-claim';
-                        await delay(5000);
-                        if (!isRunning) return;
-                        await startVerificationLoop();
-                        return;
-                    }
-                } catch (error) {
-                    const errorMsg = error.message.toLowerCase();
-                    sendStatus(`API Direct Error: ${error.message}`, 'error');
-                    
-                    // Check if VPN/IP error
-                    if (errorMsg.includes('sourcesunavailable') || errorMsg.includes('unable to verify')) {
-                        await handleVPNError();
-                        return;
-                    }
-                    
-                    // Check if 429 or limit error
-                    const isLimitError = errorMsg.includes('429') || 
-                        errorMsg.includes('limit') || 
-                        errorMsg.includes('redeemed') ||
-                        errorMsg.includes('rate');
-                    
-                    if (isLimitError) {
-                        const currentLimitCount2 = incrementLimitErrors();
-                        stats.limit++;
-                        sendStatus(`🚫 Limit Error (${currentLimitCount2}/${MAX_CONSECUTIVE_LIMIT})`, 'error');
-                        
-                        if (currentLimitCount2 >= MAX_CONSECUTIVE_LIMIT) {
-                            clearSheerIDData();
-                            isRunning = false;
-                            chrome.storage.local.set({ 'veterans-is-running': false });
-                            updateUIOnStop();
-                            sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                            sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
-                            return;
-                        }
-                    } else {
-                        resetLimitErrors(); // Reset for non-limit errors
-                    }
-                    
-                    // Move to next data
-                    if (currentDataIndex + 1 >= dataArray.length) {
-                        clearSheerIDData();
-                        isRunning = false;
-                        chrome.storage.local.set({ 'veterans-is-running': false });
-                        updateUIOnStop();
-                        sendStatus('❌ All data failed, no more to try', 'error');
-                        return;
-                    }
-                    removeProcessedData();
-                    stats.processed++;
-                    stats.failed++;
-                    updateStats();
-                    currentEmail = '';
-                    mailRetryCount = 0;
-                    await delay(2000);
-                    if (!isRunning) return;
-                    window.location.href = 'https://chatgpt.com/veterans-claim';
-                    await delay(5000);
-                    if (!isRunning) return;
-                    await startVerificationLoop();
-                    return;
-                }
-            }
-            
-            // Browser automation mode (existing code)
             sendStatus('✅ Found verification form, filling...', 'success');
             await delay(1000);
             if (!isRunning) return;
@@ -3322,21 +2622,9 @@ async function checkAndFillForm() {
             headingText.toLowerCase().includes('limit exceeded') ||
             headingText.toLowerCase().includes('already redeemed')) {
             // Verification Limit Exceeded - try next data (same as Not approved)
-            const currentLimitCount3 = incrementLimitErrors();
+            console.log('❌ Verification Limit Exceeded detected, moving to next data...');
+            sendStatus('❌ Verification Limit Exceeded, trying next data...', 'info');
             stats.limit++;  // Track Limit Exceeded
-            console.log(`❌ Verification Limit Exceeded detected (${currentLimitCount3}/${MAX_CONSECUTIVE_LIMIT})`);
-            sendStatus(`❌ Verification Limit (${currentLimitCount3}/${MAX_CONSECUTIVE_LIMIT}), trying next data...`, 'info');
-
-            // Check if too many consecutive limit errors
-            if (currentLimitCount3 >= MAX_CONSECUTIVE_LIMIT) {
-                clearSheerIDData();
-                isRunning = false;
-                chrome.storage.local.set({ 'veterans-is-running': false });
-                updateUIOnStop();
-                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
-                return;
-            }
 
             // Check if there's more data
             if (currentDataIndex + 1 >= dataArray.length) {
@@ -3755,21 +3043,9 @@ async function fillForm() {
 
         if (!reachedEmailStep) {
             // Didn't reach email step = likely Limit Exceeded
-            const currentLimitCount4 = incrementLimitErrors();
+            console.log('❌ Did not reach email step after form submit, counting as Limit');
+            sendStatus('❌ Verification Limit Exceeded (không qua được bước gửi email), trying next data...', 'info');
             stats.limit++;
-            console.log(`❌ Did not reach email step after form submit (${currentLimitCount4}/${MAX_CONSECUTIVE_LIMIT})`);
-            sendStatus(`❌ Verification Limit (${currentLimitCount4}/${MAX_CONSECUTIVE_LIMIT}) - không qua bước email`, 'info');
-
-            // Check if too many consecutive limit errors
-            if (currentLimitCount4 >= MAX_CONSECUTIVE_LIMIT) {
-                clearSheerIDData();
-                isRunning = false;
-                chrome.storage.local.set({ 'veterans-is-running': false });
-                updateUIOnStop();
-                sendStatus(`🛑 ${MAX_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp - DỪNG TOOL!`, 'error');
-                sendStatus('⚠️ Cần đổi IP/VPN trước khi tiếp tục!', 'error');
-                return;
-            }
 
             if (currentDataIndex + 1 >= dataArray.length) {
                 clearSheerIDData();
@@ -3841,13 +3117,6 @@ async function readMailAndVerify() {
         return;
     }
 
-    // Guard to prevent concurrent email reading
-    if (isReadingEmail) {
-        console.log('⏳ Already reading email, skipping duplicate call');
-        return;
-    }
-    isReadingEmail = true;
-
     try {
         sendStatus('📧 Reading emails...', 'info');
 
@@ -3885,11 +3154,7 @@ async function readMailAndVerify() {
                             foundResend = true;
                             sendStatus(`📧 Clicked Re-send button (${resendCount}/${MAX_RESEND_TRIES}), waiting for email...`, 'info');
                             await delay(5000);  // Wait for email to be re-sent
-                            if (!isRunning) {
-                                isReadingEmail = false;
-                                return;
-                            }
-                            isReadingEmail = false; // Reset before recursive call
+                            if (!isRunning) return;
                             await readMailAndVerify();
                             return;
                         }
@@ -3903,14 +3168,12 @@ async function readMailAndVerify() {
                 mailRetryCount = 0;
                 resendCount = 0;
                 isRunning = false;
-                isReadingEmail = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();
                 return;
             }
             sendStatus(`📭 No emails found, retrying... (${mailRetryCount}/${MAX_MAIL_RETRIES})`, 'info');
             await delay(5000);
-            isReadingEmail = false; // Reset before recursive call
             await readMailAndVerify();
             return;
         }
@@ -3943,14 +3206,10 @@ async function readMailAndVerify() {
         }
 
         if (verificationLink) {
-            if (!isRunning) {
-                isReadingEmail = false;
-                return;
-            }
+            if (!isRunning) return;
 
             sendStatus('✅ Verification link found, opening...', 'success');
             mailRetryCount = 0;
-            isReadingEmail = false; // Reset before navigating
             window.location.href = verificationLink;
             await delay(5000);
 
@@ -3958,17 +3217,13 @@ async function readMailAndVerify() {
 
             await checkAndFillForm();
         } else {
-            if (!isRunning) {
-                isReadingEmail = false;
-                return;
-            }
+            if (!isRunning) return;
 
             mailRetryCount++;
             if (mailRetryCount >= MAX_MAIL_RETRIES) {
                 sendStatus('❌ Max retries reached, stopping tool', 'error');
                 mailRetryCount = 0;
                 isRunning = false;
-                isReadingEmail = false;
                 chrome.storage.local.set({ 'veterans-is-running': false });
                 updateUIOnStop();
                 return;
@@ -3976,19 +3231,12 @@ async function readMailAndVerify() {
             sendStatus(`⚠️ No verification link found, retrying... (${mailRetryCount}/${MAX_MAIL_RETRIES})`, 'info');
             await delay(5000);
 
-            if (!isRunning) {
-                isReadingEmail = false;
-                return;
-            }
+            if (!isRunning) return;
 
-            isReadingEmail = false; // Reset before recursive call
             await readMailAndVerify();
         }
     } catch (error) {
-        if (!isRunning) {
-            isReadingEmail = false;
-            return;
-        }
+        if (!isRunning) return;
 
         console.error('Error reading mail:', error);
         mailRetryCount++;
@@ -3996,7 +3244,6 @@ async function readMailAndVerify() {
             sendStatus('❌ Max retries reached, stopping tool', 'error');
             mailRetryCount = 0;
             isRunning = false;
-            isReadingEmail = false;
             chrome.storage.local.set({ 'veterans-is-running': false });
             updateUIOnStop();
             return;
@@ -4004,14 +3251,9 @@ async function readMailAndVerify() {
         sendStatus(`❌ Error reading mail, retrying... (${mailRetryCount}/${MAX_MAIL_RETRIES}): ` + error.message, 'error');
         await delay(5000);
 
-        if (!isRunning) {
-            isReadingEmail = false;
-            return;
-        }
+        if (!isRunning) return;
 
-        isReadingEmail = false; // Reset before recursive call
         await readMailAndVerify();
     }
 }
-
 

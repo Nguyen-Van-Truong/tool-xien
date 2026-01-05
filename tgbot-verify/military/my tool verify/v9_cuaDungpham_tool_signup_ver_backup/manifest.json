@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Veterans Auto Verify v9.1",
-  "version": "9.1.0",
-  "description": "Automated verification tool for ChatGPT veterans claim (v9.1 - API Direct Mode Support)",
+  "name": "ChatGPT Veterans Auto Verify",
+  "version": "1.0.0",
+  "description": "Automated verification tool for ChatGPT veterans claim",
   "permissions": [
     "activeTab",
     "storage",
