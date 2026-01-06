@@ -1738,6 +1738,347 @@ function setupPanelHandlers() {
 
     // Initial update of manual veteran display
     updateManualVeteranDisplay();
+
+    // =========================================
+    // RANDOM VERIFY SECTION - Event Handlers
+    // =========================================
+
+    const randomApiHeader = document.getElementById('random-api-header');
+    const randomApiContent = document.getElementById('random-api-content');
+    const randomApiToggle = document.getElementById('random-api-toggle');
+
+    // Collapsible toggle for RANDOM VERIFY section
+    if (randomApiHeader && randomApiContent && randomApiToggle) {
+        // Load saved state
+        chrome.storage.local.get(['random-api-expanded'], (result) => {
+            if (result['random-api-expanded']) {
+                randomApiContent.style.display = 'block';
+                randomApiToggle.style.transform = 'rotate(180deg)';
+            }
+        });
+
+        // Toggle on click
+        randomApiHeader.addEventListener('click', () => {
+            const isHidden = randomApiContent.style.display === 'none';
+            randomApiContent.style.display = isHidden ? 'block' : 'none';
+            randomApiToggle.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            chrome.storage.local.set({ 'random-api-expanded': isHidden });
+        });
+    }
+
+    // Random API Log helper
+    function randomLog(msg) {
+        const logEl = document.getElementById('random-api-log');
+        if (logEl) {
+            const time = new Date().toLocaleTimeString('vi-VN');
+            logEl.value += `[${time}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+    }
+
+    // Random generators (for preview)
+    const FIRST_NAMES = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles'];
+    const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+    const BRANCHES = ['Army', 'Air Force', 'Navy', 'Marine Corps', 'Coast Guard'];
+
+    function randomChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function generateRandomBirthDate() {
+        const today = new Date();
+        const minAge = 25, maxAge = 55;
+        const minDate = new Date(today); minDate.setFullYear(today.getFullYear() - maxAge);
+        const maxDate = new Date(today); maxDate.setFullYear(today.getFullYear() - minAge);
+        const d = new Date(minDate.getTime() + Math.random() * (maxDate.getTime() - minDate.getTime()));
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function generateRandomDischargeDate() {
+        const today = new Date();
+        const daysAgo = Math.floor(Math.random() * 300) + 30;
+        const d = new Date(today); d.setDate(today.getDate() - daysAgo);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function generateRandomEmail() {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let u = ''; for (let i = 0; i < 10; i++) u += chars[Math.floor(Math.random() * chars.length)];
+        return `${u}@gmail.com`;
+    }
+
+    // Store last generated preview for reference
+    let lastRandomPreview = null;
+
+    // Random Preview Button
+    const randomPreviewBtn = document.getElementById('random-preview-btn');
+    if (randomPreviewBtn) {
+        randomPreviewBtn.addEventListener('click', () => {
+            const firstName = randomChoice(FIRST_NAMES);
+            const lastName = randomChoice(LAST_NAMES);
+            const branch = randomChoice(BRANCHES);
+            const birthDate = generateRandomBirthDate();
+            const dischargeDate = generateRandomDischargeDate();
+
+            lastRandomPreview = { firstName, lastName, branch, birthDate, dischargeDate };
+
+            document.getElementById('random-preview-name').textContent = `👤 Name: ${firstName} ${lastName}`;
+            document.getElementById('random-preview-branch').textContent = `🏛️ Branch: ${branch}`;
+            document.getElementById('random-preview-birth').textContent = `📅 Birth: ${birthDate}`;
+            document.getElementById('random-preview-discharge').textContent = `📅 Discharge: ${dischargeDate}`;
+
+            randomLog(`🎲 Preview: ${firstName} ${lastName} | ${branch}`);
+        });
+    }
+
+    // Random Generate Email Button
+    const randomGenEmailBtn = document.getElementById('random-gen-email-btn');
+    if (randomGenEmailBtn) {
+        randomGenEmailBtn.addEventListener('click', () => {
+            const email = generateRandomEmail();
+            document.getElementById('random-verify-email').value = email;
+            randomLog(`📧 Generated: ${email}`);
+        });
+    }
+
+    // Random Get Link Button - Use content script like MANUAL section
+    const randomGetLinkBtn = document.getElementById('random-get-link-btn');
+    if (randomGetLinkBtn) {
+        randomGetLinkBtn.addEventListener('click', async () => {
+            randomLog('🔓 Getting verification link...');
+            randomGetLinkBtn.disabled = true;
+            randomGetLinkBtn.textContent = '⏳...';
+
+            const randomSheeridLink = document.getElementById('random-sheerid-link');
+
+            chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+                const currentUrl = tabs[0]?.url || '';
+                const currentTabId = tabs[0]?.id;
+
+                // If already on SheerID with verificationId, just get URL from page
+                if (currentUrl.includes('services.sheerid.com') && currentUrl.includes('verificationId=')) {
+                    randomSheeridLink.value = currentUrl;
+                    randomLog('✅ Got link from current SheerID page!');
+                    randomGetLinkBtn.disabled = false;
+                    randomGetLinkBtn.textContent = '🔓 Get';
+                    return;
+                }
+
+                // If on ChatGPT page, use content script (has proper cookies context)
+                if (currentUrl.includes('chatgpt.com')) {
+                    randomLog('📡 Calling API via content script...');
+
+                    chrome.tabs.sendMessage(currentTabId, {
+                        action: 'createVerification'
+                    }, (response) => {
+                        randomGetLinkBtn.disabled = false;
+                        randomGetLinkBtn.textContent = '🔓 Get';
+
+                        if (chrome.runtime.lastError) {
+                            randomLog('❌ Error: ' + chrome.runtime.lastError.message);
+                            randomLog('💡 Try refreshing the ChatGPT page');
+                            return;
+                        }
+
+                        if (response && response.success && response.link) {
+                            randomSheeridLink.value = response.link;
+                            randomLog('✅ Got verification link!');
+                            if (response.verificationId) {
+                                randomLog(`🆔 ID: ...${response.verificationId.slice(-8)}`);
+                            }
+                        } else {
+                            randomLog('❌ Failed: ' + (response?.error || 'Unknown'));
+                        }
+                    });
+                    return;
+                }
+
+                // Not on ChatGPT - try to find a ChatGPT tab
+                chrome.tabs.query({ url: '*://chatgpt.com/*' }, (chatgptTabs) => {
+                    if (chatgptTabs && chatgptTabs.length > 0) {
+                        const chatgptTab = chatgptTabs[0];
+                        randomLog(`📡 Found ChatGPT tab, calling API...`);
+
+                        chrome.tabs.sendMessage(chatgptTab.id, {
+                            action: 'createVerification'
+                        }, (response) => {
+                            randomGetLinkBtn.disabled = false;
+                            randomGetLinkBtn.textContent = '🔓 Get';
+
+                            if (chrome.runtime.lastError) {
+                                randomLog('❌ Error: ' + chrome.runtime.lastError.message);
+                                randomLog('💡 Go to ChatGPT tab and refresh');
+                                return;
+                            }
+
+                            if (response && response.success && response.link) {
+                                randomSheeridLink.value = response.link;
+                                randomLog('✅ Got verification link!');
+                                if (response.verificationId) {
+                                    randomLog(`🆔 ID: ...${response.verificationId.slice(-8)}`);
+                                }
+                            } else {
+                                randomLog('❌ Failed: ' + (response?.error || 'Unknown'));
+                            }
+                        });
+                    } else {
+                        randomGetLinkBtn.disabled = false;
+                        randomGetLinkBtn.textContent = '🔓 Get';
+                        randomLog('❌ No ChatGPT tab found!');
+                        randomLog('💡 Open chatgpt.com and login first');
+                    }
+                });
+            });
+        });
+    }
+
+    // Store last verify result for Check Email
+    let lastRandomVerifyResult = null;
+    let lastRandomVerifyEmail = null;
+
+    // Random Verify Button (main action)
+    const randomVerifyBtn = document.getElementById('random-verify-btn');
+    if (randomVerifyBtn) {
+        randomVerifyBtn.addEventListener('click', async () => {
+            const linkInput = document.getElementById('random-sheerid-link');
+            const emailInput = document.getElementById('random-verify-email');
+
+            const link = linkInput?.value?.trim();
+            const email = emailInput?.value?.trim() || null; // null = will random generate
+
+            if (!link) {
+                randomLog('❌ Vui lòng nhập SheerID link!');
+                return;
+            }
+
+            // Extract verificationId
+            const match = link.match(/verificationId=([a-f0-9]+)/i);
+            if (!match) {
+                randomLog('❌ Không tìm thấy verificationId trong link!');
+                return;
+            }
+            const verificationId = match[1];
+
+            randomLog('🎲 Starting RANDOM verify...');
+            randomLog(`   ID: ...${verificationId.slice(-8)}`);
+            if (email) randomLog(`   Email: ${email}`);
+            else randomLog(`   Email: (will random)`);
+
+            randomVerifyBtn.disabled = true;
+            randomVerifyBtn.textContent = '⏳ Verifying...';
+
+            try {
+                const response = await new Promise((resolve) => {
+                    chrome.runtime.sendMessage({
+                        action: 'randomSheeridVerify',
+                        verificationId: verificationId,
+                        email: email
+                    }, resolve);
+                });
+
+                if (response && response.success) {
+                    const result = response.result;
+                    const vet = response.veteranData;
+
+                    randomLog(`✅ Success! Step: ${result.currentStep}`);
+                    randomLog(`   Veteran: ${vet.firstName} ${vet.lastName}`);
+                    randomLog(`   Branch: ${vet.branch}`);
+                    randomLog(`   Email: ${vet.email}`);
+
+                    // Update preview with actual used data
+                    document.getElementById('random-preview-name').textContent = `👤 Name: ${vet.firstName} ${vet.lastName}`;
+                    document.getElementById('random-preview-branch').textContent = `🏛️ Branch: ${vet.branch}`;
+                    document.getElementById('random-preview-birth').textContent = `📅 Birth: ${vet.birthDate}`;
+                    document.getElementById('random-preview-discharge').textContent = `📅 Discharge: ${vet.dischargeDate}`;
+
+                    // Store for Check Email
+                    lastRandomVerifyResult = result;
+                    lastRandomVerifyEmail = vet.email;
+
+                    if (result.currentStep === 'emailLoop') {
+                        randomLog('📧 Cần xác nhận email - click Check Email!');
+                    } else if (result.currentStep === 'docUpload') {
+                        randomLog('📄 Yêu cầu upload document - auto verify failed');
+                    }
+                } else {
+                    randomLog(`❌ Failed: ${response?.error || 'Unknown error'}`);
+                    if (response?.veteranData) {
+                        randomLog(`   Data used: ${response.veteranData.firstName} ${response.veteranData.lastName}`);
+                    }
+                }
+            } catch (err) {
+                randomLog(`❌ Error: ${err.message}`);
+            } finally {
+                randomVerifyBtn.disabled = false;
+                randomVerifyBtn.textContent = '🎲 VERIFY RANDOM';
+            }
+        });
+    }
+
+    // Random Check Email Button - reuse checkEmailForLink function from MANUAL section
+    const randomCheckEmailBtn = document.getElementById('random-check-email-btn');
+    const randomEmailInput = document.getElementById('random-verify-email');
+    const randomEmailLinkResult = document.getElementById('random-email-link-result');
+    const randomEmailLink = document.getElementById('random-email-link');
+
+    if (randomCheckEmailBtn && randomEmailInput) {
+        randomCheckEmailBtn.addEventListener('click', async () => {
+            // Use email from input or from last verify result
+            const email = randomEmailInput.value.trim() || lastRandomVerifyEmail;
+            if (!email) {
+                randomLog('❌ Nhập email trước khi check!');
+                return;
+            }
+
+            randomCheckEmailBtn.disabled = true;
+            randomCheckEmailBtn.textContent = '⏳...';
+            randomLog(`📬 Checking inbox: ${email}...`);
+
+            try {
+                // Use same checkEmailForLink function as MANUAL section
+                const link = await checkEmailForLink(email);
+
+                if (link && randomEmailLinkResult && randomEmailLink) {
+                    randomEmailLink.href = link;
+                    randomEmailLink.textContent = link.length > 60 ? link.substring(0, 60) + '...' : link;
+                    randomEmailLink.dataset.fullLink = link;
+                    randomEmailLinkResult.style.display = 'block';
+                    randomLog('✅ Found verification link!');
+                } else {
+                    randomLog('📭 No emails yet. Try again in a few seconds...');
+                }
+            } catch (err) {
+                randomLog(`❌ Error: ${err.message}`);
+            }
+
+            randomCheckEmailBtn.disabled = false;
+            randomCheckEmailBtn.textContent = '📬 Check';
+        });
+    }
+
+    // Random Copy Link button
+    const randomCopyLinkBtn = document.getElementById('random-copy-link-btn');
+    if (randomCopyLinkBtn && randomEmailLink) {
+        randomCopyLinkBtn.addEventListener('click', () => {
+            const fullLink = randomEmailLink.dataset.fullLink || randomEmailLink.href;
+            navigator.clipboard.writeText(fullLink).then(() => {
+                randomLog('📋 Link copied!');
+                randomCopyLinkBtn.textContent = '✓';
+                setTimeout(() => {
+                    randomCopyLinkBtn.textContent = 'Copy';
+                }, 1500);
+            }).catch(err => {
+                randomLog('❌ Copy failed: ' + err.message);
+            });
+        });
+    }
+
+    // Random Log Clear Button
+    const randomLogClearBtn = document.getElementById('random-log-clear-btn');
+    if (randomLogClearBtn) {
+        randomLogClearBtn.addEventListener('click', () => {
+            const logEl = document.getElementById('random-api-log');
+            if (logEl) logEl.value = 'Cleared. Ready for random verify...';
+        });
+    }
 }
 
 // Load saved data into panel

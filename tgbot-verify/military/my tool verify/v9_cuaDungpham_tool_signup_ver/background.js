@@ -221,35 +221,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         (async () => {
             try {
                 console.log('🔄 [Background] Refreshing enrollment status...');
-                
+
                 // Get cookies for chatgpt.com
                 const cookies = await chrome.cookies.getAll({ domain: 'chatgpt.com' });
                 const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-                
+
                 if (!cookieHeader) {
                     sendResponse({ success: false, error: 'No ChatGPT cookies. Please login first.' });
                     return;
                 }
-                
+
                 // Get access token
                 const sessionRes = await fetch('https://chatgpt.com/api/auth/session', {
                     method: 'GET',
                     headers: { 'Cookie': cookieHeader, 'Accept': 'application/json' }
                 });
-                
+
                 if (!sessionRes.ok) {
                     sendResponse({ success: false, error: `Session failed: ${sessionRes.status}` });
                     return;
                 }
-                
+
                 const sessionData = await sessionRes.json();
                 const accessToken = sessionData.accessToken;
-                
+
                 if (!accessToken) {
                     sendResponse({ success: false, error: 'No access token. Please login ChatGPT.' });
                     return;
                 }
-                
+
                 // Call refresh_enrollment_status
                 const refreshRes = await fetch('https://chatgpt.com/backend-api/veterans/refresh_enrollment_status', {
                     method: 'POST',
@@ -260,16 +260,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     },
                     body: '' // Empty body as per original request
                 });
-                
+
                 console.log('📊 refresh_enrollment_status status:', refreshRes.status);
-                
+
                 if (!refreshRes.ok) {
                     const errorText = await refreshRes.text();
                     console.log('❌ refresh failed:', errorText);
                     sendResponse({ success: false, error: `Refresh failed: ${refreshRes.status}` });
                     return;
                 }
-                
+
                 // Try to read response (might be empty or JSON)
                 let responseData = null;
                 try {
@@ -280,10 +280,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 } catch (e) {
                     // Empty response is OK
                 }
-                
+
                 console.log('✅ Enrollment status refreshed');
                 sendResponse({ success: true, data: responseData });
-                
+
             } catch (error) {
                 console.error('❌ refreshEnrollmentStatus error:', error);
                 sendResponse({ success: false, error: error.message });
@@ -293,23 +293,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === 'createVerificationFromBackground') {
         // Create SheerID verification link via ChatGPT API (works from ANY page!)
         const CHATGPT_PROGRAM_ID = "690415d58971e73ca187d8c9";
-        
+
         (async () => {
             try {
                 console.log('🔓 [Background] Creating verification link...');
-                
+
                 // Step 1: Get cookies for chatgpt.com
                 const cookies = await chrome.cookies.getAll({ domain: 'chatgpt.com' });
                 const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-                
+
                 if (!cookieHeader) {
                     console.log('❌ No cookies found for chatgpt.com');
                     sendResponse({ success: false, error: 'No ChatGPT cookies. Please login first.' });
                     return;
                 }
-                
+
                 console.log('🍪 Got', cookies.length, 'cookies');
-                
+
                 // Step 2: Get access token from session API
                 console.log('🔑 Step 1: Getting access token...');
                 const sessionRes = await fetch('https://chatgpt.com/api/auth/session', {
@@ -319,24 +319,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         'Accept': 'application/json'
                     }
                 });
-                
+
                 if (!sessionRes.ok) {
                     console.log('❌ Session API failed:', sessionRes.status);
                     sendResponse({ success: false, error: `Session API failed: ${sessionRes.status}. Please login ChatGPT.` });
                     return;
                 }
-                
+
                 const sessionData = await sessionRes.json();
                 const accessToken = sessionData.accessToken;
-                
+
                 if (!accessToken) {
                     console.log('❌ No accessToken in session:', JSON.stringify(sessionData).substring(0, 100));
                     sendResponse({ success: false, error: 'No access token. Please login ChatGPT first.' });
                     return;
                 }
-                
+
                 console.log('✅ Got accessToken, length:', accessToken.length);
-                
+
                 // Step 3: Create verification
                 console.log('🚀 Step 2: Creating verification...');
                 const verifyRes = await fetch('https://chatgpt.com/backend-api/veterans/create_verification', {
@@ -350,36 +350,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         program_id: CHATGPT_PROGRAM_ID
                     })
                 });
-                
+
                 console.log('📊 create_verification status:', verifyRes.status);
-                
+
                 if (!verifyRes.ok) {
                     const errorText = await verifyRes.text();
                     console.log('❌ create_verification failed:', errorText);
                     sendResponse({ success: false, error: `API Error: ${verifyRes.status}`, details: errorText });
                     return;
                 }
-                
+
                 const verifyData = await verifyRes.json();
                 console.log('📊 Response:', verifyData);
-                
+
                 const verificationId = verifyData.verification_id || verifyData.verificationId;
-                
+
                 if (!verificationId) {
                     sendResponse({ success: false, error: 'No verification_id in response' });
                     return;
                 }
-                
+
                 // Build URL
                 const sheeridUrl = `https://services.sheerid.com/verify/${CHATGPT_PROGRAM_ID}/?verificationId=${verificationId}`;
                 console.log('🎯 Built URL:', sheeridUrl);
-                
+
                 sendResponse({
                     success: true,
                     link: sheeridUrl,
                     verificationId: verificationId
                 });
-                
+
             } catch (error) {
                 console.error('❌ createVerificationFromBackground error:', error);
                 sendResponse({ success: false, error: error.message });
@@ -392,47 +392,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             try {
                 const SHEERID_BASE_URL = "https://services.sheerid.com/rest/v2/verification";
                 const ORGANIZATIONS = {
-                    "Army": {id: 4070, name: "Army"},
-                    "Navy": {id: 4072, name: "Navy"},
-                    "Air Force": {id: 4073, name: "Air Force"},
-                    "Marine Corps": {id: 4071, name: "Marine Corps"},
-                    "Coast Guard": {id: 4074, name: "Coast Guard"}
+                    "Army": { id: 4070, name: "Army" },
+                    "Navy": { id: 4072, name: "Navy" },
+                    "Air Force": { id: 4073, name: "Air Force" },
+                    "Marine Corps": { id: 4071, name: "Marine Corps" },
+                    "Coast Guard": { id: 4074, name: "Coast Guard" }
                 };
-                
+
                 const { verificationId, veteranData, email } = message;
-                
+
                 console.log('🚀 SheerID Verify - Starting...');
                 console.log('   verificationId:', verificationId);
                 console.log('   veteran:', veteranData.first, veteranData.last);
                 console.log('   branch:', veteranData.branch);
                 console.log('   email:', email);
-                
+
                 // Step 1: collectMilitaryStatus
                 console.log('📤 Step 1: collectMilitaryStatus...');
                 const step1Url = `${SHEERID_BASE_URL}/${verificationId}/step/collectMilitaryStatus`;
                 console.log('   URL:', step1Url);
-                
+
                 const step1Response = await fetch(step1Url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: "VETERAN" })
                 });
-                
+
                 console.log('   Response status:', step1Response.status);
-                
+
                 if (!step1Response.ok) {
                     const errorText = await step1Response.text();
                     console.log('❌ Step 1 failed:', errorText);
                     sendResponse({ success: false, error: `Step 1 failed: ${step1Response.status}`, details: errorText });
                     return;
                 }
-                
+
                 const step1Result = await step1Response.json();
                 console.log('✅ Step 1 result:', JSON.stringify(step1Result).substring(0, 200));
-                
+
                 const currentStep = step1Result.currentStep;
                 console.log('   currentStep:', currentStep);
-                
+
                 // Check if step 1 succeeded - allow different valid steps
                 if (currentStep !== 'collectInactiveMilitaryPersonalInfo') {
                     // If already at success or emailLoop, return that
@@ -445,16 +445,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     sendResponse({ success: false, error: 'Unexpected step after Step 1', step: currentStep, result: step1Result });
                     return;
                 }
-                
+
                 // Step 2: collectInactiveMilitaryPersonalInfo
                 console.log('📤 Step 2: collectInactiveMilitaryPersonalInfo...');
-                const submissionUrl = step1Result.submissionUrl || 
+                const submissionUrl = step1Result.submissionUrl ||
                     `${SHEERID_BASE_URL}/${verificationId}/step/collectInactiveMilitaryPersonalInfo`;
                 console.log('   URL:', submissionUrl);
-                
+
                 const org = ORGANIZATIONS[veteranData.branch] || ORGANIZATIONS["Navy"];
                 console.log('   organization:', org);
-                
+
                 const payload = {
                     firstName: veteranData.first,
                     lastName: veteranData.last,
@@ -465,30 +465,245 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     metadata: {}
                 };
                 console.log('   payload:', JSON.stringify(payload));
-                
+
                 const step2Response = await fetch(submissionUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
+
                 console.log('   Response status:', step2Response.status);
-                
+
                 if (!step2Response.ok) {
                     const errorText = await step2Response.text();
                     console.log('❌ Step 2 failed:', errorText);
                     sendResponse({ success: false, error: `Step 2 failed: ${step2Response.status}`, details: errorText });
                     return;
                 }
-                
+
                 const step2Result = await step2Response.json();
                 console.log('✅ Step 2 result:', JSON.stringify(step2Result).substring(0, 200));
                 console.log('   Final step:', step2Result.currentStep);
-                
+
                 sendResponse({ success: true, result: step2Result });
-                
+
             } catch (error) {
                 console.error('❌ SheerID Verify Error:', error);
+                sendResponse({ success: false, error: error.message });
+            }
+        })();
+        return true; // Keep channel open for async
+    } else if (message.action === 'randomSheeridVerify') {
+        // Random SheerID verification with enhanced headers (GitHub style)
+        (async () => {
+            try {
+                const { verificationId, email } = message;
+
+                console.log('🎲 [RandomVerify] Starting random verification...');
+                console.log('   verificationId:', verificationId);
+                console.log('   email:', email || '(will generate)');
+
+                // === INLINE CONFIG ===
+                const CONFIG = {
+                    SHEERID_API: 'https://services.sheerid.com/rest/v2',
+                    SHEERID_BASE_URL: 'https://services.sheerid.com',
+                    PROGRAM_ID: '690415d58971e73ca187d8c9',
+                    USER_AGENT: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                    CLIENT_VERSION: '2.157.0',
+                    CLIENT_NAME: 'jslib',
+                    MAIN_BRANCHES: ['Army', 'Air Force', 'Navy', 'Marine Corps', 'Coast Guard'],
+                    BRANCH_ORG_MAP: {
+                        'Army': { id: 4070, name: 'Army' },
+                        'Air Force': { id: 4073, name: 'Air Force' },
+                        'Navy': { id: 4072, name: 'Navy' },
+                        'Marine Corps': { id: 4071, name: 'Marine Corps' },
+                        'Coast Guard': { id: 4074, name: 'Coast Guard' },
+                        'Space Force': { id: 4544268, name: 'Space Force' }
+                    },
+                    NEWRELIC: { accountId: '364029', appId: '134291347' }
+                };
+
+                // === INLINE GENERATORS ===
+                const FIRST_NAMES = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua'];
+                const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White'];
+
+                function randomChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+                function randomHex(len) { let r = ''; for (let i = 0; i < len; i++) r += '0123456789abcdef'[Math.floor(Math.random() * 16)]; return r; }
+
+                function generateEmail() {
+                    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+                    let u = ''; for (let i = 0; i < 10; i++) u += chars[Math.floor(Math.random() * chars.length)];
+                    return `${u}@gmail.com`;
+                }
+
+                function generateBirthDate() {
+                    const today = new Date();
+                    const minAge = 25, maxAge = 55;
+                    const minDate = new Date(today); minDate.setFullYear(today.getFullYear() - maxAge);
+                    const maxDate = new Date(today); maxDate.setFullYear(today.getFullYear() - minAge);
+                    const d = new Date(minDate.getTime() + Math.random() * (maxDate.getTime() - minDate.getTime()));
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+
+                function generateDischargeDate() {
+                    const today = new Date();
+                    const daysAgo = Math.floor(Math.random() * 300) + 30; // 30-330 days ago
+                    const d = new Date(today); d.setDate(today.getDate() - daysAgo);
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+
+                function generateFingerprint() {
+                    return randomHex(32);
+                }
+
+                function generateNewRelicHeaders() {
+                    const traceId = randomHex(32);
+                    const spanId = randomHex(16);
+                    const timestamp = Date.now();
+                    const payload = { v: [0, 1], d: { ty: 'Browser', ac: CONFIG.NEWRELIC.accountId, ap: CONFIG.NEWRELIC.appId, id: spanId, tr: traceId, ti: timestamp } };
+                    return {
+                        newrelic: btoa(JSON.stringify(payload)),
+                        traceparent: `00-${traceId}-${spanId}-01`,
+                        tracestate: `${CONFIG.NEWRELIC.accountId}@nr=0-1-${CONFIG.NEWRELIC.accountId}-${CONFIG.NEWRELIC.appId}-${spanId}----${timestamp}`
+                    };
+                }
+
+                // === GENERATE VETERAN DATA ===
+                const firstName = randomChoice(FIRST_NAMES);
+                const lastName = randomChoice(LAST_NAMES);
+                const branch = randomChoice(CONFIG.MAIN_BRANCHES);
+                const org = CONFIG.BRANCH_ORG_MAP[branch];
+                const birthDate = generateBirthDate();
+                const dischargeDate = generateDischargeDate();
+                const verifyEmail = email || generateEmail();
+                const fingerprint = generateFingerprint();
+                const nrHeaders = generateNewRelicHeaders();
+
+                console.log('🎲 Generated:', firstName, lastName, '|', branch);
+                console.log('   Birth:', birthDate, '| Discharge:', dischargeDate);
+                console.log('   Email:', verifyEmail);
+
+                // === BUILD HEADERS ===
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'sec-ch-ua': '"Chromium";v="131", "Google Chrome";v="131"',
+                    'sec-ch-ua-mobile': '?0',
+                    'sec-ch-ua-platform': '"Windows"',
+                    'User-Agent': CONFIG.USER_AGENT,
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'clientversion': CONFIG.CLIENT_VERSION,
+                    'clientname': CONFIG.CLIENT_NAME,
+                    'newrelic': nrHeaders.newrelic,
+                    'traceparent': nrHeaders.traceparent,
+                    'tracestate': nrHeaders.tracestate,
+                    'Origin': CONFIG.SHEERID_BASE_URL
+                };
+
+                // === STEP 1: collectMilitaryStatus ===
+                console.log('📤 Step 1: collectMilitaryStatus...');
+                const step1Url = `${CONFIG.SHEERID_API}/verification/${verificationId}/step/collectMilitaryStatus`;
+
+                const step1Res = await fetch(step1Url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ status: 'VETERAN' })
+                });
+
+                console.log('   Response:', step1Res.status);
+
+                if (!step1Res.ok) {
+                    const errText = await step1Res.text();
+                    console.log('❌ Step 1 failed:', errText);
+                    sendResponse({
+                        success: false,
+                        error: `Step 1 failed: ${step1Res.status}`,
+                        details: errText,
+                        veteranData: { firstName, lastName, branch, birthDate, dischargeDate, email: verifyEmail }
+                    });
+                    return;
+                }
+
+                const step1Data = await step1Res.json();
+                const currentStep = step1Data.currentStep;
+                console.log('✅ Step 1 OK:', currentStep);
+
+                if (currentStep === 'success' || currentStep === 'emailLoop') {
+                    sendResponse({
+                        success: true,
+                        result: step1Data,
+                        veteranData: { firstName, lastName, branch, birthDate, dischargeDate, email: verifyEmail }
+                    });
+                    return;
+                }
+
+                if (currentStep !== 'collectInactiveMilitaryPersonalInfo') {
+                    sendResponse({
+                        success: false,
+                        error: `Unexpected step: ${currentStep}`,
+                        result: step1Data,
+                        veteranData: { firstName, lastName, branch, birthDate, dischargeDate, email: verifyEmail }
+                    });
+                    return;
+                }
+
+                // === STEP 2: collectInactiveMilitaryPersonalInfo ===
+                console.log('📤 Step 2: collectInactiveMilitaryPersonalInfo...');
+                const step2Url = step1Data.submissionUrl || `${CONFIG.SHEERID_API}/verification/${verificationId}/step/collectInactiveMilitaryPersonalInfo`;
+
+                const refererUrl = `${CONFIG.SHEERID_BASE_URL}/verify/${CONFIG.PROGRAM_ID}/?verificationId=${verificationId}`;
+
+                const step2Payload = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    birthDate: birthDate,
+                    email: verifyEmail,
+                    phoneNumber: '',
+                    organization: { id: org.id, name: org.name },
+                    dischargeDate: dischargeDate,
+                    deviceFingerprintHash: fingerprint,
+                    locale: 'en-US',
+                    country: 'US',
+                    metadata: {
+                        marketConsentValue: false,
+                        refererUrl: refererUrl,
+                        verificationId: verificationId,
+                        flags: '{"doc-upload-considerations":"default","doc-upload-may24":"default","doc-upload-redesign-use-legacy-message-keys":false,"docUpload-assertion-checklist":"default","include-cvec-field-france-student":"not-labeled-optional","org-search-overlay":"default","org-selected-display":"default"}',
+                        submissionOptIn: 'By submitting the personal information above, I acknowledge that my personal information is being collected under the privacy policy of the business from which I am seeking a discount, and I understand that my personal information will be shared with SheerID as a processor/third-party service provider in order for SheerID to confirm my eligibility for a special offer.'
+                    }
+                };
+
+                const step2Res = await fetch(step2Url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(step2Payload)
+                });
+
+                console.log('   Response:', step2Res.status);
+
+                if (!step2Res.ok) {
+                    const errText = await step2Res.text();
+                    console.log('❌ Step 2 failed:', errText);
+                    sendResponse({
+                        success: false,
+                        error: `Step 2 failed: ${step2Res.status}`,
+                        details: errText,
+                        veteranData: { firstName, lastName, branch, birthDate, dischargeDate, email: verifyEmail }
+                    });
+                    return;
+                }
+
+                const step2Data = await step2Res.json();
+                console.log('✅ Step 2 OK:', step2Data.currentStep);
+
+                sendResponse({
+                    success: true,
+                    result: step2Data,
+                    veteranData: { firstName, lastName, branch, birthDate, dischargeDate, email: verifyEmail }
+                });
+
+            } catch (error) {
+                console.error('❌ RandomVerify Error:', error);
                 sendResponse({ success: false, error: error.message });
             }
         })();
@@ -528,20 +743,20 @@ chrome.storage.local.get(['veterans-proxy-enabled', 'veterans-proxy-string'], as
     if (result['veterans-proxy-enabled'] && result['veterans-proxy-string']) {
         const proxyString = result['veterans-proxy-string'];
         const parts = proxyString.split(':');
-        
+
         if (parts.length >= 4) {
             const host = parts[0];
             const port = parseInt(parts[1]);
             const username = parts[2];
             const password = parts.slice(3).join(':');
-            
+
             try {
                 // Store credentials
                 await chrome.storage.local.set({
                     'proxy-auth-username': username,
                     'proxy-auth-password': password
                 });
-                
+
                 // Set proxy config
                 const config = {
                     mode: "fixed_servers",
@@ -554,12 +769,12 @@ chrome.storage.local.get(['veterans-proxy-enabled', 'veterans-proxy-string'], as
                         bypassList: ["localhost", "127.0.0.1"]
                     }
                 };
-                
+
                 await chrome.proxy.settings.set({
                     value: config,
                     scope: 'regular'
                 });
-                
+
                 console.log(`✅ Proxy auto-restored on startup: ${host}:${port}`);
             } catch (error) {
                 console.error('❌ Error restoring proxy on startup:', error);

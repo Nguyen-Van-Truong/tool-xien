@@ -518,6 +518,101 @@
                 </div>
             </div>
 
+            <!-- RANDOM VERIFY SECTION (Collapsible) - Purple Theme -->
+            <div class="veterans-form-section"
+                style="margin-top: 16px; padding: 0; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3); overflow: hidden;">
+                <!-- Collapsible Header -->
+                <div id="random-api-header"
+                    style="padding: 10px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(139, 92, 246, 0.15);">
+                    <label class="veterans-form-label"
+                        style="color: #a78bfa; margin-bottom: 0; cursor: pointer; pointer-events: none;">🎲 RANDOM
+                        VERIFY (GitHub Style)</label>
+                    <span id="random-api-toggle"
+                        style="color: #a78bfa; font-size: 14px; transition: transform 0.3s;">▼</span>
+                </div>
+
+                <!-- Collapsible Content -->
+                <div id="random-api-content" style="padding: 12px; display: none;">
+                    <div style="font-size: 9px; color: #a1a1aa; margin-bottom: 8px;">
+                        Random tạo thông tin veteran + Enhanced Headers (NewRelic, Fingerprint) - Không cần data thật!
+                    </div>
+
+                    <!-- Generated Veteran Preview -->
+                    <div id="random-veteran-preview"
+                        style="margin-bottom: 10px; padding: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; font-size: 10px;">
+                        <div style="color: #a1a1aa; margin-bottom: 4px;">🎲 Preview (click Random để tạo mới):</div>
+                        <div id="random-preview-name" style="color: #c4b5fd;">👤 Name: -</div>
+                        <div id="random-preview-branch" style="color: #c4b5fd;">🏛️ Branch: -</div>
+                        <div id="random-preview-birth" style="color: #c4b5fd;">📅 Birth: -</div>
+                        <div id="random-preview-discharge" style="color: #c4b5fd;">📅 Discharge: -</div>
+                    </div>
+
+                    <!-- Random Preview Button -->
+                    <div style="margin-bottom: 8px;">
+                        <button id="random-preview-btn" class="veterans-btn"
+                            style="width: 100%; padding: 8px; background: rgba(139, 92, 246, 0.3); color: #c4b5fd; font-size: 10px; border: 1px solid rgba(139, 92, 246, 0.5);">
+                            🎲 Random Preview (Xem trước)
+                        </button>
+                    </div>
+
+                    <!-- SheerID Link with Get button -->
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                        <input id="random-sheerid-link" type="text" class="veterans-input"
+                            placeholder="Paste SheerID link hoặc click Get Link" style="flex: 1; font-size: 10px;" />
+                        <button id="random-get-link-btn" class="veterans-btn"
+                            style="padding: 8px 10px; background: rgba(139, 92, 246, 0.3); color: #a78bfa; font-size: 10px; border: 1px solid rgba(139, 92, 246, 0.5); white-space: nowrap;">
+                            🔓 Get
+                        </button>
+                    </div>
+
+                    <!-- Email row with generate button -->
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                        <input id="random-verify-email" type="text" class="veterans-input"
+                            placeholder="Email (để trống sẽ tự random)" style="flex: 1; font-size: 10px;" />
+                        <button id="random-gen-email-btn" class="veterans-btn"
+                            style="padding: 8px 10px; background: rgba(168, 85, 247, 0.3); color: #c084fc; font-size: 10px; border: 1px solid rgba(168, 85, 247, 0.5); white-space: nowrap;">
+                            📧 Gen
+                        </button>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                        <button id="random-verify-btn" class="veterans-btn"
+                            style="flex: 1; padding: 10px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; font-weight: 700; font-size: 11px;">
+                            🎲 VERIFY RANDOM
+                        </button>
+                        <button id="random-check-email-btn" class="veterans-btn"
+                            style="padding: 10px 12px; background: rgba(234, 179, 8, 0.3); color: #fbbf24; font-size: 11px; border: 1px solid rgba(234, 179, 8, 0.5);">
+                            📬 Check
+                        </button>
+                    </div>
+
+                    <!-- Email verification link result -->
+                    <div id="random-email-link-result"
+                        style="display: none; margin-bottom: 8px; padding: 8px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 9px; color: #a78bfa; margin-bottom: 4px;">📧 Link từ email:</div>
+                            <button id="random-copy-link-btn"
+                                style="padding: 2px 6px; font-size: 8px; background: rgba(139, 92, 246, 0.3); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.5); border-radius: 3px; cursor: pointer;">Copy</button>
+                        </div>
+                        <a id="random-email-link" href="#" target="_blank"
+                            style="font-size: 10px; color: #c4b5fd; word-break: break-all;">-</a>
+                    </div>
+
+                    <!-- Random API Log -->
+                    <div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <div style="font-size: 10px; color: #a1a1aa;">Random API Log:</div>
+                            <button id="random-log-clear-btn"
+                                style="padding: 2px 6px; font-size: 8px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 3px; cursor: pointer;">Clear</button>
+                        </div>
+                        <textarea id="random-api-log" readonly
+                            style="width: 100%; height: 100px; resize: vertical; font-size: 10px; font-family: 'Consolas', 'Monaco', monospace; background: rgba(0, 0, 0, 0.4); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 4px; padding: 6px; line-height: 1.4;">Ready for random verify...</textarea>
+                    </div>
+                </div>
+            </div>
+
             <div class="veterans-status-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <div class="veterans-status-label">Log:</div>
