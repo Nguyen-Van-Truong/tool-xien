@@ -513,6 +513,52 @@ function updateUIOnStop() {
 
 // Setup panel event handlers
 function setupPanelHandlers() {
+    // =========================================
+    // RANDOM VETERAN MODE TOGGLE
+    // =========================================
+    const randomVeteranModeToggle = document.getElementById('random-veteran-mode-toggle');
+    if (randomVeteranModeToggle) {
+        // Load saved state
+        chrome.storage.local.get(['random-veteran-mode'], (result) => {
+            randomVeteranModeToggle.checked = result['random-veteran-mode'] || false;
+            updateStartButtonForRandomMode();
+        });
+
+        // Handle toggle change
+        randomVeteranModeToggle.addEventListener('change', () => {
+            const enabled = randomVeteranModeToggle.checked;
+            chrome.storage.local.set({ 'random-veteran-mode': enabled }, () => {
+                console.log('🎲 Random Veteran Mode:', enabled ? 'ON' : 'OFF');
+                updateStartButtonForRandomMode();
+            });
+        });
+    }
+
+    // Update START button based on Random Mode state
+    function updateStartButtonForRandomMode() {
+        const startBtn = document.getElementById('veterans-start-btn');
+        const randomModeEnabled = randomVeteranModeToggle?.checked || false;
+
+        if (!startBtn) return;
+
+        // If Random Mode is enabled, only need EMAILS loaded (no VETERANS data required)
+        chrome.storage.local.get(['chatgpt-accounts-array', 'veterans-data-list', 'veterans-is-running'], (result) => {
+            const hasAccounts = result['chatgpt-accounts-array'] && result['chatgpt-accounts-array'].length > 0;
+            const hasData = result['veterans-data-list'] && result['veterans-data-list'].trim().length > 0;
+            const isRunning = result['veterans-is-running'] || false;
+
+            if (isRunning) {
+                startBtn.disabled = true;
+            } else if (randomModeEnabled) {
+                // Random mode: only need accounts
+                startBtn.disabled = !hasAccounts;
+            } else {
+                // Normal mode: need both accounts and veteran data
+                startBtn.disabled = !hasAccounts || !hasData;
+            }
+        });
+    }
+
     // Clear Log button
     const clearLogBtn = document.getElementById('veterans-clear-log-btn');
     if (clearLogBtn) {
@@ -722,19 +768,52 @@ function setupPanelHandlers() {
     const startBtn = document.getElementById('veterans-start-btn');
     if (startBtn) {
         startBtn.addEventListener('click', async () => {
-            // Get both account and data from storage
-            chrome.storage.local.get(['chatgpt-account', 'veterans-data-list'], async (result) => {
+            // Get account, data and random mode from storage
+            chrome.storage.local.get(['chatgpt-account', 'veterans-data-list', 'random-veteran-mode'], async (result) => {
                 // Check ChatGPT account
                 if (!result['chatgpt-account']) {
                     updateUIPanelStatus('❌ Please load ChatGPT account first', 'error');
                     return;
                 }
 
-                // Check veterans data
+                const randomModeEnabled = result['random-veteran-mode'] || false;
                 let dataList = result['veterans-data-list'];
-                if (!dataList || !dataList.trim()) {
-                    updateUIPanelStatus('❌ Please load veterans data first', 'error');
-                    return;
+
+                // If Random Mode is enabled, generate random veterans data
+                if (randomModeEnabled) {
+                    updateUIPanelStatus('🎲 Random Mode: Generating random veteran data...', 'info');
+
+                    // Generate random veterans data array
+                    const FIRST_NAMES = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua'];
+                    const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'];
+                    const BRANCHES = ['Army', 'Air Force', 'Navy', 'Marine Corps', 'Coast Guard'];
+                    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+                    function randomChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+                    function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+                    // Generate 100 random veterans
+                    const randomDataLines = [];
+                    for (let i = 0; i < 100; i++) {
+                        const first = randomChoice(FIRST_NAMES);
+                        const last = randomChoice(LAST_NAMES);
+                        const branch = randomChoice(BRANCHES);
+                        const month = randomChoice(MONTHS);
+                        const day = randomInt(1, 28).toString();
+                        const year = randomInt(1960, 1995).toString();
+                        randomDataLines.push(`${first}|${last}|${branch}|${month}|${day}|${year}`);
+                    }
+                    dataList = randomDataLines.join('\n');
+
+                    // Save random data to storage temporarily
+                    chrome.storage.local.set({ 'veterans-data-list': dataList });
+                    updateUIPanelStatus('🎲 Generated 100 random veterans', 'success');
+                } else {
+                    // Normal mode: require veterans data
+                    if (!dataList || !dataList.trim()) {
+                        updateUIPanelStatus('❌ Please load veterans data first', 'error');
+                        return;
+                    }
                 }
 
                 // Parse veterans data
