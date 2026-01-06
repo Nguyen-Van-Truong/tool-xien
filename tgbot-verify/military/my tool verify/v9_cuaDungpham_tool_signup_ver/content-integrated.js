@@ -43,10 +43,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local') {
         // Update MAX_CONSECUTIVE_LIMIT if changed
         if (changes['veterans-max-limit-errors']) {
-            const newMax = changes['veterans-max-limit-errors'].newValue;
-            if (newMax !== undefined) {
-                MAX_CONSECUTIVE_LIMIT = newMax;
-                console.log('📊 Updated MAX_CONSECUTIVE_LIMIT:', MAX_CONSECUTIVE_LIMIT);
+        const newMax = changes['veterans-max-limit-errors'].newValue;
+        if (newMax !== undefined) {
+            MAX_CONSECUTIVE_LIMIT = newMax;
+            console.log('📊 Updated MAX_CONSECUTIVE_LIMIT:', MAX_CONSECUTIVE_LIMIT);
             }
         }
         // Sync consecutiveLimitErrors when reset from sidepanel (e.g., on Start)

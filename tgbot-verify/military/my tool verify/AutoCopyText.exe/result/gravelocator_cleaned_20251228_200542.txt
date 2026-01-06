@@ -1,9 +1,0 @@
-BERTHA|A|Navy|September|5|1904
-FRIEDA|A|Army|December|20|1914
-GENEVIE|A|Air Force|September|7|1921
-JAMES|A|Army|October|18|1946
-JILL|A|Army|March|19|1956
-MARIE|A|Army|June|2|1907
-MARY|A|Air Force|November|28|1922
-MARY VERONICA|A|Army|October|28|1917
-PATRICIA|A|Air Force|January|6|1936

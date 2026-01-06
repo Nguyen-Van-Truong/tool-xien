@@ -7,3 +7,5 @@ python vlm_scraper_v2.py -s 81 -e 120 -o new_veterans_page81-120.txt --dob 1963 
 python vlm_scraper_v2.py -s 401 -e 500 -o new_veterans_1946-1987_page401-500.txt --dob 1946 --dob-to 1987 --clear -t 3
 
 python vlm_scraper_v2.py -s 501 -e 1000 -o new_veterans_1946-1987_page501-1000.txt --dob 1946 --dob-to 1987 --clear -t 3
+
+python vlm_scraper_v2.py -s 1001 -e 1500 -o new_veterans_1946-1987_page1001-1500.txt --dob 1946 --dob-to 1987 --clear -t 3
