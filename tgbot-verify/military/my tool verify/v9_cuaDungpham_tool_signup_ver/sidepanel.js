@@ -783,31 +783,76 @@ function setupPanelHandlers() {
                 if (randomModeEnabled) {
                     updateUIPanelStatus('🎲 Random Mode: Generating random veteran data...', 'info');
 
-                    // Generate random veterans data array
-                    const FIRST_NAMES = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua'];
-                    const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'];
-                    const BRANCHES = ['Army', 'Air Force', 'Navy', 'Marine Corps', 'Coast Guard'];
+                    // Extended first names list (100+ common American names)
+                    const FIRST_NAMES = [
+                        'JAMES', 'JOHN', 'ROBERT', 'MICHAEL', 'WILLIAM', 'DAVID', 'RICHARD', 'JOSEPH', 'THOMAS', 'CHARLES',
+                        'CHRISTOPHER', 'DANIEL', 'MATTHEW', 'ANTHONY', 'MARK', 'DONALD', 'STEVEN', 'PAUL', 'ANDREW', 'JOSHUA',
+                        'KENNETH', 'KEVIN', 'BRIAN', 'GEORGE', 'TIMOTHY', 'RONALD', 'EDWARD', 'JASON', 'JEFFREY', 'RYAN',
+                        'JACOB', 'GARY', 'NICHOLAS', 'ERIC', 'JONATHAN', 'STEPHEN', 'LARRY', 'JUSTIN', 'SCOTT', 'BRANDON',
+                        'BENJAMIN', 'SAMUEL', 'RAYMOND', 'GREGORY', 'FRANK', 'ALEXANDER', 'PATRICK', 'JACK', 'DENNIS', 'JERRY',
+                        'TYLER', 'AARON', 'JOSE', 'ADAM', 'NATHAN', 'HENRY', 'DOUGLAS', 'ZACHARY', 'PETER', 'KYLE',
+                        'WALTER', 'ETHAN', 'JEREMY', 'HAROLD', 'KEITH', 'CHRISTIAN', 'ROGER', 'NOAH', 'GERALD', 'CARL',
+                        'TERRY', 'SEAN', 'AUSTIN', 'ARTHUR', 'LAWRENCE', 'JESSE', 'DYLAN', 'BRYAN', 'JOE', 'JORDAN',
+                        'BILLY', 'BRUCE', 'ALBERT', 'WILLIE', 'GABRIEL', 'LOGAN', 'ALAN', 'JUAN', 'WAYNE', 'ELIJAH',
+                        'RANDY', 'ROY', 'VINCENT', 'RALPH', 'EUGENE', 'RUSSELL', 'BOBBY', 'MASON', 'PHILIP', 'HARRY',
+                        'JOHNNY', 'TRAVIS', 'CARLOS', 'ANTONIO', 'LUIS', 'MARTIN', 'CRAIG', 'CLARENCE', 'DALE', 'CURTIS',
+                        'DANNY', 'GLENN', 'VICTOR', 'ERNEST', 'DEREK', 'TODD', 'SHAWN', 'MARCUS', 'LEONARD', 'TROY'
+                    ];
+
+                    // Extended last names list (200+ common American surnames)
+                    const LAST_NAMES = [
+                        'SMITH', 'JOHNSON', 'WILLIAMS', 'BROWN', 'JONES', 'GARCIA', 'MILLER', 'DAVIS', 'RODRIGUEZ', 'MARTINEZ',
+                        'HERNANDEZ', 'LOPEZ', 'GONZALEZ', 'WILSON', 'ANDERSON', 'THOMAS', 'TAYLOR', 'MOORE', 'JACKSON', 'MARTIN',
+                        'LEE', 'PEREZ', 'THOMPSON', 'WHITE', 'HARRIS', 'SANCHEZ', 'CLARK', 'RAMIREZ', 'LEWIS', 'ROBINSON',
+                        'WALKER', 'YOUNG', 'ALLEN', 'KING', 'WRIGHT', 'SCOTT', 'TORRES', 'NGUYEN', 'HILL', 'FLORES',
+                        'GREEN', 'ADAMS', 'NELSON', 'BAKER', 'HALL', 'RIVERA', 'CAMPBELL', 'MITCHELL', 'CARTER', 'ROBERTS',
+                        'GOMEZ', 'PHILLIPS', 'EVANS', 'TURNER', 'DIAZ', 'PARKER', 'CRUZ', 'EDWARDS', 'COLLINS', 'REYES',
+                        'STEWART', 'MORRIS', 'MORALES', 'MURPHY', 'COOK', 'ROGERS', 'GUTIERREZ', 'ORTIZ', 'MORGAN', 'COOPER',
+                        'PETERSON', 'BAILEY', 'REED', 'KELLY', 'HOWARD', 'RAMOS', 'KIM', 'COX', 'WARD', 'RICHARDSON',
+                        'WATSON', 'BROOKS', 'CHAVEZ', 'WOOD', 'JAMES', 'BENNETT', 'GRAY', 'MENDOZA', 'RUIZ', 'HUGHES',
+                        'PRICE', 'ALVAREZ', 'CASTILLO', 'SANDERS', 'PATEL', 'MYERS', 'LONG', 'ROSS', 'FOSTER', 'JIMENEZ',
+                        'POWELL', 'JENKINS', 'PERRY', 'RUSSELL', 'SULLIVAN', 'BELL', 'COLEMAN', 'BUTLER', 'HENDERSON', 'BARNES',
+                        'GONZALES', 'FISHER', 'VASQUEZ', 'SIMMONS', 'GRAHAM', 'MCDONALD', 'PATTERSON', 'JORDAN', 'REYNOLDS', 'HAMILTON',
+                        'GRAHAM', 'WALLACE', 'MASON', 'WEST', 'COLE', 'OWENS', 'JORDAN', 'ELLIS', 'MILLS', 'STONE',
+                        'HUNT', 'BLACK', 'PALMER', 'BERRY', 'GORDON', 'DEAN', 'PAYNE', 'FOX', 'BISHOP', 'WEAVER',
+                        'SPENCER', 'DOUGLAS', 'WARREN', 'GRAHAM', 'RICE', 'HART', 'MCCOY', 'LYNCH', 'BURNS', 'SIMPSON',
+                        'OLSON', 'FREEMAN', 'GRANT', 'SNYDER', 'WEBB', 'TUCKER', 'HAYES', 'PORTER', 'HUNTER', 'HICKS',
+                        'CRAWFORD', 'HENRY', 'BOYD', 'MASON', 'MORALES', 'KENNEDY', 'WARREN', 'DIXON', 'RAMOS', 'REYES',
+                        'BURNS', 'GORDON', 'SHAW', 'HOLMES', 'RICE', 'ROBERTSON', 'HUNT', 'BLACK', 'DANIELS', 'PALMER',
+                        'MILLS', 'NICHOLS', 'GRANT', 'KNIGHT', 'FERGUSON', 'ROSE', 'STONE', 'HAWKINS', 'DUNN', 'PERKINS',
+                        'HUDSON', 'SPENCER', 'GARDNER', 'STEPHENS', 'PAYNE', 'PIERCE', 'BERRY', 'MATTHEWS', 'ARNOLD', 'WAGNER'
+                    ];
+
+                    // Weighted branch distribution (realistic military proportions)
+                    const BRANCHES_WEIGHTED = [
+                        'Army', 'Army', 'Army', 'Army', 'Army', 'Army', 'Army',  // 35%
+                        'Air Force', 'Air Force', 'Air Force', 'Air Force', 'Air Force',  // 25%
+                        'Navy', 'Navy', 'Navy', 'Navy',  // 20%
+                        'Marine Corps', 'Marine Corps', 'Marine Corps',  // 15%
+                        'Coast Guard'  // 5%
+                    ];
+
                     const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
                     function randomChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
                     function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-                    // Generate 100 random veterans
+                    // Generate 100 random veterans with realistic data
                     const randomDataLines = [];
                     for (let i = 0; i < 100; i++) {
                         const first = randomChoice(FIRST_NAMES);
                         const last = randomChoice(LAST_NAMES);
-                        const branch = randomChoice(BRANCHES);
+                        const branch = randomChoice(BRANCHES_WEIGHTED);
                         const month = randomChoice(MONTHS);
                         const day = randomInt(1, 28).toString();
-                        const year = randomInt(1960, 1995).toString();
+                        const year = randomInt(1955, 1992).toString();  // Age 32-70 (realistic veteran age)
                         randomDataLines.push(`${first}|${last}|${branch}|${month}|${day}|${year}`);
                     }
                     dataList = randomDataLines.join('\n');
 
                     // Save random data to storage temporarily
                     chrome.storage.local.set({ 'veterans-data-list': dataList });
-                    updateUIPanelStatus('🎲 Generated 100 random veterans', 'success');
+                    updateUIPanelStatus('🎲 Generated 100 random veterans (120+ first names, 200+ last names)', 'success');
                 } else {
                     // Normal mode: require veterans data
                     if (!dataList || !dataList.trim()) {
