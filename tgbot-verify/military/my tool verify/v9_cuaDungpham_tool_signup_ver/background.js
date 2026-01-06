@@ -531,9 +531,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 function randomHex(len) { let r = ''; for (let i = 0; i < len; i++) r += '0123456789abcdef'[Math.floor(Math.random() * 16)]; return r; }
 
                 function generateEmail() {
+                    const TINYHOST_DOMAINS = ['topnova.net', 'mailhub.pw', 'emlhub.com', 'zetmail.com', 'mailpoof.com'];
                     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-                    let u = ''; for (let i = 0; i < 10; i++) u += chars[Math.floor(Math.random() * chars.length)];
-                    return `${u}@gmail.com`;
+                    let u = ''; for (let i = 0; i < 16; i++) u += chars[Math.floor(Math.random() * chars.length)];
+                    const domain = TINYHOST_DOMAINS[Math.floor(Math.random() * TINYHOST_DOMAINS.length)];
+                    return `${u}@${domain}`;
                 }
 
                 function generateBirthDate() {

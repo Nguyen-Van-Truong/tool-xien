@@ -1799,10 +1799,14 @@ function setupPanelHandlers() {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
+    // TinyHost domains that work with tinyhost.shop API
+    const TINYHOST_DOMAINS = ['topnova.net', 'mailhub.pw', 'emlhub.com', 'zetmail.com', 'mailpoof.com'];
+
     function generateRandomEmail() {
         const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-        let u = ''; for (let i = 0; i < 10; i++) u += chars[Math.floor(Math.random() * chars.length)];
-        return `${u}@gmail.com`;
+        let u = ''; for (let i = 0; i < 16; i++) u += chars[Math.floor(Math.random() * chars.length)];
+        const domain = TINYHOST_DOMAINS[Math.floor(Math.random() * TINYHOST_DOMAINS.length)];
+        return `${u}@${domain}`;
     }
 
     // Store last generated preview for reference
