@@ -48,32 +48,32 @@ function extractVerificationIdFromUrl(url) {
 async function generateEmailForManual() {
     try {
         updateApiDirectLog('📧 Generating email...');
-        
+
         // Get random domains
         const domainsResponse = await fetch('https://tinyhost.shop/api/random-domains/?limit=10');
         if (!domainsResponse.ok) {
             throw new Error('Failed to fetch domains');
         }
-        
+
         const domainsData = await domainsResponse.json();
         const domains = domainsData.domains || [];
         if (domains.length === 0) {
             throw new Error('No domains available');
         }
-        
+
         const randomDomain = domains[Math.floor(Math.random() * domains.length)];
-        
+
         // Generate random username
         const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
         let username = '';
         for (let i = 0; i < 16; i++) {
             username += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        
+
         const email = `${username}@${randomDomain}`;
         updateApiDirectLog(`✅ Email: ${email}`);
         return email;
-        
+
     } catch (error) {
         updateApiDirectLog(`❌ Gen email error: ${error.message}`);
         return null;
@@ -87,25 +87,25 @@ async function checkEmailForLink(email) {
         if (!username || !domain) {
             throw new Error('Invalid email format');
         }
-        
+
         updateApiDirectLog(`📬 Checking inbox: ${email}`);
-        
+
         const response = await fetch(`https://tinyhost.shop/api/email/${domain}/${username}/?page=1&limit=20`);
         if (!response.ok) {
             throw new Error('Failed to fetch emails');
         }
-        
+
         const data = await response.json();
         const emails = data.emails || [];
-        
+
         if (emails.length === 0) {
             updateApiDirectLog('📭 No emails yet. Try again in a few seconds...');
             return null;
         }
-        
+
         // Sort by date (newest first)
         emails.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
+
         // Find SheerID verification link
         for (const mail of emails) {
             if (mail.html_body) {
@@ -125,10 +125,10 @@ async function checkEmailForLink(email) {
                 }
             }
         }
-        
+
         updateApiDirectLog('📭 No verification link found in emails yet...');
         return null;
-        
+
     } catch (error) {
         updateApiDirectLog(`❌ Check email error: ${error.message}`);
         return null;
@@ -139,23 +139,23 @@ async function checkEmailForLink(email) {
 function updateManualVeteranDisplay() {
     const display = document.getElementById('manual-veteran-display');
     if (!display) return;
-    
+
     chrome.storage.local.get(['veterans-data-array', 'veterans-current-index'], (result) => {
         const data = result['veterans-data-array'] || [];
         const idx = result['veterans-current-index'] || 0;
-        
+
         if (data.length === 0) {
             display.textContent = 'Chưa load data - load file VETERANS trước';
             display.style.color = '#f87171';
             return;
         }
-        
+
         if (idx >= data.length) {
             display.textContent = 'Đã hết data - load thêm hoặc reset';
             display.style.color = '#fbbf24';
             return;
         }
-        
+
         const vet = data[idx];
         display.innerHTML = `
             <div>${vet.first} ${vet.last} (${idx + 1}/${data.length})</div>
@@ -1168,7 +1168,7 @@ function setupPanelHandlers() {
         chrome.storage.local.get(['veterans-api-direct-mode'], (result) => {
             apiDirectCheckbox.checked = result['veterans-api-direct-mode'] || false;
         });
-        
+
         // Save on change
         apiDirectCheckbox.addEventListener('change', () => {
             const isEnabled = apiDirectCheckbox.checked;
@@ -1319,13 +1319,13 @@ function setupPanelHandlers() {
                 updateApiDirectLog('❌ Vui lòng paste SheerID link!');
                 return;
             }
-            
+
             // Auto generate email if empty
             if (!email) {
                 updateApiDirectLog('📧 No email, auto-generating...');
                 manualVerifyBtn.disabled = true;
                 manualVerifyBtn.textContent = '⏳ Gen email...';
-                
+
                 email = await generateEmailForManual();
                 if (!email) {
                     manualVerifyBtn.disabled = false;
@@ -1388,7 +1388,7 @@ function setupPanelHandlers() {
                     // Re-enable button
                     manualVerifyBtn.disabled = false;
                     manualVerifyBtn.textContent = '🚀 VERIFY (API)';
-                    
+
                     // Clear link input after verify (each verification_id is single-use)
                     manualSheeridLink.value = '';
 
@@ -1415,15 +1415,15 @@ function setupPanelHandlers() {
                             manualConsecutiveLimitErrors = 0; // Reset on success
                             updateApiDirectLog('📧 Email sent! Auto-checking in 5s...');
                             updateUIPanelStatus('📧 Manual API Verify: Check email!', 'info');
-                            
+
                             // Auto check email after 5 seconds
                             setTimeout(async () => {
                                 updateApiDirectLog('📬 Auto-checking email...');
                                 const emailLink = await checkEmailForLink(email);
-                                
+
                                 const linkResult = document.getElementById('manual-email-link-result');
                                 const linkEl = document.getElementById('manual-email-link');
-                                
+
                                 if (emailLink && linkResult && linkEl) {
                                     linkEl.href = emailLink;
                                     linkEl.textContent = emailLink.length > 60 ? emailLink.substring(0, 60) + '...' : emailLink;
@@ -1443,20 +1443,20 @@ function setupPanelHandlers() {
                     } else {
                         const errorMsg = (response.error || 'Unknown').toLowerCase();
                         const detailsStr = (response.details || '').toLowerCase();
-                        
+
                         // Check if 429 or limit error
-                        const isLimitError = errorMsg.includes('429') || 
-                            errorMsg.includes('limit') || 
+                        const isLimitError = errorMsg.includes('429') ||
+                            errorMsg.includes('limit') ||
                             errorMsg.includes('redeemed') ||
                             errorMsg.includes('rate') ||
                             detailsStr.includes('429') ||
                             detailsStr.includes('limit') ||
                             detailsStr.includes('redeemed');
-                        
+
                         if (isLimitError) {
                             manualConsecutiveLimitErrors++;
                             updateApiDirectLog(`🚫 Limit Error (${manualConsecutiveLimitErrors}/${MAX_MANUAL_CONSECUTIVE_LIMIT})`);
-                            
+
                             if (manualConsecutiveLimitErrors >= MAX_MANUAL_CONSECUTIVE_LIMIT) {
                                 updateApiDirectLog(`🛑 ${MAX_MANUAL_CONSECUTIVE_LIMIT} lỗi Limit liên tiếp!`);
                                 updateApiDirectLog('⚠️ Cần đổi IP/VPN trước khi tiếp tục!');
@@ -1465,7 +1465,7 @@ function setupPanelHandlers() {
                         } else {
                             manualConsecutiveLimitErrors = 0; // Reset for non-limit errors
                         }
-                        
+
                         updateApiDirectLog('❌ API Error: ' + (response.error || 'Unknown'));
                         if (response.details) {
                             // Try to parse error details
@@ -1486,8 +1486,8 @@ function setupPanelHandlers() {
             });
         });
     }
-    
-    
+
+
     // Manual Get Link button - calls ChatGPT API via content script
     const manualGetLinkBtn = document.getElementById('manual-get-link-btn');
     if (manualGetLinkBtn && manualSheeridLink) {
@@ -1495,12 +1495,12 @@ function setupPanelHandlers() {
             updateApiDirectLog('🔓 Getting verification link...');
             manualGetLinkBtn.disabled = true;
             manualGetLinkBtn.textContent = '⏳...';
-            
+
             // Check if current tab is on SheerID with verificationId
             chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
                 const currentUrl = tabs[0]?.url || '';
                 const currentTabId = tabs[0]?.id;
-                
+
                 // If already on SheerID with verificationId, just get URL from page
                 if (currentUrl.includes('services.sheerid.com') && currentUrl.includes('verificationId=')) {
                     manualSheeridLink.value = currentUrl;
@@ -1509,23 +1509,23 @@ function setupPanelHandlers() {
                     manualGetLinkBtn.textContent = '🔓 Get';
                     return;
                 }
-                
+
                 // If on ChatGPT page, use content script (has proper cookies context)
                 if (currentUrl.includes('chatgpt.com')) {
                     updateApiDirectLog('📡 Calling API via content script...');
-                    
+
                     chrome.tabs.sendMessage(currentTabId, {
                         action: 'createVerification'
                     }, (response) => {
                         manualGetLinkBtn.disabled = false;
                         manualGetLinkBtn.textContent = '🔓 Get';
-                        
+
                         if (chrome.runtime.lastError) {
                             updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
                             updateApiDirectLog('💡 Try refreshing the ChatGPT page');
                             return;
                         }
-                        
+
                         if (response && response.success && response.link) {
                             manualSheeridLink.value = response.link;
                             updateApiDirectLog('✅ Got verification link!');
@@ -1539,25 +1539,25 @@ function setupPanelHandlers() {
                     });
                     return;
                 }
-                
+
                 // Not on ChatGPT - try to find a ChatGPT tab
                 chrome.tabs.query({ url: '*://chatgpt.com/*' }, (chatgptTabs) => {
                     if (chatgptTabs && chatgptTabs.length > 0) {
                         const chatgptTab = chatgptTabs[0];
                         updateApiDirectLog(`📡 Found ChatGPT tab, calling API...`);
-                        
+
                         chrome.tabs.sendMessage(chatgptTab.id, {
                             action: 'createVerification'
                         }, (response) => {
                             manualGetLinkBtn.disabled = false;
                             manualGetLinkBtn.textContent = '🔓 Get';
-                            
+
                             if (chrome.runtime.lastError) {
                                 updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
                                 updateApiDirectLog('💡 Go to ChatGPT tab and refresh');
                                 return;
                             }
-                            
+
                             if (response && response.success && response.link) {
                                 manualSheeridLink.value = response.link;
                                 updateApiDirectLog('✅ Got verification link!');
@@ -1579,7 +1579,7 @@ function setupPanelHandlers() {
             });
         });
     }
-    
+
     // Manual Refresh Enrollment Status button - uses content script on ChatGPT page
     const manualRefreshBtn = document.getElementById('manual-refresh-btn');
     if (manualRefreshBtn) {
@@ -1587,7 +1587,7 @@ function setupPanelHandlers() {
             updateApiDirectLog('🔄 Refreshing enrollment status...');
             manualRefreshBtn.disabled = true;
             manualRefreshBtn.textContent = '⏳';
-            
+
             // Find ChatGPT tab to send message
             chrome.tabs.query({ url: '*://chatgpt.com/*' }, (chatgptTabs) => {
                 if (!chatgptTabs || chatgptTabs.length === 0) {
@@ -1607,20 +1607,20 @@ function setupPanelHandlers() {
                 }
                 sendRefreshMessage(chatgptTabs[0].id);
             });
-            
+
             function sendRefreshMessage(tabId) {
                 chrome.tabs.sendMessage(tabId, {
                     action: 'refreshEnrollment'
                 }, (response) => {
                     manualRefreshBtn.disabled = false;
                     manualRefreshBtn.textContent = '🔄';
-                    
+
                     if (chrome.runtime.lastError) {
                         updateApiDirectLog('❌ Error: ' + chrome.runtime.lastError.message);
                         updateApiDirectLog('💡 Try refreshing the ChatGPT page');
                         return;
                     }
-                    
+
                     if (response && response.success) {
                         updateApiDirectLog('✅ Enrollment status refreshed!');
                         if (response.data && response.data.verification_id) {
@@ -1634,7 +1634,7 @@ function setupPanelHandlers() {
             }
         });
     }
-    
+
     // Manual Generate Email button
     const manualGenEmailBtn = document.getElementById('manual-gen-email-btn');
     const manualEmailInput = document.getElementById('manual-verify-email');
@@ -1642,17 +1642,17 @@ function setupPanelHandlers() {
         manualGenEmailBtn.addEventListener('click', async () => {
             manualGenEmailBtn.disabled = true;
             manualGenEmailBtn.textContent = '⏳...';
-            
+
             const email = await generateEmailForManual();
             if (email) {
                 manualEmailInput.value = email;
             }
-            
+
             manualGenEmailBtn.disabled = false;
             manualGenEmailBtn.textContent = '📧 Gen';
         });
     }
-    
+
     // Manual Check Email button
     const manualCheckEmailBtn = document.getElementById('manual-check-email-btn');
     const manualEmailLinkResult = document.getElementById('manual-email-link-result');
@@ -1664,24 +1664,24 @@ function setupPanelHandlers() {
                 updateApiDirectLog('❌ Nhập email trước khi check!');
                 return;
             }
-            
+
             manualCheckEmailBtn.disabled = true;
             manualCheckEmailBtn.textContent = '⏳...';
-            
+
             const link = await checkEmailForLink(email);
-            
+
             if (link && manualEmailLinkResult && manualEmailLink) {
                 manualEmailLink.href = link;
                 manualEmailLink.textContent = link.length > 60 ? link.substring(0, 60) + '...' : link;
                 manualEmailLink.dataset.fullLink = link;
                 manualEmailLinkResult.style.display = 'block';
             }
-            
+
             manualCheckEmailBtn.disabled = false;
             manualCheckEmailBtn.textContent = '📬 Check';
         });
     }
-    
+
     // Copy Link button
     const manualCopyLinkBtn = document.getElementById('manual-copy-link-btn');
     if (manualCopyLinkBtn && manualEmailLink) {
@@ -1698,7 +1698,7 @@ function setupPanelHandlers() {
             });
         });
     }
-    
+
     // API Log Clear button
     const apiLogClearBtn = document.getElementById('api-log-clear-btn');
     if (apiLogClearBtn) {
@@ -1709,7 +1709,33 @@ function setupPanelHandlers() {
             }
         });
     }
-    
+
+    // Manual API Section Collapsible Toggle
+    const manualApiHeader = document.getElementById('manual-api-header');
+    const manualApiContent = document.getElementById('manual-api-content');
+    const manualApiToggle = document.getElementById('manual-api-toggle');
+
+    if (manualApiHeader && manualApiContent && manualApiToggle) {
+        // Load saved state
+        chrome.storage.local.get(['manual-api-expanded'], (result) => {
+            if (result['manual-api-expanded']) {
+                manualApiContent.style.display = 'block';
+                manualApiToggle.style.transform = 'rotate(180deg)';
+            }
+        });
+
+        // Toggle on click
+        manualApiHeader.addEventListener('click', () => {
+            const isHidden = manualApiContent.style.display === 'none';
+
+            manualApiContent.style.display = isHidden ? 'block' : 'none';
+            manualApiToggle.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+
+            // Save state
+            chrome.storage.local.set({ 'manual-api-expanded': isHidden });
+        });
+    }
+
     // Initial update of manual veteran display
     updateManualVeteranDisplay();
 }
