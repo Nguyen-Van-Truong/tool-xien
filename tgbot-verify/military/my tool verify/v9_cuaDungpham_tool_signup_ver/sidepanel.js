@@ -2247,6 +2247,21 @@ function setupPanelHandlers() {
                         // Generate single random veteran for this iteration
                         const randomLine = generateRandomVeteranLine();
                         const parts = randomLine.split('|');
+
+                        // Month name to number mapping
+                        const MONTH_TO_NUM = {
+                            "January": "01", "February": "02", "March": "03", "April": "04",
+                            "May": "05", "June": "06", "July": "07", "August": "08",
+                            "September": "09", "October": "10", "November": "11", "December": "12"
+                        };
+
+                        const monthNum = MONTH_TO_NUM[parts[3]] || "01";
+                        const dayPadded = String(parts[4]).padStart(2, '0');
+                        const birthDate = `${parts[5]}-${monthNum}-${dayPadded}`;
+
+                        // Discharge date: random day in 2025
+                        const dischargeDate = "2025-12-01";
+
                         const veteranData = {
                             first: parts[0],
                             last: parts[1],
@@ -2254,6 +2269,8 @@ function setupPanelHandlers() {
                             month: parts[3],
                             day: parts[4],
                             year: parts[5],
+                            birthDate: birthDate,       // Add for API
+                            dischargeDate: dischargeDate, // Add for API
                             original: randomLine
                         };
 
