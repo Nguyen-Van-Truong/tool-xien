@@ -677,7 +677,8 @@ function setupPanelHandlers() {
                 // Save new veterans data to BOTH active and backup storage
                 chrome.storage.local.set({
                     'veterans-data-list': content,
-                    'veterans-data-list-file': content  // Backup for restoring when switching modes
+                    'veterans-data-list-file': content,  // Backup for restoring when switching modes
+                    'random-veteran-mode': false  // Clear random mode when file is loaded
                 });
 
                 // Show data count
