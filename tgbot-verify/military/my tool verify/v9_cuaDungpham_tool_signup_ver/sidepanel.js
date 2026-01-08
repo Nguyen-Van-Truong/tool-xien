@@ -2207,7 +2207,7 @@ function setupPanelHandlers() {
         }
     }
 
-    // Start Auto Button - loop: get link → random → verify → repeat
+    // Start Auto Button - Use same flow as main Start button but with random data
     const randomStartAutoBtn = document.getElementById('random-start-auto-btn');
     const randomStopBtn = document.getElementById('random-stop-btn');
 
@@ -2217,116 +2217,185 @@ function setupPanelHandlers() {
 
             isRandomAutoRunning = true;
             updateRandomButtonStates();
-            randomLog('▶️ Starting Auto Random Verify Loop...');
-            randomLog('   Click Stop to end');
+            randomLog('▶️ Starting Auto Random Verify (uses main flow)...');
+            randomLog('   This will auto-navigate and login like main Start button');
 
-            // Auto-loop
-            while (isRandomAutoRunning) {
-                try {
-                    // Step 1: Get verification link
-                    randomLog('🔓 Getting verification link...');
+            // Get ChatGPT account from storage
+            chrome.storage.local.get(['chatgpt-account'], async (result) => {
+                const account = result['chatgpt-account'];
 
-                    const linkResult = await new Promise((resolve) => {
-                        chrome.tabs.query({ url: '*://chatgpt.com/*' }, (tabs) => {
-                            if (!tabs || tabs.length === 0) {
-                                resolve({ success: false, error: 'No ChatGPT tab found. Please open chatgpt.com' });
-                                return;
-                            }
-                            chrome.tabs.sendMessage(tabs[0].id, { action: 'createVerification' }, resolve);
-                        });
-                    });
+                // Generate random veterans data (one at a time, loop will generate more)
+                const generateRandomVeteranLine = () => {
+                    const FIRST_NAMES = ['James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew', 'Anthony', 'Mark', 'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua', 'Kenneth', 'Kevin', 'Brian', 'George', 'Timothy', 'Ronald', 'Edward', 'Jason', 'Jeffrey', 'Ryan'];
+                    const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White', 'Harris', 'Clark', 'Lewis', 'Robinson', 'Walker'];
+                    const BRANCHES = ['Army', 'Air Force', 'Navy', 'Marine Corps', 'Coast Guard'];
+                    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-                    if (!isRandomAutoRunning) break;
+                    const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+                    const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+                    const branch = BRANCHES[Math.floor(Math.random() * BRANCHES.length)];
+                    const month = MONTHS[Math.floor(Math.random() * MONTHS.length)];
+                    const day = Math.floor(Math.random() * 28) + 1;
+                    const year = Math.floor(Math.random() * (1985 - 1950)) + 1950;
 
-                    if (!linkResult || !linkResult.success || !linkResult.link) {
-                        randomLog('❌ Failed to get link: ' + (linkResult?.error || 'Unknown'));
-                        randomStats.processed++;
-                        randomStats.failed++;
-                        updateRandomStats();
-                        await new Promise(r => setTimeout(r, 3000));
-                        continue;
-                    }
+                    return `${firstName.toUpperCase()}|${lastName.toUpperCase()}|${branch}|${month}|${day}|${year}`;
+                };
 
-                    const verificationId = linkResult.verificationId || linkResult.link.match(/verificationId=([a-f0-9]+)/i)?.[1];
-                    if (!verificationId) {
-                        randomLog('❌ No verificationId in link');
-                        randomStats.processed++;
-                        randomStats.failed++;
-                        updateRandomStats();
-                        continue;
-                    }
+                // Main loop
+                while (isRandomAutoRunning) {
+                    try {
+                        // Generate single random veteran for this iteration
+                        const randomLine = generateRandomVeteranLine();
+                        const parts = randomLine.split('|');
+                        const veteranData = {
+                            first: parts[0],
+                            last: parts[1],
+                            branch: parts[2],
+                            month: parts[3],
+                            day: parts[4],
+                            year: parts[5],
+                            original: randomLine
+                        };
 
-                    randomLog(`✅ Got link (ID: ...${verificationId.slice(-8)})`);
-
-                    if (!isRandomAutoRunning) break;
-
-                    // Step 2: Verify with random data
-                    randomLog('🎲 Verifying with random veteran...');
-
-                    const verifyResult = await new Promise((resolve) => {
-                        chrome.runtime.sendMessage({
-                            action: 'randomSheeridVerify',
-                            verificationId: verificationId,
-                            email: '' // Will auto-generate
-                        }, resolve);
-                    });
-
-                    if (!isRandomAutoRunning) break;
-
-                    randomStats.processed++;
-
-                    if (verifyResult && verifyResult.success) {
-                        const vet = verifyResult.veteranData;
-                        const step = verifyResult.result?.currentStep || 'unknown';
-
-                        if (step === 'success' || step === 'emailLoop') {
-                            randomStats.success++;
-                            randomLog(`✅ Success! ${vet.firstName} ${vet.lastName} (${vet.branch})`);
-                            if (step === 'emailLoop') {
-                                randomLog(`📧 Email: ${vet.email}`);
-                            }
-                        } else if (step === 'docUpload') {
-                            randomStats.failed++;
-                            randomLog(`📄 Doc required - ${vet.firstName} ${vet.lastName}`);
-                        } else {
-                            randomStats.failed++;
-                            randomLog(`❓ Unknown step: ${step}`);
-                        }
+                        randomLog(`🎲 Generated: ${veteranData.first} ${veteranData.last} (${veteranData.branch})`);
 
                         // Update preview
-                        document.getElementById('random-preview-name').textContent = `👤 Name: ${vet.firstName} ${vet.lastName}`;
-                        document.getElementById('random-preview-branch').textContent = `🏛️ Branch: ${vet.branch}`;
-                        document.getElementById('random-preview-birth').textContent = `📅 Birth: ${vet.birthDate}`;
-                        document.getElementById('random-preview-discharge').textContent = `📅 Discharge: ${vet.dischargeDate}`;
+                        document.getElementById('random-preview-name').textContent = `👤 Name: ${veteranData.first} ${veteranData.last}`;
+                        document.getElementById('random-preview-branch').textContent = `🏛️ Branch: ${veteranData.branch}`;
+                        document.getElementById('random-preview-birth').textContent = `📅 Birth: ${veteranData.month} ${veteranData.day}, ${veteranData.year}`;
 
-                        // Store for Check Email
-                        lastRandomVerifyEmail = vet.email;
-                        document.getElementById('random-verify-email').value = vet.email;
-                    } else {
+                        // Save to storage and trigger verification
+                        await new Promise((resolve) => {
+                            chrome.storage.local.set({
+                                'chatgpt-account': account,
+                                'veterans-data-array': [veteranData],
+                                'veterans-data-list': randomLine,
+                                'veterans-current-index': 0,
+                                'veterans-is-running': true,
+                                'veterans-is-random-mode': true, // Mark as random mode
+                                'veterans-stats': { processed: 0, success: 0, failed: 0, limit: 0 },
+                                'veterans-consecutive-limit-errors': 0
+                            }, resolve);
+                        });
+
+                        // Find or create ChatGPT tab
+                        const tabs = await new Promise(resolve => {
+                            chrome.tabs.query({ url: '*://chatgpt.com/*' }, resolve);
+                        });
+
+                        let targetTab;
+                        if (tabs && tabs.length > 0) {
+                            targetTab = tabs[0];
+                            randomLog('📍 Using existing ChatGPT tab');
+                        } else {
+                            // Create new tab
+                            randomLog('🌐 Creating new ChatGPT tab...');
+                            targetTab = await new Promise(resolve => {
+                                chrome.tabs.create({ url: 'https://chatgpt.com' }, resolve);
+                            });
+                            // Wait for tab to load
+                            await new Promise(r => setTimeout(r, 5000));
+                        }
+
+                        if (!isRandomAutoRunning) break;
+
+                        // Save tab ID
+                        await new Promise(resolve => {
+                            chrome.storage.local.set({ 'veterans-active-tab-id': targetTab.id }, resolve);
+                        });
+
+                        // Send startVerification message
+                        randomLog('🚀 Starting verification flow...');
+
+                        const verifyResult = await new Promise((resolve) => {
+                            chrome.tabs.sendMessage(targetTab.id, {
+                                action: 'startVerification',
+                                account: account,
+                                data: [veteranData],
+                                tabId: targetTab.id,
+                                isRandomMode: true // Tell content script this is random mode
+                            }, (response) => {
+                                if (chrome.runtime.lastError) {
+                                    resolve({ success: false, error: chrome.runtime.lastError.message });
+                                } else {
+                                    resolve(response || { success: true });
+                                }
+                            });
+                        });
+
+                        if (!isRandomAutoRunning) break;
+
+                        // Wait for verification to complete (check storage for result)
+                        randomLog('⏳ Waiting for verification result...');
+                        let waitCount = 0;
+                        const MAX_WAIT = 60; // 60 seconds max
+
+                        while (waitCount < MAX_WAIT && isRandomAutoRunning) {
+                            await new Promise(r => setTimeout(r, 1000));
+                            waitCount++;
+
+                            // Check if verification completed
+                            const status = await new Promise(resolve => {
+                                chrome.storage.local.get(['veterans-is-running', 'veterans-stats', 'veterans-last-result'], resolve);
+                            });
+
+                            if (!status['veterans-is-running']) {
+                                // Verification finished
+                                const stats = status['veterans-stats'] || {};
+                                const lastResult = status['veterans-last-result'];
+
+                                randomStats.processed++;
+                                if (stats.success > 0 || (lastResult && lastResult.success)) {
+                                    randomStats.success++;
+                                    randomLog(`✅ Success! ${veteranData.first} ${veteranData.last}`);
+                                    if (lastResult && lastResult.email) {
+                                        randomLog(`📧 Email: ${lastResult.email}`);
+                                        lastRandomVerifyEmail = lastResult.email;
+                                        document.getElementById('random-verify-email').value = lastResult.email;
+                                    }
+                                } else {
+                                    randomStats.failed++;
+                                    const errorMsg = lastResult?.error || lastResult?.status || 'Unknown';
+                                    randomLog(`❌ Failed: ${errorMsg}`);
+                                }
+                                updateRandomStats();
+                                break;
+                            }
+                        }
+
+                        if (waitCount >= MAX_WAIT) {
+                            randomLog('⚠️ Timeout waiting for result');
+                            randomStats.processed++;
+                            randomStats.failed++;
+                            updateRandomStats();
+                            // Stop the main flow
+                            chrome.storage.local.set({ 'veterans-is-running': false });
+                        }
+
+                        if (!isRandomAutoRunning) break;
+
+                        // Delay before next iteration
+                        randomLog('⏳ Next in 3s...');
+                        await new Promise(r => setTimeout(r, 3000));
+
+                    } catch (err) {
+                        randomStats.processed++;
                         randomStats.failed++;
-                        randomLog('❌ Verify failed: ' + (verifyResult?.error || 'Unknown'));
+                        updateRandomStats();
+                        randomLog('❌ Error: ' + err.message);
+                        await new Promise(r => setTimeout(r, 3000));
                     }
-
-                    updateRandomStats();
-
-                    // Delay before next iteration
-                    if (isRandomAutoRunning) {
-                        randomLog('⏳ Next in 2s...');
-                        await new Promise(r => setTimeout(r, 2000));
-                    }
-
-                } catch (err) {
-                    randomStats.processed++;
-                    randomStats.failed++;
-                    updateRandomStats();
-                    randomLog('❌ Error: ' + err.message);
-                    await new Promise(r => setTimeout(r, 3000));
                 }
-            }
 
-            randomLog('⏹️ Auto loop stopped');
-            isRandomAutoRunning = false;
-            updateRandomButtonStates();
+                randomLog('⏹️ Auto loop stopped');
+                isRandomAutoRunning = false;
+                updateRandomButtonStates();
+                // Clean up
+                chrome.storage.local.set({
+                    'veterans-is-running': false,
+                    'veterans-is-random-mode': false
+                });
+            });
         });
     }
 

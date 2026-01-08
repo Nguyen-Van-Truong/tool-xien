@@ -616,10 +616,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 if (!step1Res.ok) {
                     const errText = await step1Res.text();
-                    console.log('❌ Step 1 failed:', errText);
+                    console.log('❌ Step 1 failed:', step1Res.status, errText);
+
+                    // Parse error details
+                    let errorDetails = errText;
+                    try {
+                        const errJson = JSON.parse(errText);
+                        errorDetails = errJson.errorIds?.join(', ') || errJson.message || errText;
+                    } catch (e) { }
+
                     sendResponse({
                         success: false,
-                        error: `Step 1 failed: ${step1Res.status}`,
+                        error: `Step 1 failed (${step1Res.status}): ${errorDetails}`,
                         details: errText,
                         veteranData: { firstName, lastName, branch, birthDate, dischargeDate, email: verifyEmail }
                     });
@@ -685,10 +693,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                 if (!step2Res.ok) {
                     const errText = await step2Res.text();
-                    console.log('❌ Step 2 failed:', errText);
+                    console.log('❌ Step 2 failed:', step2Res.status, errText);
+
+                    // Parse error details
+                    let errorDetails = errText;
+                    try {
+                        const errJson = JSON.parse(errText);
+                        errorDetails = errJson.errorIds?.join(', ') || errJson.message || errText;
+                        // Common errors: verificationLimit, notApproved, noSourcesAvailable
+                    } catch (e) { }
+
                     sendResponse({
                         success: false,
-                        error: `Step 2 failed: ${step2Res.status}`,
+                        error: `Step 2 failed (${step2Res.status}): ${errorDetails}`,
                         details: errText,
                         veteranData: { firstName, lastName, branch, birthDate, dischargeDate, email: verifyEmail }
                     });
