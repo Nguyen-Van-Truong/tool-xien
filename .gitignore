@@ -1,2 +1,9 @@
 *.exe
 *.zip
+*.rar
+__pycache__/
+*.pyc
+*.pyo
+accounts.txt
+*.log
+.env

@@ -513,52 +513,6 @@ function updateUIOnStop() {
 
 // Setup panel event handlers
 function setupPanelHandlers() {
-    // =========================================
-    // RANDOM VETERAN MODE TOGGLE
-    // =========================================
-    const randomVeteranModeToggle = document.getElementById('random-veteran-mode-toggle');
-    if (randomVeteranModeToggle) {
-        // Load saved state
-        chrome.storage.local.get(['random-veteran-mode'], (result) => {
-            randomVeteranModeToggle.checked = result['random-veteran-mode'] || false;
-            updateStartButtonForRandomMode();
-        });
-
-        // Handle toggle change
-        randomVeteranModeToggle.addEventListener('change', () => {
-            const enabled = randomVeteranModeToggle.checked;
-            chrome.storage.local.set({ 'random-veteran-mode': enabled }, () => {
-                console.log('🎲 Random Veteran Mode:', enabled ? 'ON' : 'OFF');
-                updateStartButtonForRandomMode();
-            });
-        });
-    }
-
-    // Update START button based on Random Mode state
-    function updateStartButtonForRandomMode() {
-        const startBtn = document.getElementById('veterans-start-btn');
-        const randomModeEnabled = randomVeteranModeToggle?.checked || false;
-
-        if (!startBtn) return;
-
-        // If Random Mode is enabled, only need EMAILS loaded (no VETERANS data required)
-        chrome.storage.local.get(['chatgpt-accounts-array', 'veterans-data-list', 'veterans-is-running'], (result) => {
-            const hasAccounts = result['chatgpt-accounts-array'] && result['chatgpt-accounts-array'].length > 0;
-            const hasData = result['veterans-data-list'] && result['veterans-data-list'].trim().length > 0;
-            const isRunning = result['veterans-is-running'] || false;
-
-            if (isRunning) {
-                startBtn.disabled = true;
-            } else if (randomModeEnabled) {
-                // Random mode: only need accounts
-                startBtn.disabled = !hasAccounts;
-            } else {
-                // Normal mode: need both accounts and veteran data
-                startBtn.disabled = !hasAccounts || !hasData;
-            }
-        });
-    }
-
     // Clear Log button
     const clearLogBtn = document.getElementById('veterans-clear-log-btn');
     if (clearLogBtn) {
@@ -720,8 +674,11 @@ function setupPanelHandlers() {
                 stats = { processed: 0, success: 0, failed: 0 };
                 isRunning = false;
 
-                // Save new veterans data to storage
-                chrome.storage.local.set({ 'veterans-data-list': content });
+                // Save new veterans data to BOTH active and backup storage
+                chrome.storage.local.set({
+                    'veterans-data-list': content,
+                    'veterans-data-list-file': content  // Backup for restoring when switching modes
+                });
 
                 // Show data count
                 const dataInfo = document.getElementById('veterans-data-info');
@@ -730,6 +687,9 @@ function setupPanelHandlers() {
                     dataCount.textContent = validData.length;
                     dataInfo.classList.add('show');
                 }
+
+                // Update data source indicator
+                updateDataSourceIndicator();
 
                 // Update range info after loading data
                 updateRangeInfo();
@@ -850,8 +810,19 @@ function setupPanelHandlers() {
                     }
                     dataList = randomDataLines.join('\n');
 
-                    // Save random data to storage temporarily
-                    chrome.storage.local.set({ 'veterans-data-list': dataList });
+                    // Save random data to storage (keeps file backup intact)
+                    chrome.storage.local.set({ 'veterans-data-list': dataList }, () => {
+                        // Update data source indicator
+                        if (window.updateDataSourceIndicator) {
+                            window.updateDataSourceIndicator();
+                        }
+
+                        // Update veterans count display
+                        const dataCount = document.getElementById('veterans-data-count');
+                        if (dataCount) {
+                            dataCount.textContent = '100';
+                        }
+                    });
                     updateUIPanelStatus('🎲 Generated 100 random veterans (120+ first names, 200+ last names)', 'success');
                 } else {
                     // Normal mode: require veterans data
@@ -2136,7 +2107,7 @@ function setupPanelHandlers() {
                 randomLog(`❌ Error: ${err.message}`);
             } finally {
                 randomVerifyBtn.disabled = false;
-                randomVerifyBtn.textContent = '🎲 VERIFY RANDOM';
+                randomVerifyBtn.textContent = '🎲 VERIFY 1 (Manual)';
             }
         });
     }
@@ -2207,6 +2178,171 @@ function setupPanelHandlers() {
             if (logEl) logEl.value = 'Cleared. Ready for random verify...';
         });
     }
+
+    // =========================================
+    // RANDOM VERIFY AUTO-LOOP (Standalone)
+    // =========================================
+    let isRandomAutoRunning = false;
+    let randomStats = { processed: 0, success: 0, failed: 0 };
+
+    function updateRandomStats() {
+        const pEl = document.getElementById('random-stats-processed');
+        const sEl = document.getElementById('random-stats-success');
+        const fEl = document.getElementById('random-stats-failed');
+        if (pEl) pEl.textContent = randomStats.processed;
+        if (sEl) sEl.textContent = randomStats.success;
+        if (fEl) fEl.textContent = randomStats.failed;
+    }
+
+    function updateRandomButtonStates() {
+        const startBtn = document.getElementById('random-start-auto-btn');
+        const stopBtn = document.getElementById('random-stop-btn');
+        if (startBtn) {
+            startBtn.disabled = isRandomAutoRunning;
+            startBtn.style.opacity = isRandomAutoRunning ? '0.5' : '1';
+        }
+        if (stopBtn) {
+            stopBtn.disabled = !isRandomAutoRunning;
+            stopBtn.style.opacity = isRandomAutoRunning ? '1' : '0.5';
+        }
+    }
+
+    // Start Auto Button - loop: get link → random → verify → repeat
+    const randomStartAutoBtn = document.getElementById('random-start-auto-btn');
+    const randomStopBtn = document.getElementById('random-stop-btn');
+
+    if (randomStartAutoBtn) {
+        randomStartAutoBtn.addEventListener('click', async () => {
+            if (isRandomAutoRunning) return;
+
+            isRandomAutoRunning = true;
+            updateRandomButtonStates();
+            randomLog('▶️ Starting Auto Random Verify Loop...');
+            randomLog('   Click Stop to end');
+
+            // Auto-loop
+            while (isRandomAutoRunning) {
+                try {
+                    // Step 1: Get verification link
+                    randomLog('🔓 Getting verification link...');
+
+                    const linkResult = await new Promise((resolve) => {
+                        chrome.tabs.query({ url: '*://chatgpt.com/*' }, (tabs) => {
+                            if (!tabs || tabs.length === 0) {
+                                resolve({ success: false, error: 'No ChatGPT tab found. Please open chatgpt.com' });
+                                return;
+                            }
+                            chrome.tabs.sendMessage(tabs[0].id, { action: 'createVerification' }, resolve);
+                        });
+                    });
+
+                    if (!isRandomAutoRunning) break;
+
+                    if (!linkResult || !linkResult.success || !linkResult.link) {
+                        randomLog('❌ Failed to get link: ' + (linkResult?.error || 'Unknown'));
+                        randomStats.processed++;
+                        randomStats.failed++;
+                        updateRandomStats();
+                        await new Promise(r => setTimeout(r, 3000));
+                        continue;
+                    }
+
+                    const verificationId = linkResult.verificationId || linkResult.link.match(/verificationId=([a-f0-9]+)/i)?.[1];
+                    if (!verificationId) {
+                        randomLog('❌ No verificationId in link');
+                        randomStats.processed++;
+                        randomStats.failed++;
+                        updateRandomStats();
+                        continue;
+                    }
+
+                    randomLog(`✅ Got link (ID: ...${verificationId.slice(-8)})`);
+
+                    if (!isRandomAutoRunning) break;
+
+                    // Step 2: Verify with random data
+                    randomLog('🎲 Verifying with random veteran...');
+
+                    const verifyResult = await new Promise((resolve) => {
+                        chrome.runtime.sendMessage({
+                            action: 'randomSheeridVerify',
+                            verificationId: verificationId,
+                            email: '' // Will auto-generate
+                        }, resolve);
+                    });
+
+                    if (!isRandomAutoRunning) break;
+
+                    randomStats.processed++;
+
+                    if (verifyResult && verifyResult.success) {
+                        const vet = verifyResult.veteranData;
+                        const step = verifyResult.result?.currentStep || 'unknown';
+
+                        if (step === 'success' || step === 'emailLoop') {
+                            randomStats.success++;
+                            randomLog(`✅ Success! ${vet.firstName} ${vet.lastName} (${vet.branch})`);
+                            if (step === 'emailLoop') {
+                                randomLog(`📧 Email: ${vet.email}`);
+                            }
+                        } else if (step === 'docUpload') {
+                            randomStats.failed++;
+                            randomLog(`📄 Doc required - ${vet.firstName} ${vet.lastName}`);
+                        } else {
+                            randomStats.failed++;
+                            randomLog(`❓ Unknown step: ${step}`);
+                        }
+
+                        // Update preview
+                        document.getElementById('random-preview-name').textContent = `👤 Name: ${vet.firstName} ${vet.lastName}`;
+                        document.getElementById('random-preview-branch').textContent = `🏛️ Branch: ${vet.branch}`;
+                        document.getElementById('random-preview-birth').textContent = `📅 Birth: ${vet.birthDate}`;
+                        document.getElementById('random-preview-discharge').textContent = `📅 Discharge: ${vet.dischargeDate}`;
+
+                        // Store for Check Email
+                        lastRandomVerifyEmail = vet.email;
+                        document.getElementById('random-verify-email').value = vet.email;
+                    } else {
+                        randomStats.failed++;
+                        randomLog('❌ Verify failed: ' + (verifyResult?.error || 'Unknown'));
+                    }
+
+                    updateRandomStats();
+
+                    // Delay before next iteration
+                    if (isRandomAutoRunning) {
+                        randomLog('⏳ Next in 2s...');
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+
+                } catch (err) {
+                    randomStats.processed++;
+                    randomStats.failed++;
+                    updateRandomStats();
+                    randomLog('❌ Error: ' + err.message);
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+            }
+
+            randomLog('⏹️ Auto loop stopped');
+            isRandomAutoRunning = false;
+            updateRandomButtonStates();
+        });
+    }
+
+    // Stop Button
+    if (randomStopBtn) {
+        randomStopBtn.addEventListener('click', () => {
+            if (isRandomAutoRunning) {
+                randomLog('⏹️ Stopping...');
+                isRandomAutoRunning = false;
+                updateRandomButtonStates();
+            }
+        });
+    }
+
+    // Initialize button states
+    updateRandomButtonStates();
 }
 
 // Load saved data into panel

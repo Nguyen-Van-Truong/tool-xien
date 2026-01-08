@@ -401,20 +401,6 @@
                 <div class="veterans-data-info" id="veterans-data-info">
                     <span id="veterans-data-count">0</span> data veterans loaded
                 </div>
-
-                <!-- RANDOM VETERAN MODE TOGGLE -->
-                <div
-                    style="margin-top: 12px; padding: 10px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3);">
-                    <label style="display: flex; align-items: center; cursor: pointer; gap: 10px;">
-                        <input type="checkbox" id="random-veteran-mode-toggle"
-                            style="width: 18px; height: 18px; accent-color: #8b5cf6; cursor: pointer;" />
-                        <div style="flex: 1;">
-                            <div style="font-size: 12px; font-weight: 700; color: #c4b5fd;">🎲 Random Veteran Mode</div>
-                            <div style="font-size: 9px; color: #a1a1aa; margin-top: 2px;">Tự tạo thông tin random thay
-                                vì dùng data từ file</div>
-                        </div>
-                    </label>
-                </div>
             </div>
 
             <div class="veterans-form-section">
@@ -589,11 +575,34 @@
                         </button>
                     </div>
 
-                    <!-- Action buttons -->
+                    <!-- AUTO MODE: Start/Stop buttons -->
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                        <button id="random-start-auto-btn" class="veterans-btn"
+                            style="flex: 1; padding: 10px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; font-weight: 700; font-size: 11px;">
+                            ▶️ Start Auto
+                        </button>
+                        <button id="random-stop-btn" class="veterans-btn" disabled
+                            style="flex: 1; padding: 10px; background: rgba(239, 68, 68, 0.3); color: #f87171; font-weight: 700; font-size: 11px; border: 1px solid rgba(239, 68, 68, 0.5);">
+                            ⏹️ Stop
+                        </button>
+                    </div>
+
+                    <!-- Random Stats -->
+                    <div id="random-stats-display"
+                        style="margin-bottom: 8px; padding: 6px 8px; background: rgba(0,0,0,0.3); border-radius: 4px; font-size: 10px; display: flex; justify-content: space-between;">
+                        <span style="color: #a1a1aa;">Processed: <span id="random-stats-processed"
+                                style="color: #c4b5fd;">0</span></span>
+                        <span style="color: #a1a1aa;">Success: <span id="random-stats-success"
+                                style="color: #34d399;">0</span></span>
+                        <span style="color: #a1a1aa;">Failed: <span id="random-stats-failed"
+                                style="color: #f87171;">0</span></span>
+                    </div>
+
+                    <!-- MANUAL: Single verify button -->
                     <div style="display: flex; gap: 6px; margin-bottom: 8px;">
                         <button id="random-verify-btn" class="veterans-btn"
                             style="flex: 1; padding: 10px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; font-weight: 700; font-size: 11px;">
-                            🎲 VERIFY RANDOM
+                            🎲 VERIFY 1 (Manual)
                         </button>
                         <button id="random-check-email-btn" class="veterans-btn"
                             style="padding: 10px 12px; background: rgba(234, 179, 8, 0.3); color: #fbbf24; font-size: 11px; border: 1px solid rgba(234, 179, 8, 0.5);">
