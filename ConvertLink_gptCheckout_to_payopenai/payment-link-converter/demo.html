@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Link Converter - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-convert {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-convert:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-copy {
+            background: #10a37f;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #0d8c6c;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 163, 127, 0.4);
+        }
+
+        .btn-copy:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.error {
+            background: #fee;
+            border: 2px solid #fcc;
+        }
+
+        .result.success {
+            background: #efe;
+            border: 2px solid #cfc;
+        }
+
+        .result-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .result-url {
+            word-break: break-all;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .error-message {
+            color: #c33;
+            font-size: 14px;
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .examples h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .example-item {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .example-item:hover {
+            background: #f0f0f0;
+        }
+
+        .example-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .example-value {
+            color: #666;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Payment Link Converter</h1>
+        <p class="subtitle">Chuyển đổi link từ chatgpt.com/checkout sang pay.openai.com</p>
+
+        <div class="input-group">
+            <label for="input">Nhập URL hoặc Token:</label>
+            <input 
+                type="text" 
+                id="input" 
+                placeholder="https://chatgpt.com/checkout/openai_llc/cs_live_... hoặc cs_live_..."
+            >
+        </div>
+
+        <div class="button-group">
+            <button class="btn-convert" onclick="convert()">✨ Chuyển đổi</button>
+            <button class="btn-copy" id="copyBtn" onclick="copyToClipboard()" disabled>📋 Copy</button>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div class="examples">
+            <h3>📝 Ví dụ (click để thử):</h3>
+            <div class="example-item" onclick="useExample('url')">
+                <div class="example-label">URL đầy đủ:</div>
+                <div class="example-value">https://chatgpt.com/checkout/openai_llc/cs_live_a16oz4K0IOSjCshbxoxqojU3dSa34e9t9v2KBYagzhZT834mEPLscVl9y7</div>
+            </div>
+            <div class="example-item" onclick="useExample('token')">
+                <div class="example-label">Chỉ token:</div>
+                <div class="example-value">cs_live_a16oz4K0IOSjCshbxoxqojU3dSa34e9t9v2KBYagzhZT834mEPLscVl9y7</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="converter.js"></script>
+    <script>
+        let convertedUrl = '';
+
+        function convert() {
+            const input = document.getElementById('input').value.trim();
+            const resultDiv = document.getElementById('result');
+            const copyBtn = document.getElementById('copyBtn');
+
+            if (!input) {
+                showResult('error', 'Vui lòng nhập URL hoặc token');
+                copyBtn.disabled = true;
+                return;
+            }
+
+            const result = PaymentLinkConverter.convertCheckoutLink(input);
+
+            if (result.success) {
+                convertedUrl = result.url;
+                showResult('success', `
+                    <div class="result-label">✅ Token:</div>
+                    <div class="result-url" style="margin-bottom: 15px;">${result.token}</div>
+                    <div class="result-label">🔗 Pay URL:</div>
+                    <div class="result-url">${result.url}</div>
+                `);
+                copyBtn.disabled = false;
+            } else {
+                showResult('error', `<div class="error-message">❌ ${result.error}</div>`);
+                copyBtn.disabled = true;
+            }
+        }
+
+        function showResult(type, content) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result show ' + type;
+            resultDiv.innerHTML = content;
+        }
+
+        function copyToClipboard() {
+            if (!convertedUrl) return;
+
+            navigator.clipboard.writeText(convertedUrl).then(() => {
+                showToast('✅ Đã copy vào clipboard!');
+            }).catch(() => {
+                showToast('❌ Không thể copy');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function useExample(type) {
+            const input = document.getElementById('input');
+            if (type === 'url') {
+                input.value = 'https://chatgpt.com/checkout/openai_llc/cs_live_a16oz4K0IOSjCshbxoxqojU3dSa34e9t9v2KBYagzhZT834mEPLscVl9y7';
+            } else {
+                input.value = 'cs_live_a16oz4K0IOSjCshbxoxqojU3dSa34e9t9v2KBYagzhZT834mEPLscVl9y7';
+            }
+            convert();
+        }
+
+        // Enter to convert
+        document.getElementById('input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                convert();
+            }
+        });
+    </script>
+</body>
+</html>

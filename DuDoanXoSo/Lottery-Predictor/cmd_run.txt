@@ -1,0 +1,2 @@
+cd DuDoanXoSo\Lottery-Predictor
+python main.py

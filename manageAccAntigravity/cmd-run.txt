@@ -1,0 +1,73 @@
+===============================================================
+        ANTIGRAVITY TOOLS - LỆNH WINDOWS
+===============================================================
+
+=== CLAUDE CODE CLI ===
+# Mở PowerShell hoặc CMD và chạy:
+
+set ANTHROPIC_API_KEY=sk-antigravity
+set ANTHROPIC_BASE_URL=http://127.0.0.1:8045
+claude
+
+# Hoặc 1 dòng (PowerShell):
+$env:ANTHROPIC_API_KEY="sk-antigravity"; $env:ANTHROPIC_BASE_URL="http://127.0.0.1:8045"; claude
+
+
+=== CODEX CLI ===
+set OPENAI_API_KEY=sk-antigravity
+set OPENAI_BASE_URL=http://127.0.0.1:8045/v1
+codex
+
+
+=== PYTHON OPENAI SDK ===
+# Cài đặt:
+pip install openai
+
+# Code mẫu:
+python -c "import openai; c=openai.OpenAI(api_key='sk-antigravity',base_url='http://127.0.0.1:8045/v1'); print(c.chat.completions.create(model='gemini-3-flash',messages=[{'role':'user','content':'Hello'}]).choices[0].message.content)"
+
+
+=== CURL TEST ===
+# Kiểm tra proxy hoạt động:
+curl http://127.0.0.1:8045/v1/models
+
+# Gửi request:
+curl -X POST http://127.0.0.1:8045/v1/chat/completions -H "Content-Type: application/json" -H "Authorization: Bearer sk-antigravity" -d "{\"model\":\"gemini-3-flash\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}"
+
+
+=== ENVIRONMENT VARIABLES (Permanent) ===
+# Đặt biến môi trường vĩnh viễn trong PowerShell (Admin):
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-antigravity", "User")
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "http://127.0.0.1:8045", "User")
+
+
+=== MODELS AVAILABLE ===
+gemini-3-flash          - Nhanh, miễn phí
+gemini-3-pro            - Cân bằng  
+gemini-3-pro-high       - Thinking model (cao)
+gemini-3-pro-low        - Thinking model (thấp)
+gemini-3-pro-image      - Tạo ảnh Imagen 3
+claude-sonnet-4         - Claude Sonnet
+claude-opus-4-5         - Claude Opus
+
+
+=== THÔNG TIN KẾT NỐI ===
+Base URL:     http://127.0.0.1:8045
+API Key:      sk-antigravity (hoặc bất kỳ)
+Port mặc định: 8045
+
+Endpoints:
+- OpenAI:     /v1/chat/completions
+- Anthropic:  /v1/messages  
+- Gemini:     /v1beta/models
+- Models:     /v1/models
+
+
+===============================================================
+                   LƯU Ý QUAN TRỌNG
+===============================================================
+1. Phải mở Antigravity Tools và bật API Proxy trước khi chạy lệnh
+2. Phải thêm ít nhất 1 tài khoản Google (OAuth) vào app
+3. Nếu gặp lỗi 429:  đợi quota reset hoặc thêm nhiều account
+4. Nếu gặp lỗi 404:  kiểm tra model name đúng chưa
+===============================================================

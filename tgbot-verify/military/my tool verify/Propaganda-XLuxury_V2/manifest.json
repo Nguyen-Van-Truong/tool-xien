@@ -1,0 +1,294 @@
+{
+  "manifest_version": 3,
+  "name": "Propaganda Auto Checkouter (Development)",
+  "version": "2.0",
+  "description": "Automates Stripe checkout retries, logs card decline reasons, identifies successful transactions, and modifies outgoing requests.",
+  "permissions": [
+    "proxy",
+    "webRequest",
+    "webRequestAuthProvider",
+    "storage",
+    "activeTab",
+    "tabs",
+    "downloads",
+    "scripting",
+    "alarms",
+    "clipboardWrite",
+    "cookies",
+    "system.cpu",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "*://*.stripe.com/*",
+    "*://*.krea.ai/*",
+    "http://*/*",
+    "https://*/*",
+    "*://62.169.27.88/*",
+    "*://172.84.76.210/*",
+    "*://*/cs_live_*",
+    "*://buy.stripe.com/*",
+    "https://api.telegram.org/*",
+    "https://nameless-voice-ce24.urmomisnowmine.workers.dev/*",
+    "*://invoice.stripe.com/*",
+    "*://invoicedata.stripe.com/*",
+    "*://billing.stripe.com/p/subscription/recovery/live_*",
+    "*://184.174.18.150/*"
+  ],
+  "background": {
+    "service_worker": "scripts/background/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*/*"
+      ],
+      "js": [
+        "scripts/hcaptcha/hcaptcha.bundle.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.stripe.com/p/session/live_*/payment-methods*",
+        "*://*.openai.com/p/session/live_*/payment-methods*",
+        "*://*.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.openai.com/p/session/live_*/payment-methods*",
+        "*://invoice.stripe.com/i/*",
+        "*://invoicedata.stripe.com/*",
+        "*://js.stripe.com/*",
+        "*://api.stripe.com/*",
+        "*://billing.stripe.com/p/subscription/recovery/live_*"
+      ],
+      "exclude_matches": [
+        "*://r.stripe.com/*",
+        "*://r.stripe.com/b*",
+        "*://b.stripe.com/*"
+      ],
+      "js": [
+        "scripts/gateways/billvoice/injectbillvoice.js",
+        "scripts/responses/responseinterceptor.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.stripe.com/p/session/live_*/payment-methods*",
+        "*://*.openai.com/p/session/live_*/payment-methods*",
+        "*://*.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.openai.com/p/session/live_*/payment-methods*",
+        "*://invoice.stripe.com/i/*",
+        "*://invoicedata.stripe.com/*",
+        "*://js.stripe.com/*",
+        "*://api.stripe.com/*",
+        "*://billing.stripe.com/p/subscription/recovery/live_*"
+      ],
+      "js": [
+        "scripts/gateways/billvoice/billvoicecontent.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*/*cs_live_*",
+        "https://buy.stripe.com/*",
+        "*://*/*checkout/*",
+        "*://*/*checkout/session/*",
+        "*://checkout.stripe.com/c/pay*"
+      ],
+      "js": [
+        "scripts/gateways/stripe/paymentcontent.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*/*cs_live_*",
+        "https://buy.stripe.com/*",
+        "*://*/*checkout/*",
+        "*://*/*checkout/session/*",
+        "*://*.stripe.com/p/session/live_*/payment-methods*",
+        "*://*.openai.com/p/session/live_*/payment-methods*",
+        "*://*.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.openai.com/p/session/live_*/payment-methods*",
+        "*://invoice.stripe.com/i/*",
+        "*://invoicedata.stripe.com/*",
+        "*://js.stripe.com/*",
+        "*://api.stripe.com/*",
+        "*://billing.stripe.com/p/subscription/recovery/live_*",
+        "*://checkout.stripe.com/c/pay*"
+      ],
+      "all_frames": true,
+      "js": [
+        "scripts/data/datainjector.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*/*cs_live_*",
+        "https://buy.stripe.com/*",
+        "*://*/*checkout/*",
+        "*://*/*checkout/session/*",
+        "*://checkout.stripe.com/c/pay*"
+      ],
+      "all_frames": true,
+      "js": [
+        "scripts/gateways/stripe/injectpayment.js",
+        "scripts/responses/responseinterceptor.js"
+      ],
+      "css": [
+        "assets/styles/customStripeStyles.css"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*/*cs_live_*",
+        "https://buy.stripe.com/*",
+        "*://*/*checkout/*",
+        "*://*/*checkout/session/*",
+        "*://checkout.stripe.com/c/pay*"
+      ],
+      "type": "module",
+      "js": [
+        "scripts/autofill/random-generator.js",
+        "scripts/autofill/autofill.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.stripe.com/p/session/live_*/payment-methods*",
+        "*://*.openai.com/p/session/live_*/payment-methods*",
+        "*://*.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.openai.com/p/session/live_*/payment-methods*",
+        "*://invoice.stripe.com/i/*",
+        "*://invoicedata.stripe.com/*",
+        "*://js.stripe.com/*",
+        "*://api.stripe.com/*",
+        "*://billing.stripe.com/p/subscription/recovery/live_*"
+      ],
+      "js": [
+        "scripts/responses/responseinterceptor.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*/*cs_live_*",
+        "https://buy.stripe.com/*",
+        "*://*/*checkout/*",
+        "*://*/*checkout/session/*",
+        "*://*.stripe.com/p/session/live_*/payment-methods*",
+        "*://*.openai.com/p/session/live_*/payment-methods*",
+        "*://*.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.openai.com/p/session/live_*/payment-methods*",
+        "*://invoice.stripe.com/i/*",
+        "*://invoicedata.stripe.com/*",
+        "*://js.stripe.com/*",
+        "*://api.stripe.com/*",
+        "*://*/*billing*",
+        "*://*/*invoice*",
+        "*://*/*inbuilt*",
+        "*://billing.stripe.com/p/subscription/recovery/live_*",
+        "*://checkout.stripe.com/c/pay*"
+      ],
+      "js": [
+        "scripts/settings/screenshotKeybind.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "*://*/*cs_live_*",
+        "https://buy.stripe.com/*",
+        "*://*/*checkout/*",
+        "*://*/*checkout/session/*",
+        "*://*.stripe.com/p/session/live_*/payment-methods*",
+        "*://*.openai.com/p/session/live_*/payment-methods*",
+        "*://*.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.openai.com/p/session/live_*/payment-methods*",
+        "*://invoice.stripe.com/i/*",
+        "*://invoicedata.stripe.com/*",
+        "*://js.stripe.com/*",
+        "*://api.stripe.com/*",
+        "*://*/*billing*",
+        "*://*/*invoice*",
+        "*://*/*inbuilt*",
+        "*://billing.stripe.com/p/subscription/recovery/live_*",
+        "*://checkout.stripe.com/c/pay*"
+      ],
+      "js": [
+        "scripts/content/emailBlur.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "*://*/settings.html",
+        "*://*/settings.html?*"
+      ],
+      "js": [
+        "scripts/content/dashboardBlur.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "Propaganda Auto Checkouter"
+  },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/images/detected.png",
+        "assets/images/striped.png",
+        "assets/images/Nazi.png",
+        "assets/sounds/hit_sound.mp3",
+        "assets/sounds/autohitter.mp3",
+        "assets/styles/settings.css",
+        "models/mobileone-s0.ort",
+        "models/nms-yolov5-det.ort",
+        "dist/*.wasm",
+        "*.wasm",
+        "scripts/auth/wasm/pkg/auth_wasm_bg.wasm",
+        "scripts/auth/wasm/pkg/auth_wasm.js",
+        "blocked.html",
+        "disabled.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    },
+    {
+      "resources": ["*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}
