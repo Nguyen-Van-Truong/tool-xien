@@ -1,0 +1,4 @@
+cd "E:\tool xien\gg login\gg login flow"
+node flow_login.js
+
+node "E:\tool xien\gg login\gg login flow\flow_login.js"

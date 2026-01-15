@@ -1,0 +1,21 @@
+{
+  "accounts": [
+    {
+      "email": "abigailmartinadmin@banrongdanghg.id.vn",
+      "password": "Cmlz!veo3"
+    },
+    {
+      "email": "aka@banrongdanghg.id.vn",
+      "password": "Cmlz!veo3"
+    },
+    {
+      "email": "avagarciaadmin@banrongdanghg.id.vn",
+      "password": "Cmlz!veo3"
+    }
+  ],
+  "settings": {
+    "headless": false,
+    "slowMo": 0,
+    "timeout": 30000
+  }
+}

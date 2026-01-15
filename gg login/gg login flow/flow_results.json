@@ -1,0 +1,20 @@
+[
+  {
+    "email": "abigailmartinadmin@banrongdanghg.id.vn",
+    "password": "Cmlz!veo3",
+    "status": "SUCCESS",
+    "time": "16.4"
+  },
+  {
+    "email": "aka@banrongdanghg.id.vn",
+    "password": "Cmlz!veo3",
+    "status": "WRONG_PASSWORD",
+    "time": "17.5"
+  },
+  {
+    "email": "avagarciaadmin@banrongdanghg.id.vn",
+    "password": "Cmlz!veo3",
+    "status": "CHECK_MANUALLY",
+    "time": "16.6"
+  }
+]
