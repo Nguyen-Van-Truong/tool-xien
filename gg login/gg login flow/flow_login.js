@@ -146,42 +146,48 @@ async function loginAccount(email, password, index) {
 
         // Bước 3: Login nếu cần
         if (currentUrl.includes('accounts.google.com')) {
-            console.log(`[${index + 1}] 📧 Nhập email...`);
-            await fastType(page, 'input[type="email"]', email);
-            await delay(300);
 
-            // Click Next
-            const nextClicked = await page.evaluate(() => {
-                const btns = document.querySelectorAll('#identifierNext, button');
-                for (const btn of btns) {
-                    if (btn.id === 'identifierNext' || btn.textContent.includes('Next') || btn.textContent.includes('Tiếp')) {
-                        btn.click();
-                        return true;
-                    }
+            // RETRY LOGIC: Thử tối đa 3 lần nếu gặp CAPTCHA
+            let loginSuccess = false;
+            let retryCount = 0;
+            const maxRetries = 3;
+
+            while (!loginSuccess && retryCount < maxRetries) {
+                retryCount++;
+
+                if (retryCount > 1) {
+                    console.log(`[${index + 1}] 🔄 Thử lại lần ${retryCount}/${maxRetries}...`);
+                    // Refresh trang và thử lại
+                    await page.goto('https://labs.google/fx/tools/flow', {
+                        waitUntil: 'domcontentloaded',
+                        timeout: 30000
+                    });
+                    await delay(2000);
+
+                    // Click Create with Flow again
+                    await page.evaluate(() => {
+                        const buttons = document.querySelectorAll('button, a, [role="button"]');
+                        for (const btn of buttons) {
+                            if (btn.textContent.includes('Create with Flow') || btn.textContent.includes('Start creating')) {
+                                btn.click();
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
+                    await delay(3000);
                 }
-                return false;
-            });
 
-            await delay(2500);
-
-            // Kiểm tra lỗi email
-            const pageContent = await page.content();
-            if (pageContent.includes('Couldn\'t find') || pageContent.includes('Không tìm thấy')) {
-                result.status = 'EMAIL_NOT_FOUND';
-                console.log(`[${index + 1}] ❌ Email không tồn tại!`);
-            } else {
-                // Nhập password
                 try {
-                    console.log(`[${index + 1}] 🔐 Nhập password...`);
-                    await page.waitForSelector('input[type="password"]', { visible: true, timeout: 10000 });
-                    await fastType(page, 'input[type="password"]', password);
+                    console.log(`[${index + 1}] 📧 Nhập email...`);
+                    await fastType(page, 'input[type="email"]', email);
                     await delay(300);
 
-                    // Click Sign In
+                    // Click Next
                     await page.evaluate(() => {
-                        const btns = document.querySelectorAll('#passwordNext, button');
+                        const btns = document.querySelectorAll('#identifierNext, button');
                         for (const btn of btns) {
-                            if (btn.id === 'passwordNext' || btn.textContent.includes('Next') || btn.textContent.includes('Tiếp')) {
+                            if (btn.id === 'identifierNext' || btn.textContent.includes('Next') || btn.textContent.includes('Tiếp')) {
                                 btn.click();
                                 return true;
                             }
@@ -189,29 +195,74 @@ async function loginAccount(email, password, index) {
                         return false;
                     });
 
-                    await delay(4000);
+                    await delay(2500);
 
-                    // Kiểm tra kết quả
-                    const finalUrl = page.url();
-                    const finalContent = await page.content();
-
-                    if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu')) {
-                        result.status = 'WRONG_PASSWORD';
-                        console.log(`[${index + 1}] ❌ Sai mật khẩu!`);
-                    } else if (finalUrl.includes('labs.google') || finalUrl.includes('flow')) {
-                        result.status = 'SUCCESS';
-                        console.log(`[${index + 1}] ✅ Thành công!`);
-                    } else if (finalContent.includes('verify') || finalContent.includes('Verify')) {
-                        result.status = 'NEED_VERIFY';
-                        console.log(`[${index + 1}] ⚠️ Cần xác minh!`);
+                    // Kiểm tra lỗi email
+                    const pageContent = await page.content();
+                    if (pageContent.includes('Couldn\'t find') || pageContent.includes('Không tìm thấy')) {
+                        result.status = 'EMAIL_NOT_FOUND';
+                        console.log(`[${index + 1}] ❌ Email không tồn tại!`);
+                        loginSuccess = true; // Thoát loop vì email không tồn tại
                     } else {
-                        result.status = 'CHECK_MANUALLY';
-                        console.log(`[${index + 1}] ⚠️ Kiểm tra thủ công!`);
-                    }
+                        // Thử tìm trang password
+                        try {
+                            console.log(`[${index + 1}] 🔐 Chờ trang password...`);
+                            await page.waitForSelector('input[type="password"]', { visible: true, timeout: 8000 });
 
-                } catch (passError) {
-                    result.status = 'PASSWORD_PAGE_ERROR';
-                    console.log(`[${index + 1}] ❌ Lỗi trang password!`);
+                            // Tìm thấy trang password - nhập password
+                            console.log(`[${index + 1}] 🔑 Nhập password...`);
+                            await fastType(page, 'input[type="password"]', password);
+                            await delay(300);
+
+                            // Click Sign In
+                            await page.evaluate(() => {
+                                const btns = document.querySelectorAll('#passwordNext, button');
+                                for (const btn of btns) {
+                                    if (btn.id === 'passwordNext' || btn.textContent.includes('Next') || btn.textContent.includes('Tiếp')) {
+                                        btn.click();
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            });
+
+                            await delay(4000);
+
+                            // Kiểm tra kết quả
+                            const finalUrl = page.url();
+                            const finalContent = await page.content();
+
+                            if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu')) {
+                                result.status = 'WRONG_PASSWORD';
+                                console.log(`[${index + 1}] ❌ Sai mật khẩu!`);
+                            } else if (finalUrl.includes('labs.google') || finalUrl.includes('flow')) {
+                                result.status = 'SUCCESS';
+                                console.log(`[${index + 1}] ✅ Thành công!`);
+                            } else if (finalContent.includes('verify') || finalContent.includes('Verify')) {
+                                result.status = 'NEED_VERIFY';
+                                console.log(`[${index + 1}] ⚠️ Cần xác minh!`);
+                            } else {
+                                result.status = 'CHECK_MANUALLY';
+                                console.log(`[${index + 1}] ⚠️ Kiểm tra thủ công!`);
+                            }
+
+                            loginSuccess = true; // Thoát loop
+
+                        } catch (passError) {
+                            // Không tìm thấy trang password - có thể bị CAPTCHA
+                            console.log(`[${index + 1}] ⚠️ Không thấy trang password (có thể CAPTCHA)`);
+
+                            if (retryCount >= maxRetries) {
+                                result.status = 'CAPTCHA_OR_ERROR';
+                                console.log(`[${index + 1}] ❌ Đã thử ${maxRetries} lần, vẫn không qua được!`);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.log(`[${index + 1}] ⚠️ Lỗi: ${err.message}`);
+                    if (retryCount >= maxRetries) {
+                        result.status = 'ERROR_RETRY_FAILED';
+                    }
                 }
             }
         } else {
@@ -233,19 +284,33 @@ async function loginAccount(email, password, index) {
 
 async function main() {
     console.log('\n' + '═'.repeat(70));
-    console.log('   🎬 GOOGLE FLOW LOGIN - PARALLEL & FAST VERSION 🎬');
+    console.log('   🎬 GOOGLE FLOW LOGIN - SEQUENTIAL ORDER VERSION 🎬');
     console.log('═'.repeat(70) + '\n');
 
     // Load accounts
     const accounts = loadAccountsFromTxt();
     console.log(`\n📋 Tổng số accounts: ${accounts.length}`);
-    console.log('🚀 Chạy TẤT CẢ accounts CÙNG LÚC...\n');
+    console.log('🚀 Mở từng account theo thứ tự (delay 1s)...\n');
 
     const startTime = Date.now();
+    const results = [];
 
-    // Chạy SONG SONG tất cả accounts
-    const promises = accounts.map((acc, i) => loginAccount(acc.email, acc.password, i));
-    const results = await Promise.all(promises);
+    // Chạy LẦN LƯỢT theo thứ tự với delay 1s
+    for (let i = 0; i < accounts.length; i++) {
+        const acc = accounts[i];
+
+        // Delay 1s trước khi mở account tiếp (trừ account đầu tiên)
+        if (i > 0) {
+            await delay(1000);
+        }
+
+        // Bắt đầu login (không await để chạy song song sau khi mở)
+        const promise = loginAccount(acc.email, acc.password, i);
+        results.push(promise);
+    }
+
+    // Chờ tất cả hoàn thành
+    const finalResults = await Promise.all(results);
 
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -254,20 +319,20 @@ async function main() {
     console.log('                      📊 KẾT QUẢ OUTPUT');
     console.log('═'.repeat(70) + '\n');
 
-    results.forEach(({ result }) => {
+    finalResults.forEach(({ result }) => {
         const statusIcon = result.status === 'SUCCESS' ? '✅' : '❌';
         console.log(`${result.email}|${result.password}|${statusIcon} ${result.status}`);
     });
 
     console.log('\n' + '═'.repeat(70));
     console.log(`⏱️ Tổng thời gian: ${totalTime}s`);
-    console.log(`✅ Thành công: ${results.filter(r => r.result.status === 'SUCCESS').length}/${accounts.length}`);
+    console.log(`✅ Thành công: ${finalResults.filter(r => r.result.status === 'SUCCESS').length}/${accounts.length}`);
     console.log('🛑 Tất cả browsers đang mở để kiểm tra thủ công.');
     console.log('   Nhấn Ctrl+C để thoát.');
     console.log('═'.repeat(70) + '\n');
 
     // Lưu kết quả
-    const outputResults = results.map(r => r.result);
+    const outputResults = finalResults.map(r => r.result);
     fs.writeFileSync(
         path.join(__dirname, 'flow_results.json'),
         JSON.stringify(outputResults, null, 2)

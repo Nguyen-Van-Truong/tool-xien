@@ -1,56 +1,26 @@
 [
   {
-    "email": "elijahjacksonadmin@banrongdanghg.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "PASSWORD_PAGE_ERROR",
-    "time": "36.2"
-  },
-  {
-    "email": "ellawhiteadmin@banrongdanghg.id.vn",
+    "email": "victoriamitchelladmin@banrongdanghg.id.vn",
     "password": "Cmlz!veo3",
     "status": "CHECK_MANUALLY",
-    "time": "36.4"
+    "time": "16.5"
   },
   {
-    "email": "emilyrobinsonadmin@banrongdanghg.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "time": "35.6"
-  },
-  {
-    "email": "emmajohnsonadmin@banrongdanghg.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "time": "33.0"
-  },
-  {
-    "email": "ethangonzalezadmin@banrongdanghg.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "NEED_VERIFY",
-    "time": "34.9"
-  },
-  {
-    "email": "evelynmooreadmin@banrongdanghg.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "time": "35.3"
-  },
-  {
-    "email": "gracekingadmin@banrongdanghg.id.vn",
+    "email": "williamlewisadmin@banrongdanghg.id.vn",
     "password": "Cmlz!veo3",
     "status": "SUCCESS",
-    "time": "35.8"
+    "time": "34.1"
   },
   {
-    "email": "hannahriveraadmin@banrongdanghg.id.vn",
+    "email": "wyattcarteradmin@banrongdanghg.id.vn",
     "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "time": "30.2"
+    "status": "SUCCESS",
+    "time": "21.2"
   },
   {
-    "email": "harperthomasadmin@banrongdanghg.id.vn",
+    "email": "zoeyfloresadmin@banrongdanghg.id.vn",
     "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "time": "29.9"
+    "status": "SUCCESS",
+    "time": "20.8"
   }
 ]
