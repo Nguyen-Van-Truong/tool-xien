@@ -1,0 +1,17 @@
+{
+  "name": "gpm-google-login",
+  "version": "1.0.0",
+  "description": "Automation script for Google Login using Puppeteer",
+  "main": "google_login.js",
+  "scripts": {
+    "start": "node google_login.js",
+    "login": "node google_login.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.6.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "author": "GPM Automate",
+  "license": "MIT"
+}

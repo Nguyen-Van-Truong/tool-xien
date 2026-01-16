@@ -1,0 +1,20 @@
+[
+  {
+    "email": "ameliawilsonadmin@banrongdanghg.id.vn",
+    "success": true,
+    "error": null,
+    "screenshot": "E:\\tool xien\\gpm automate\\gpt login\\screenshots\\1_03_after_login.png"
+  },
+  {
+    "email": "222fs@banrongdanghg.id.vn",
+    "success": false,
+    "error": "WRONG_PASSWORD - Mật khẩu không đúng",
+    "screenshot": "E:\\tool xien\\gpm automate\\gpt login\\screenshots\\2_03_after_login.png"
+  },
+  {
+    "email": "alexanderwalkeradmin@banrongdanghg.id.vn",
+    "success": true,
+    "error": null,
+    "screenshot": "E:\\tool xien\\gpm automate\\gpt login\\screenshots\\3_03_after_login.png"
+  }
+]
