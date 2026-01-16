@@ -1,0 +1,40 @@
+{
+  "name": "flow-login-v3",
+  "version": "3.0.0",
+  "description": "Google Flow Login Checker with GUI",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "dev": "electron ."
+  },
+  "build": {
+    "appId": "com.flowlogin.v3",
+    "productName": "Flow Login V3",
+    "win": {
+      "target": "portable",
+      "icon": "icon.ico"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/puppeteer/.local-chromium/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/puppeteer/.local-chromium",
+        "to": "chromium"
+      }
+    ]
+  },
+  "dependencies": {
+    "puppeteer": "^21.6.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.9.1"
+  },
+  "author": "Flow Login",
+  "license": "MIT"
+}

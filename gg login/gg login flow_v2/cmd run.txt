@@ -1,4 +1,4 @@
-cd "E:\tool xien\gg login\gg login flow"
+cd "E:\tool xien\gg login\gg login flow_v2"
 node flow_login.js
 
-node "E:\tool xien\gg login\gg login flow\flow_login.js"
+node "E:\tool xien\gg login\gg login flow_v2\flow_login.js"

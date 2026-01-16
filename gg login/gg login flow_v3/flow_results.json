@@ -1,0 +1,16 @@
+[
+  {
+    "email": "admin@travelgonews.com",
+    "password": "travleTin tức123",
+    "status": "LOGIN_FAILED",
+    "flowState": "WRONG_PASSWORD",
+    "time": "17.1"
+  },
+  {
+    "email": "admin@travelgonews.com",
+    "password": "travleNews123",
+    "status": "NO_FLOW",
+    "flowState": "API_ERROR",
+    "time": "40.8"
+  }
+]
