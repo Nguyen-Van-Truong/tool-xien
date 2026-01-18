@@ -7,11 +7,20 @@ contextBridge.exposeInMainWorld('api', {
     // Dừng login
     stopLogin: () => ipcRenderer.invoke('stop-login'),
 
+    // Detect browsers trên máy
+    detectBrowsers: () => ipcRenderer.invoke('detect-browsers'),
+
+    // Set browser để dùng
+    setBrowser: (browserId) => ipcRenderer.invoke('set-browser', browserId),
+
     // Đọc kết quả
     readResults: () => ipcRenderer.invoke('read-results'),
 
     // Xóa kết quả
     clearResults: () => ipcRenderer.invoke('clear-results'),
+
+    // Đóng tất cả browsers
+    closeAllBrowsers: () => ipcRenderer.invoke('close-all-browsers'),
 
     // Lưu file
     saveFile: (filename, content) => ipcRenderer.invoke('save-file', { filename, content }),

@@ -5,26 +5,23 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --x64",
+    "build": "electron-packager . \"Flow Login V3\" --platform=win32 --arch=x64 --out=dist --overwrite --ignore=node_modules/puppeteer/.local-chromium",
     "dev": "electron ."
   },
   "build": {
     "appId": "com.flowlogin.v3",
     "productName": "Flow Login V3",
+    "forceCodeSigning": false,
     "win": {
-      "target": "portable",
-      "icon": "icon.ico"
+      "target": "dir",
+      "icon": "icon.ico",
+      "signAndEditExecutable": false
     },
     "files": [
       "**/*",
       "!node_modules/puppeteer/.local-chromium/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "node_modules/puppeteer/.local-chromium",
-        "to": "chromium"
-      }
-    ]
+    "asar": false
   },
   "dependencies": {
     "puppeteer": "^21.6.1",
@@ -33,7 +30,8 @@
   },
   "devDependencies": {
     "electron": "^28.3.3",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^26.4.0",
+    "electron-packager": "^17.1.2"
   },
   "author": "Flow Login",
   "license": "MIT"

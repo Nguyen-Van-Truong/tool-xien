@@ -1,16 +1,16 @@
 [
   {
-    "email": "admin@travelgonews.com",
-    "password": "travleTin tức123",
+    "email": "bluebird@le.aerolinkvnn.com",
+    "password": "gaconkk3312",
     "status": "LOGIN_FAILED",
-    "flowState": "WRONG_PASSWORD",
-    "time": "17.1"
+    "flowState": "NEED_VERIFY",
+    "time": "15.8"
   },
   {
-    "email": "admin@travelgonews.com",
-    "password": "travleNews123",
-    "status": "NO_FLOW",
-    "flowState": "API_ERROR",
-    "time": "40.8"
+    "email": "blackswan@le.aerolinkvnn.com",
+    "password": "gaconkk3312",
+    "status": "LOGIN_FAILED",
+    "flowState": "NEED_VERIFY",
+    "time": "15.5"
   }
 ]

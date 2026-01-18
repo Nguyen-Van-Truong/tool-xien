@@ -1,93 +1,72 @@
 [
   {
-    "email": "alexanderwalkeradmin@tom.phthimien78z.id.vn",
+    "email": "flashdrive@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
-    "status": "HAS_FLOW",
-    "flowState": "AVAILABLE",
-    "time": "46.7"
+    "status": "LOGIN_FAILED",
+    "flowState": "NO_LOGIN_PAGE",
+    "time": "8.0"
   },
   {
-    "email": "aidentayloradmin@tom.phthimien78z.id.vn",
+    "email": "powerbank@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "flowState": "API_ERROR",
-    "time": "51.0"
+    "status": "LOGIN_FAILED",
+    "flowState": "NO_LOGIN_PAGE",
+    "time": "13.4"
   },
   {
-    "email": "charlotteperezadmin@tom.phthimien78z.id.vn",
+    "email": "fitbit@w.shophpultra.io.vn",
+    "password": "Cmlz!veo3",
+    "status": "LOGIN_FAILED",
+    "flowState": "NO_LOGIN_PAGE",
+    "time": "11.4"
+  },
+  {
+    "email": "harddisk@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
     "status": "LOGIN_FAILED",
     "flowState": "NEED_VERIFY",
-    "time": "41.2"
+    "time": "20.4"
   },
   {
-    "email": "ameliawilsonadmin@tom.phthimien78z.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "HAS_FLOW",
-    "flowState": "AVAILABLE",
-    "time": "50.0"
-  },
-  {
-    "email": "abigailmartinadmin@tom.phthimien78z.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "NO_FLOW",
-    "flowState": "UNAVAILABLE_LOW_REPUTATION",
-    "time": "58.6"
-  },
-  {
-    "email": "danielallenadmin@tom.phthimien78z.id.vn",
+    "email": "smartwatch@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
     "status": "LOGIN_FAILED",
     "flowState": "NEED_VERIFY",
-    "time": "46.1"
+    "time": "21.7"
   },
   {
-    "email": "benjaminthompsonadmin@tom.phthimien78z.id.vn",
+    "email": "projector@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
     "status": "LOGIN_FAILED",
     "flowState": "NEED_VERIFY",
-    "time": "54.9"
+    "time": "19.6"
   },
   {
-    "email": "averysanchezadmin@tom.phthimien78z.id.vn",
+    "email": "camera@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
-    "status": "NO_FLOW",
-    "flowState": "UNAVAILABLE_LOW_REPUTATION",
-    "time": "63.8"
+    "status": "LOGIN_FAILED",
+    "flowState": "NEED_VERIFY",
+    "time": "22.1"
   },
   {
-    "email": "avagarciaadmin@tom.phthimien78z.id.vn",
+    "email": "cable@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "flowState": "API_ERROR",
-    "time": "67.4"
+    "status": "LOGIN_FAILED",
+    "flowState": "NEED_VERIFY",
+    "time": "40.8"
   },
   {
-    "email": "chloescottadmin@tom.phthimien78z.id.vn",
+    "email": "adapter@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
-    "status": "HAS_FLOW",
-    "flowState": "AVAILABLE",
-    "time": "59.1"
+    "status": "LOGIN_FAILED",
+    "flowState": "NEED_VERIFY",
+    "time": "41.3"
   },
   {
-    "email": "carterhalladmin@tom.phthimien78z.id.vn",
+    "email": "drone@w.shophpultra.io.vn",
     "password": "Cmlz!veo3",
-    "status": "CHECK_MANUALLY",
-    "flowState": "API_ERROR",
-    "time": "78.0"
-  },
-  {
-    "email": "davidnelsonadmin@tom.phthimien78z.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "HAS_FLOW",
-    "flowState": "AVAILABLE",
-    "time": "73.0"
-  },
-  {
-    "email": "elijahjacksonadmin@tom.phthimien78z.id.vn",
-    "password": "Cmlz!veo3",
-    "status": "HAS_FLOW",
-    "flowState": "AVAILABLE",
-    "time": "69.3"
+    "status": "LOGIN_FAILED",
+    "flowState": "NEED_VERIFY",
+    "time": "40.4"
   }
 ]

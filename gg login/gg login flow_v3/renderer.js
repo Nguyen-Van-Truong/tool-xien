@@ -2,6 +2,7 @@
 const inputAccounts = document.getElementById('input-accounts');
 const btnRun = document.getElementById('btn-run');
 const btnStop = document.getElementById('btn-stop');
+const btnCloseAll = document.getElementById('btn-close-all');
 const btnClear = document.getElementById('btn-clear');
 const btnImport = document.getElementById('btn-import');
 const btnCopy = document.getElementById('btn-copy');
@@ -25,10 +26,72 @@ const statFailed = document.getElementById('stat-failed');
 const tabCountHasFlow = document.getElementById('tab-count-has-flow');
 const tabCountNoFlow = document.getElementById('tab-count-no-flow');
 const tabCountFailed = document.getElementById('tab-count-failed');
+const browserSelect = document.getElementById('browser-select');
 
 // State
 let isRunning = false;
 let currentTab = 'has-flow';
+let detectedBrowsers = [];
+
+// Load danh sách browsers khi app khởi động
+async function loadBrowsers() {
+    try {
+        detectedBrowsers = await window.api.detectBrowsers();
+        browserSelect.innerHTML = '';
+
+        const availableBrowsers = detectedBrowsers.filter(b => b.detected);
+        const unavailableBrowsers = detectedBrowsers.filter(b => !b.detected);
+
+        if (availableBrowsers.length === 0) {
+            browserSelect.innerHTML = '<option value="" disabled>Không tìm thấy browser!</option>';
+            addLog('❌ Không tìm thấy trình duyệt Chromium nào!', 'error');
+            return;
+        }
+
+        // Thêm browsers available
+        availableBrowsers.forEach((browser, index) => {
+            const option = document.createElement('option');
+            option.value = browser.id;
+            option.textContent = `✓ ${browser.name}`;
+            if (index === 0) option.selected = true;
+            browserSelect.appendChild(option);
+        });
+
+        // Thêm separator và browsers unavailable
+        if (unavailableBrowsers.length > 0) {
+            const separator = document.createElement('option');
+            separator.disabled = true;
+            separator.textContent = '───────────';
+            browserSelect.appendChild(separator);
+
+            unavailableBrowsers.forEach(browser => {
+                const option = document.createElement('option');
+                option.value = browser.id;
+                option.disabled = true;
+                option.textContent = `✗ ${browser.name} (không có)`;
+                browserSelect.appendChild(option);
+            });
+        }
+
+        // Set default browser
+        await window.api.setBrowser(availableBrowsers[0].id);
+        addLog(`🌐 Đã chọn: ${availableBrowsers[0].name}`, 'success');
+
+    } catch (error) {
+        addLog(`Lỗi detect browsers: ${error.message}`, 'error');
+    }
+}
+
+// Handle browser change
+browserSelect.addEventListener('change', async () => {
+    const browserId = browserSelect.value;
+    const browser = detectedBrowsers.find(b => b.id === browserId);
+
+    if (browser) {
+        await window.api.setBrowser(browserId);
+        addLog(`🌐 Đã chọn: ${browser.name}`, 'success');
+    }
+});
 
 // Update account count on input
 inputAccounts.addEventListener('input', () => {
@@ -153,6 +216,13 @@ btnStop.addEventListener('click', async () => {
     updateProgress(0, 0, 'Đã dừng');
 });
 
+// Tắt tất cả browsers
+btnCloseAll.addEventListener('click', async () => {
+    addLog('✖ Đang tắt tất cả Chrome...', 'warning');
+    await window.api.closeAllBrowsers();
+    addLog('✅ Đã tắt xong!', 'success');
+});
+
 btnClear.addEventListener('click', () => {
     inputAccounts.value = '';
     accountCount.textContent = '0';
@@ -241,5 +311,6 @@ window.api.onComplete((data) => {
 });
 
 // Initial load
+loadBrowsers();
 refreshResults();
 addLog('Sẵn sàng!', 'success');
