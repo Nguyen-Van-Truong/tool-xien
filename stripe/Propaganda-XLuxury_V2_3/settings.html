@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Propaganda Auto Checkouter - Settings</title>
+  <link rel="stylesheet" href="../../assets/styles/settings.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @media (max-width: 576px) {
+      #settings-menu-trigger {
+        top: 10px !important;
+        right: 10px !important;
+        width: 40px !important;
+        height: 40px !important;
+      }
+      
+      #settings-menu-trigger i {
+        font-size: 18px !important;
+      }
+      
+      .settings-dropdown {
+        right: 10px !important;
+        width: 180px !important;
+      }
+      
+      .settings-dropdown-item {
+        padding: 10px !important;
+        font-size: 14px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      #settings-menu-trigger {
+        transform: scale(0.9) !important;
+        transform-origin: top right !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="https://t.me/TeamPropaganda" target="_blank" style="position: fixed; top: 25px; left: 15px; z-index: 999999; display: flex; align-items: center; justify-content: center; width: 140px; height: 36px; background: #0088cc; color: #ffffff; text-decoration: none; border-radius: 25px; font-size: 14px; font-weight: 500; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); transition: all 0.2s ease;">
+    <i class="fab fa-telegram" style="margin-right: 8px; font-size: 16px;"></i> Join Telegram
+  </a>
+
+  <div class="header">
+    <div class="header-content">
+      <h1>PROPAGANDA LUXURY V2</h1>
+      <div class="header-line"></div>
+    </div>
+  </div>
+
+  <div class="mode-select">
+    <button id="mode-autohit" class="mode-button">Autohit</button>
+    <button id="mode-bypass" class="mode-button">Bypass</button>
+  </div>
+
+  <!-- Dashboard Section -->
+  <div id="dashboard" class="dashboard">
+    <div class="dashboard-header">
+      <img src="assets/images/Nazi.png" alt="Propaganda Logo" class="dashboard-logo">
+      <div class="dashboard-title">Propaganda V2</div>
+    </div>
+    
+    <div class="dashboard-layout">
+      <!-- Left column -->
+      <div class="dashboard-column left-column">
+        <div class="dashboard-card clock-card">
+          <div class="card-header">
+            <i class="fas fa-clock"></i>
+            <span>Real-Time Clock</span>
+          </div>
+          <div class="card-content">
+            <div class="clock-wrapper">
+              <div class="digital-clock-container">
+                <i class="fas fa-clock clock-icon"></i>
+                <div id="digital-clock" class="digital-clock">00:00:00</div>
+              </div>
+              <div id="date-display" class="date-display">Loading...</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="dashboard-card status-card">
+          <div class="card-header">
+            <i class="fas fa-info-circle"></i>
+            <span>System Status</span>
+          </div>
+          <div class="card-content">
+            <div class="status-item">
+              <div class="status-label">Mode</div>
+              <div id="current-mode" class="status-value mode-value">AUTOHIT</div>
+            </div>
+            <div class="status-item">
+              <div class="status-label">Telegram</div>
+              <div id="telegram-connection" class="status-value">
+                <span class="status-indicator not-connected">
+                  <i class="fas fa-circle"></i> Not Connected
+                </span>
+              </div>
+            </div>
+            <div class="status-item">
+              <div class="status-label">Hitting Status</div>
+              <div class="status-value">
+                <span id="hitting-status" class="status-indicator active">
+                  <i class="fas fa-circle"></i> Active
+                </span>
+              </div>
+            </div>
+            <div class="status-item">
+              <div class="status-label">Last Hit</div>
+              <div id="last-hit-time" class="status-value">Never</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Center column -->
+      <div class="dashboard-column center-column">
+        <div class="hit-logs-container-wrapper">
+          <div class="hit-logs-header">
+            <div class="hit-logs-title">
+              <i class="fas fa-list"></i>
+              <span>Hit Logs</span>
+            </div>
+            <div class="hit-logs-actions">
+              <button id="copy-all-cards" class="copy-all-btn">
+                <i class="fas fa-copy"></i> Copy Cards
+              </button>
+              <button id="clear-hit-logs-dashboard" class="clear-logs-btn">
+                <i class="fas fa-trash"></i> Clear
+              </button>
+            </div>
+          </div>
+          <div id="hit-logs-container-dashboard" class="hit-logs-container"></div>
+        </div>
+      </div>
+      
+      <!-- Right column -->
+      <div class="dashboard-column right-column">
+        <div class="dashboard-card stats-card">
+          <div class="card-header">
+            <span><i class="fas fa-chart-bar"></i> Hit Statistics</span>
+            <button id="reset-stats-btn" class="reset-stats-btn" title="Reset Statistics">
+              <i class="fas fa-undo"></i> Reset
+            </button>
+          </div>
+          <div class="card-content">
+            <div class="stat-item">
+              <div class="stat-label">Successes</div>
+              <div id="success-count" class="stat-value success-value">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Declines</div>
+              <div id="decline-count" class="stat-value decline-value">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Attempts</div>
+              <div id="attempt-count" class="stat-value attempt-value">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Success Rate</div>
+              <div id="success-rate" class="stat-value rate-value">0%</div>
+            </div>
+          </div>
+          <div class="stats-reset-confirm">
+            <p>Are you sure you want to reset all statistics?</p>
+            <div class="buttons">
+              <button class="cancel-reset">Cancel</button>
+              <button class="confirm-reset">Reset</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Current Settings Card -->
+        <div class="dashboard-card current-settings-card">
+          <div class="card-header">
+            <span><i class="fas fa-cog"></i> Current Settings</span>
+            <button id="blur-settings-btn" class="blur-toggle-btn" title="Blur Sensitive Information">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="card-content current-settings-content">
+            <div class="settings-item">
+              <div class="settings-label">
+                <i class="fas fa-credit-card"></i> Current BIN
+              </div>
+              <div id="current-bin" class="settings-value bin-value">No BIN configured</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-label">
+                <i class="fas fa-list-alt"></i> Current CC List
+              </div>
+              <div id="current-cc-list" class="settings-value cc-value">No CC list configured</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-label">
+                <i class="fas fa-network-wired"></i> Current Proxy
+              </div>
+              <div id="current-proxy" class="settings-value proxy-value">No proxy configured</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-label">
+                <i class="fas fa-envelope"></i> Current Email
+              </div>
+              <div id="current-email" class="settings-value email-value">No email configured</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Original standalone hit-box - Removed to prevent it from showing -->
+  <!-- 
+  <div id="hit-box" class="hit-box">
+    <div class="hit-box-header">
+      Hit Logs
+      <button id="clear-hit-logs" class="clear-logs-btn">
+        <i class="fas fa-trash"></i> Clear
+      </button>
+    </div>
+    <div id="hit-logs-container"></div>
+  </div>
+  -->
+  
+  <!-- Hidden placeholder for compatibility -->
+  <div id="hit-box" style="display: none !important; visibility: hidden !important; position: absolute !important; top: -9999px !important; left: -9999px !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;">
+    <div class="hit-box-header"></div>
+    <div id="hit-logs-container"></div>
+  </div>
+
+  <div class="settings-menu-trigger" id="settings-menu-trigger" style="position: fixed; top: 20px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(145deg, #2a2a30, #1e1e24); cursor: pointer; z-index: 9999999; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); border: 2px solid rgba(26, 115, 232, 0.5); pointer-events: auto;">
+    <i class="fas fa-cog" style="color: #ffffff; font-size: 22px; text-shadow: 0 0 10px rgba(26, 115, 232, 0.7);"></i>
+  </div>
+
+  <div class="settings-dropdown" id="settings-dropdown">
+    <div class="settings-dropdown-item" id="history-trigger">
+      <i class="fas fa-history"></i>
+      Payment History
+    </div>
+    <div class="divider"></div>
+    <div class="settings-dropdown-item" id="logout-trigger">
+      <i class="fas fa-sign-out-alt"></i>
+      Logout
+    </div>
+  </div>
+
+  <div class="menu-trigger" id="menu-trigger">
+    <img src="assets/images/Nazi.png" alt="Menu" class="trigger-icon">
+  </div>
+
+  <div class="vertical-menu" id="vertical-menu">
+    <button class="menu-close-btn" id="menu-close-btn" style="position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: linear-gradient(145deg, #2a2a30, #1e1e24); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; border: 1px solid rgba(26, 115, 232, 0.5); z-index: 1000001; box-shadow: 0 0 10px rgba(26, 115, 232, 0.3);">
+        <i class="fas fa-times" style="font-size: 18px; color: rgba(26, 115, 232, 0.9); text-shadow: 0 0 5px rgba(26, 115, 232, 0.5);"></i>
+    </button>
+    <button class="menu-item" data-section="bin">BIN</button>
+    <button class="menu-item" data-section="cc">CC</button>
+    <button class="menu-item" data-section="email">Email</button>
+    <button class="menu-item" data-section="telegram">Telegram</button>
+    <button class="menu-item" data-section="proxy">Proxy</button>
+    <button class="menu-item" data-section="autofill">Autofill</button>
+    <button class="menu-item" data-section="settings">Settings</button>
+  </div>
+
+  <div class="content-container" id="content-container">
+    <div id="bin-section" class="settings-section">
+      <div class="section-title">BIN</div>
+      <div class="section-description">Enter one or more BINs (one per line)</div>
+      <textarea id="bin-input" placeholder="Enter BINs here (one per line)&#10;Example:&#10;123456&#10;789012"></textarea>
+      <div class="action-buttons">
+        <button class="main-button" id="save-bin">Save BIN Settings</button>
+      </div>
+    </div>
+
+    <div id="cc-section" class="settings-section">
+      <div class="section-title">CC</div>
+      <div class="section-description">Enter cards (one per line) (Maximum 20)</div>
+      <textarea id="card-list-input" placeholder="Enter cards here (one per line)&#10;Format: card_number|month|year|cvv"></textarea>
+      <div class="action-buttons">
+        <button class="main-button" id="save-cc">Save Card List</button>
+      </div>
+    </div>
+
+    <div id="telegram-section" class="settings-section">
+      <div class="section-title">
+        <h2>Telegram Integration</h2>
+      </div>
+      <div class="section-description">Link your Telegram account to receive instant notifications</div>
+      
+      <div class="telegram-status-container">
+        <div class="status-indicator">
+          <i class="fas fa-circle"></i>
+          <span id="telegram-status">Not Connected</span>
+        </div>
+        <div class="last-verified">
+          Last Verified: <span id="last-verified-time">Never</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="telegram-id-input">Telegram ID</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="telegram-id-input" placeholder="Enter your Telegram ID">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="otp-input">Verification Code</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="otp-input" placeholder="Enter OTP code" maxlength="6">
+          <div class="verification-timer" id="verification-timer"></div>
+        </div>
+      </div>
+
+      <div class="buttons-group">
+        <button id="send-otp" class="secondary-button">
+          <i class="fas fa-paper-plane"></i>
+          Send Code
+        </button>
+        <button id="verify-otp" class="secondary-button">
+          <i class="fas fa-check-circle"></i>
+          Verify
+        </button>
+      </div>
+
+      <div class="action-buttons">
+        <button class="main-button" id="save-telegram">Save Telegram Settings</button>
+      </div>
+    </div>
+
+    <div id="email-section" class="settings-section">
+      <div class="section-title">
+        <h2>Email Settings</h2>
+        <div class="section-description">Configure your email settings</div>
+      </div>
+      <div class="email-input-container">
+        <div class="input-with-tooltip">
+          <input type="email" id="email-input" placeholder="Enter email address">
+          <button class="generate-button" id="generate-email">
+            <i class="fas fa-sync-alt"></i> Generate
+          </button>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="main-button" id="save-email">Save Email</button>
+      </div>
+    </div>
+
+    <div id="proxy-section" class="settings-section">
+      <div class="section-title">
+        <h2>Proxy Settings</h2>
+      </div>
+      <div class="section-description">Configure your proxy settings for secure connections</div>
+      
+      <div class="input-group">
+        <div class="input-with-tooltip">
+          <textarea id="proxy-input" placeholder="Enter proxy details (one per line)&#10;&#10;Format examples:&#10;host:port&#10;username:password@host:port&#10;&#10;e.g.&#10;123.456.789.012:8080&#10;user:pass@123.456.789.012:8080"></textarea>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="main-button" id="save-proxy">Save Proxy Settings</button>
+      </div>
+    </div>
+
+    <div id="autofill-section" class="settings-section">
+      <div class="section-title">
+        <h2>Autofill Settings</h2>
+      </div>
+      <div class="section-description">Customize your autofill preferences for payment forms</div>
+      
+      <div class="input-group">
+        <label for="autofill-delay-input">Autofill Delay (seconds)</label>
+        <div class="input-with-tooltip">
+          <input type="number" id="autofill-delay-input" placeholder="7" min="1" max="30" step="0.5">
+          <div class="setting-description">Set the delay before autofill starts (1-30 seconds)</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="autofill-card-number">Card Number (16 digits)</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="autofill-card-number" placeholder="0000000000000000" maxlength="16" pattern="\d{16}">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="autofill-card-expiry">Card Expiry (MM/YY)</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="autofill-card-expiry" placeholder="09/29" maxlength="5">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="autofill-card-cvc">Card CVC (3 digits)</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="autofill-card-cvc" placeholder="000" maxlength="3" pattern="\d{3}">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="autofill-name">Full Name</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="autofill-name" placeholder="John Doe">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="autofill-address1">Street Address 1</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="autofill-address1" placeholder="Street 35,46B">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="autofill-address2">Street Address 2</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="autofill-address2" placeholder="Street 35, 45B">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="autofill-locality">Locality</label>
+        <div class="input-with-tooltip">
+          <input type="text" id="autofill-locality" placeholder="Prague">
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-random"></i>
+          <h3>Random Autofill Options</h3>
+        </div>
+        <div class="toggle-item">
+          <span class="toggle-label">Use Random Names</span>
+          <label class="switch">
+            <input type="checkbox" id="random-name-toggle">
+            <span class="switch-slider round"></span>
+          </label>
+          <div class="setting-description">Generate random names for each checkout</div>
+        </div>
+        <div class="toggle-item">
+          <span class="toggle-label">Use Random Addresses</span>
+          <label class="switch">
+            <input type="checkbox" id="random-address-toggle">
+            <span class="switch-slider round"></span>
+          </label>
+          <div class="setting-description">Generate random addresses for each checkout</div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="save-autofill" class="main-button">
+          <i class="fas fa-save"></i> Save Autofill Settings
+        </button>
+        <button id="reset-autofill" class="secondary-button">
+          <i class="fas fa-undo"></i> Reset to Default
+        </button>
+      </div>
+    </div>
+
+    <div id="settings-section" class="settings-section">
+      <div class="section-title">
+        <h2>Additional Settings</h2>
+      </div>
+      <div class="section-description">Configure additional options and preferences</div>
+      
+      <div class="settings-options-container">
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <i class="fas fa-music"></i>
+            <h3>Sound Settings</h3>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Background Music</span>
+            <label class="switch">
+              <input type="checkbox" id="music-toggle-input">
+              <span class="switch-slider round"></span>
+            </label>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Custom Music</span>
+            <div class="setting-input-group">
+              <input type="file" id="custom-music-input" accept="audio/mp3,audio/mpeg,audio/mp4">
+              <div class="setting-description">Upload your own MP3/MP4 background music</div>
+              <div id="current-music-name" class="current-music-name">No custom music set</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <i class="fas fa-bell"></i>
+            <h3>Notification Settings</h3>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Send Hits To Telegram</span>
+            <label class="switch">
+              <input type="checkbox" id="telegram-toggle-input">
+              <span class="switch-slider round"></span>
+            </label>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Auto Screenshot</span>
+            <label class="switch">
+              <input type="checkbox" id="screenshot-toggle">
+              <span class="switch-slider round"></span>
+            </label>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Send Screenshots to Telegram</span>
+            <label class="switch">
+              <input type="checkbox" id="screenshot-telegram-toggle">
+              <span class="switch-slider round"></span>
+            </label>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Blur Email in Screenshots</span>
+            <label class="switch">
+              <input type="checkbox" id="blur-email-toggle">
+              <span class="switch-slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <i class="fas fa-shield-alt"></i>
+            <h3>Security Settings</h3>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Remove Payment Agent</span>
+            <label class="switch">
+              <input type="checkbox" id="payment-agent-toggle-input">
+              <span class="switch-slider round"></span>
+            </label>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Screenshot Keybind</span>
+            <div class="keybind-input-container">
+              <input type="text" id="screenshot-keybind-input" placeholder="Click to set keybind" readonly>
+              <button id="reset-keybind" class="reset-keybind-btn">
+                <i class="fas fa-undo"></i>
+              </button>
+            </div>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Screenshot Name Format</span>
+            <div class="setting-input-group">
+              <input type="text" id="screenshot-name-input" placeholder="e.g., my_payment_{timestamp}">
+              <div class="setting-description">Use {timestamp} to include date/time in the filename</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <i class="fas fa-palette"></i>
+            <h3>Appearance Settings</h3>
+          </div>
+          <div class="toggle-item">
+            <span class="toggle-label">Stripe Background Color</span>
+            <div class="color-input-container">
+              <input type="color" id="stripe-bg-color" value="#000000">
+              <button id="reset-stripe-color" class="reset-color-btn">
+                <i class="fas fa-undo"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="action-buttons">
+        <button id="save-general-settings" class="main-button">
+          <i class="fas fa-save"></i> Save Settings
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-header">
+        <h2>Screenshot Settings</h2>
+      </div>
+      <div class="settings-content">
+        <div class="setting-item">
+          <div class="setting-label">Auto Screenshot</div>
+          <label class="switch">
+            <input type="checkbox" id="screenshot-toggle">
+            <span class="switch-slider round"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Send Screenshots to Telegram</div>
+          <label class="switch">
+            <input type="checkbox" id="screenshot-telegram-toggle">
+            <span class="switch-slider round"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Screenshot Keybind</div>
+          <div class="setting-input-group">
+            <input type="text" id="screenshot-keybind-input" placeholder="Click to set keybind" readonly>
+            <button class="reset-keybind-btn" id="reset-keybind">Reset</button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Screenshot Name Format</div>
+          <div class="setting-input-group">
+            <input type="text" id="screenshot-name-input" placeholder="e.g., my_payment_{timestamp}">
+            <div class="setting-description">Use {timestamp} to include date/time in the filename</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p id="status-message"></p>
+  </div>
+
+  <div id="history-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-history-button close-button"><i class="fas fa-times"></i></span>
+      <h2>Payment History</h2>
+      <div id="history-list">
+      </div>
+      <div class="history-actions">
+        <button id="clear-all-history" class="history-button">Clear All</button>
+      </div>
+      <div class="history-reset-confirm">
+        <p>Are you sure you want to clear all payment history?</p>
+        <div class="buttons">
+          <button class="cancel-history-reset">Cancel</button>
+          <button class="confirm-history-reset">Clear All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="options-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-options-button close-button"><i class="fas fa-times"></i></span>
+      <h2>Additional Options</h2>
+      <div class="options-info">
+        <p>Additional settings have been moved to the Settings section.</p>
+        <p>Please use the Settings option in the left menu to access these options.</p>
+      </div>
+    </div>
+  </div>
+
+  <audio id="background-audio" loop preload="auto">
+    <source src="../../assets/sounds/autohitter.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <script src="scripts/crypto/crypto-js.min.js"></script>
+  <script src="scripts/crypto/encryption-utils.js"></script>
+  <script src="scripts/fingerprint/fingerprint.js"></script>
+  <script src="scripts/fingerprint/fingerprint-wrapper.js"></script>
+  
+  <!-- Rust WASM Auth Module -->
+  <script src="scripts/auth/wasm/auth-wasm-wrapper-loader.js"></script>
+  <script type="module" src="scripts/auth/wasm/wasm-module-loader.js"></script>
+  
+  <script src="scripts/auth/auth-service.js"></script>
+  <script src="scripts/auth/auth-ui.js"></script>
+  <script src="scripts/settings/settings.js"></script>
+</body>
+</html>

@@ -1,16 +1,9 @@
 [
   {
-    "email": "bluebird@le.aerolinkvnn.com",
-    "password": "gaconkk3312",
-    "status": "LOGIN_FAILED",
-    "flowState": "NEED_VERIFY",
-    "time": "15.8"
-  },
-  {
-    "email": "blackswan@le.aerolinkvnn.com",
-    "password": "gaconkk3312",
-    "status": "LOGIN_FAILED",
-    "flowState": "NEED_VERIFY",
-    "time": "15.5"
+    "email": "sm9102833@ubx.renrokimmo21.io.vn",
+    "password": "Veo3ultra@",
+    "status": "HAS_FLOW",
+    "flowState": "AVAILABLE",
+    "time": "24.5"
   }
 ]
