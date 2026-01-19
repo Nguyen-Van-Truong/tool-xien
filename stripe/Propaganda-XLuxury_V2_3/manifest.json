@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Propaganda Auto Checkouter (Development)",
-  "version": "2.0",
-  "description": "Automates Stripe checkout retries, logs card decline reasons, identifies successful transactions, and modifies outgoing requests.",
+  "name": "Propaganda Auto Checkouter V2.3 (NEURO//PAY Edition)",
+  "version": "2.3",
+  "description": "Automates Stripe checkout with NEURO//PAY floating panel UI, card generation, and form autofill.",
   "permissions": [
     "proxy",
     "webRequest",
@@ -252,6 +252,27 @@
       ],
       "run_at": "document_start",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "*://*/*cs_live_*",
+        "https://buy.stripe.com/*",
+        "*://*/*checkout/*",
+        "*://*/*checkout/session/*",
+        "*://*.stripe.com/p/session/live_*/payment-methods*",
+        "*://*.openai.com/p/session/live_*/payment-methods*",
+        "*://*.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.krea.ai/p/session/live_*/payment-methods*",
+        "*://*.pay.openai.com/p/session/live_*/payment-methods*",
+        "*://invoice.stripe.com/i/*",
+        "*://billing.stripe.com/p/subscription/recovery/live_*",
+        "*://checkout.stripe.com/c/pay*"
+      ],
+      "js": [
+        "scripts/content/panel-overlay.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
   "action": {
@@ -270,6 +291,7 @@
         "assets/sounds/hit_sound.mp3",
         "assets/sounds/autohitter.mp3",
         "assets/styles/settings.css",
+        "assets/styles/panel-styles.css",
         "models/mobileone-s0.ort",
         "models/nms-yolov5-det.ort",
         "dist/*.wasm",

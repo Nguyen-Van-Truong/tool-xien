@@ -423,6 +423,16 @@ class FlowWorker {
         }
 
         // Config cho Puppeteer Chromium (như V2 - ít CAPTCHA)
+        // Tìm Dark Reader extension path
+        let extensionPath = path.join(__dirname, 'extensions', 'eimadpbcbfnmbkopoojfekhnkhdbieeh', '4.9.118_0');
+        // Nếu chạy từ EXE, tìm trong resources
+        if (process.resourcesPath) {
+            const prodExtPath = path.join(process.resourcesPath, 'app', 'extensions', 'eimadpbcbfnmbkopoojfekhnkhdbieeh', '4.9.118_0');
+            if (fs.existsSync(prodExtPath)) {
+                extensionPath = prodExtPath;
+            }
+        }
+
         const launchOptions = {
             headless: false,
             slowMo: 0,
@@ -431,7 +441,10 @@ class FlowWorker {
                 '--disable-setuid-sandbox',
                 '--disable-blink-features=AutomationControlled',
                 '--disable-infobars',
-                '--start-maximized'
+                '--start-maximized',
+                // Load Dark Reader extension
+                `--disable-extensions-except=${extensionPath}`,
+                `--load-extension=${extensionPath}`
             ],
             defaultViewport: null
         };
@@ -459,6 +472,25 @@ class FlowWorker {
         const browser = await puppeteer.launch(launchOptions);
 
         this.browsers.push(browser);
+
+        // Đợi 2s để extension load và trang intro hiện
+        await this.delay(2000);
+
+        // Đóng tất cả các tab intro của extension (nếu có)
+        const pages = await browser.pages();
+        for (const p of pages) {
+            const url = p.url();
+            // Đóng các tab intro của extension
+            if (url.includes('darkreader') || url.includes('extension') || url.includes('chrome-extension')) {
+                try {
+                    await p.close();
+                } catch (e) {
+                    // Ignore
+                }
+            }
+        }
+
+        // Tạo page mới sau khi đóng tab intro
         const page = await browser.newPage();
 
         // Thiết lập User Agent
