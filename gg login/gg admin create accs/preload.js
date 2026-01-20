@@ -41,5 +41,15 @@ contextBridge.exposeInMainWorld('api', {
     manualLoginContinue: () => ipcRenderer.invoke('manual-login-continue'),
 
     // Event: đang chờ manual login
-    onWaitingManualLogin: (callback) => ipcRenderer.on('waiting-manual-login', (event, data) => callback(data))
+    onWaitingManualLogin: (callback) => ipcRenderer.on('waiting-manual-login', (event, data) => callback(data)),
+
+    // Browser selection APIs
+    detectBrowsers: () => ipcRenderer.invoke('detect-browsers'),
+    setBrowser: (browserId) => ipcRenderer.invoke('set-browser', browserId),
+
+    // Resume create - tiếp tục từ trạng thái hiện tại
+    resumeCreate: (config) => ipcRenderer.invoke('resume-create', config),
+
+    // Event: browser đã sẵn sàng (để enable nút Tiếp tục)
+    onBrowserReady: (callback) => ipcRenderer.on('browser-ready', (event, data) => callback(data))
 });

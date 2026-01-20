@@ -7,9 +7,11 @@ const commonPassword = document.getElementById('common-password');
 const randomCount = document.getElementById('random-count');
 const inputAccounts = document.getElementById('input-accounts');
 const accountCount = document.getElementById('account-count');
+const browserSelect = document.getElementById('browser-select');
 
 // DOM Elements - Buttons
 const btnRun = document.getElementById('btn-run');
+const btnResume = document.getElementById('btn-resume');
 const btnStop = document.getElementById('btn-stop');
 const btnCloseBrowser = document.getElementById('btn-close-browser');
 const btnGenerate = document.getElementById('btn-generate');
@@ -461,8 +463,115 @@ btnManualLoginDone.addEventListener('click', async () => {
     await window.api.manualLoginContinue();
 });
 
+// Load browsers
+async function loadBrowsers() {
+    try {
+        const browsers = await window.api.detectBrowsers();
+        browserSelect.innerHTML = '';
+
+        const available = browsers.filter(b => b.detected);
+        const unavailable = browsers.filter(b => !b.detected);
+
+        if (available.length === 0) {
+            browserSelect.innerHTML = '<option value="" disabled>Không tìm thấy browser!</option>';
+            return;
+        }
+
+        available.forEach((browser, index) => {
+            const option = document.createElement('option');
+            option.value = browser.id;
+            option.textContent = `✓ ${browser.name}`;
+            if (index === 0) option.selected = true;
+            browserSelect.appendChild(option);
+        });
+
+        if (unavailable.length > 0) {
+            const sep = document.createElement('option');
+            sep.disabled = true;
+            sep.textContent = '───────────';
+            browserSelect.appendChild(sep);
+
+            unavailable.forEach(browser => {
+                const option = document.createElement('option');
+                option.value = browser.id;
+                option.disabled = true;
+                option.textContent = `✗ ${browser.name} (không có)`;
+                browserSelect.appendChild(option);
+            });
+        }
+
+        await window.api.setBrowser(available[0].id);
+        addLog(`🌐 Browser: ${available[0].name}`, 'info');
+    } catch (error) {
+        addLog(`Lỗi load browsers: ${error.message}`, 'error');
+    }
+}
+
+// Browser change handler
+browserSelect.addEventListener('change', async () => {
+    const browserId = browserSelect.value;
+    if (browserId) {
+        await window.api.setBrowser(browserId);
+        const browserName = browserSelect.options[browserSelect.selectedIndex].text;
+        addLog(`🌐 Đổi browser: ${browserName}`, 'info');
+    }
+});
+
+// Resume button handler
+btnResume.addEventListener('click', async () => {
+    addLog('▶️ Đang tiếp tục từ trạng thái hiện tại...', 'info');
+
+    // Build accounts list
+    const createMode = document.querySelector('input[name="create-mode"]:checked').value;
+    let accounts = [];
+
+    if (createMode === 'random') {
+        const count = parseInt(randomCount.value) || 5;
+        for (let i = 0; i < count; i++) {
+            const firstName = randomChoice(FIRST_NAMES);
+            const lastName = randomChoice(LAST_NAMES);
+            const emailPrefix = `${firstName.toLowerCase()}${randomString(4)}`;
+            accounts.push({ firstName, lastName, emailPrefix });
+        }
+    } else {
+        accounts = parseAccounts();
+    }
+
+    if (accounts.length === 0) {
+        addLog('❌ Không có accounts để tạo', 'error');
+        return;
+    }
+
+    const passwordMode = document.querySelector('input[name="password-mode"]:checked').value;
+    const config = {
+        accounts,
+        passwordMode,
+        commonPassword: commonPassword.value.trim() || 'Password123!'
+    };
+
+    btnResume.disabled = true;
+    btnStop.disabled = false;
+    isRunning = true;
+
+    try {
+        await window.api.resumeCreate(config);
+    } catch (error) {
+        addLog(`Lỗi: ${error.message}`, 'error');
+    }
+});
+
+// Event: browser đã sẵn sàng
+window.api.onBrowserReady((data) => {
+    if (data.ready) {
+        btnResume.disabled = false;
+        addLog('🔓 Browser sẵn sàng, có thể bấm Tiếp tục', 'info');
+    }
+});
+
 // Initial load
+loadBrowsers();
 loadTempSize();
 refreshResults();
 updateAccountCount();
 addLog('Sẵn sàng!', 'success');
+

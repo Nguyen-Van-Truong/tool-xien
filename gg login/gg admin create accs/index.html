@@ -13,6 +13,12 @@
         <!-- Header -->
         <header class="header">
             <h1>🔐 Google Admin Create Accounts</h1>
+            <div class="browser-selector">
+                <span>🌐 Browser:</span>
+                <select id="browser-select">
+                    <option value="">Đang tải...</option>
+                </select>
+            </div>
             <div class="stats">
                 <span class="stat success">✅ <span id="stat-created">0</span></span>
                 <span class="stat failed">❌ <span id="stat-failed">0</span></span>
@@ -152,6 +158,7 @@
         <!-- Control Buttons -->
         <div class="control-buttons">
             <button id="btn-run" class="btn btn-primary btn-large">▶ Chạy</button>
+            <button id="btn-resume" class="btn btn-secondary btn-large" disabled>▶ Tiếp tục</button>
             <button id="btn-stop" class="btn btn-warning btn-large" disabled>⏸ Dừng</button>
             <button id="btn-close-browser" class="btn btn-danger btn-large">✖ Đóng Browser</button>
         </div>

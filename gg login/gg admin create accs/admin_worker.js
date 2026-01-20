@@ -43,6 +43,47 @@ function findPuppeteerChromiumPath() {
     return null;
 }
 
+// Detect available browsers
+function detectBrowsers() {
+    const browsers = [
+        { id: 'puppeteer', name: 'Puppeteer Chromium', detected: true },
+        {
+            id: 'chrome', name: 'Google Chrome', detected: false, paths: [
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+                process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
+            ]
+        },
+        {
+            id: 'edge', name: 'Microsoft Edge', detected: false, paths: [
+                'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+                'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+            ]
+        },
+        {
+            id: 'brave', name: 'Brave', detected: false, paths: [
+                process.env.LOCALAPPDATA + '\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+                'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+            ]
+        }
+    ];
+
+    // Check each browser
+    for (const browser of browsers) {
+        if (browser.paths) {
+            for (const p of browser.paths) {
+                if (fs.existsSync(p)) {
+                    browser.detected = true;
+                    browser.executablePath = p;
+                    break;
+                }
+            }
+        }
+    }
+
+    return browsers;
+}
+
 class AdminWorker {
     constructor(mainWindow) {
         this.mainWindow = mainWindow;
@@ -189,8 +230,30 @@ class AdminWorker {
     }
 
     // Launch browser
-    async launchBrowser() {
-        const puppeteerPath = findPuppeteerChromiumPath();
+    async launchBrowser(browserId = 'puppeteer') {
+        let executablePath = null;
+
+        // Tìm browser theo ID
+        if (browserId && browserId !== 'puppeteer') {
+            const browsers = detectBrowsers();
+            const selected = browsers.find(b => b.id === browserId);
+            if (selected && selected.executablePath) {
+                executablePath = selected.executablePath;
+                this.log(`🌐 Dùng ${selected.name}`, 'info');
+            } else {
+                this.log(`⚠️ Không tìm thấy browser ${browserId}, dùng Puppeteer`, 'warning');
+            }
+        }
+
+        // Fallback to Puppeteer Chromium
+        if (!executablePath) {
+            executablePath = findPuppeteerChromiumPath();
+            if (executablePath) {
+                this.log('🌐 Dùng Puppeteer Chromium bundled', 'info');
+            } else {
+                this.log('🌐 Dùng Puppeteer Chromium (mặc định)', 'info');
+            }
+        }
 
         // Tìm Dark Reader extension
         let extensionPath = path.join(__dirname, 'extensions', 'eimadpbcbfnmbkopoojfekhnkhdbieeh', '4.9.118_0');
@@ -222,11 +285,8 @@ class AdminWorker {
             );
         }
 
-        if (puppeteerPath) {
-            launchOptions.executablePath = puppeteerPath;
-            this.log('🌐 Dùng Puppeteer Chromium bundled', 'info');
-        } else {
-            this.log('🌐 Dùng Puppeteer Chromium (mặc định)', 'info');
+        if (executablePath) {
+            launchOptions.executablePath = executablePath;
         }
 
         this.browser = await puppeteer.launch(launchOptions);
@@ -589,9 +649,20 @@ class AdminWorker {
                     if (otpSecret) {
                         const otpSuccess = await this.handle2FAOTP(this.page, otpSecret);
                         if (otpSuccess) {
-                            await this.delay(3000);
-                            currentPage = await this.detectCurrentPage(this.page);
-                            this.log(`   📍 Sau OTP: ${currentPage}`, 'info');
+                            // Retry check 3 lần, mỗi lần delay 2s để đợi navigation hoàn tất
+                            for (let checkAttempt = 1; checkAttempt <= 3; checkAttempt++) {
+                                await this.delay(2000);
+                                try {
+                                    currentPage = await this.detectCurrentPage(this.page);
+                                    this.log(`   📍 Check ${checkAttempt}/3: ${currentPage}`, 'info');
+                                    if (currentPage === 'ADMIN_DASHBOARD') {
+                                        this.log('✅ Đăng nhập thành công!', 'success');
+                                        return true;
+                                    }
+                                } catch (e) {
+                                    this.log(`   ⏳ Navigation đang xử lý... (${checkAttempt}/3)`, 'info');
+                                }
+                            }
                         } else {
                             this.log('   ❌ Không thể xử lý 2FA OTP', 'error');
                             return false;
@@ -903,7 +974,7 @@ class AdminWorker {
 
     // Main function: Create accounts
     async start(config) {
-        const { loginMode, adminEmail, adminPassword, otpSecret, cookies, accounts, passwordMode, commonPassword } = config;
+        const { loginMode, adminEmail, adminPassword, otpSecret, cookies, accounts, passwordMode, commonPassword, browserId } = config;
 
         this.isRunning = true;
         this.log(`🚀 Bắt đầu tạo ${accounts.length} accounts...`, 'info');
@@ -913,8 +984,8 @@ class AdminWorker {
         let failed = 0;
 
         try {
-            // Launch browser
-            await this.launchBrowser();
+            // Launch browser with selected browser ID
+            await this.launchBrowser(browserId);
 
             // Login based on mode
             let loginSuccess = false;
@@ -1060,6 +1131,85 @@ class AdminWorker {
         }
         this.log('✅ Đã đóng browser', 'info');
     }
+
+    // Resume - tiếp tục từ trạng thái hiện tại
+    async resume(config) {
+        this.log('▶️ Tiếp tục từ trạng thái hiện tại...', 'info');
+
+        // Kiểm tra browser có đang mở không
+        if (!this.browser || !this.page) {
+            this.log('❌ Browser chưa mở, vui lòng bấm Chạy trước', 'error');
+            return false;
+        }
+
+        // Kiểm tra trạng thái hiện tại
+        const currentState = await this.detectCurrentPage(this.page);
+        this.log(`📍 Trạng thái hiện tại: ${currentState}`, 'info');
+
+        if (currentState === 'ADMIN_DASHBOARD') {
+            this.log('✅ Đã login, tiếp tục tạo accounts...', 'success');
+
+            // Lấy config accounts
+            const { accounts, passwordMode, commonPassword } = config;
+            if (!accounts || accounts.length === 0) {
+                this.log('❌ Không có accounts để tạo', 'error');
+                return false;
+            }
+
+            this.isRunning = true;
+            let created = 0;
+            let failed = 0;
+
+            // Process accounts in batches
+            const batchSize = 3;
+            for (let i = 0; i < accounts.length; i += batchSize) {
+                if (!this.isRunning) break;
+
+                const batch = accounts.slice(i, i + batchSize);
+                this.log(`📦 Batch ${Math.floor(i / batchSize) + 1}: ${batch.length} accounts`, 'info');
+
+                await this.goToBulkAdd();
+
+                for (let j = 1; j < batch.length; j++) {
+                    await this.clickAddMore();
+                }
+
+                // Fill forms
+                for (let j = 0; j < batch.length; j++) {
+                    const acc = batch[j];
+                    const tempEmail = await EmailAPI.generateEmail();
+                    await this.fillUserForm(j, acc.firstName, acc.lastName, acc.emailPrefix, tempEmail);
+                }
+
+                // Click Continue
+                await this.clickContinue();
+                await this.delay(2000);
+
+                // Wait for creation
+                await this.waitForUserCreation();
+
+                created += batch.length;
+                this.sendProgress(i + batch.length, accounts.length, `Đã tạo ${created} accounts`);
+            }
+
+            this.isRunning = false;
+            if (this.mainWindow) {
+                this.mainWindow.webContents.send('complete', { created, failed });
+            }
+            return true;
+
+        } else if (['EMAIL_PAGE', 'PASSWORD_PAGE', 'OTP_PAGE'].includes(currentState)) {
+            this.log('⚠️ Chưa login xong, vui lòng hoàn tất login', 'warning');
+            return false;
+        } else {
+            this.log('⚠️ Không nhận ra trạng thái trang', 'warning');
+            return false;
+        }
+    }
 }
 
+// Static method for detecting browsers
+AdminWorker.detectBrowsers = detectBrowsers;
+
 module.exports = AdminWorker;
+

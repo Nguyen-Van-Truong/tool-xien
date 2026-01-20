@@ -49,6 +49,8 @@ app.on('activate', () => {
 // Bắt đầu tạo accounts
 ipcMain.handle('start-create', async (event, config) => {
     adminWorker = new AdminWorker(mainWindow);
+    // Pass selected browser ID
+    config.browserId = selectedBrowserId;
     return await adminWorker.start(config);
 });
 
@@ -74,6 +76,32 @@ ipcMain.handle('manual-login-continue', async () => {
         adminWorker.resolveManualLogin();
     }
     return true;
+});
+
+// Selected browser ID
+let selectedBrowserId = 'puppeteer';
+
+// Detect available browsers
+ipcMain.handle('detect-browsers', async () => {
+    const AdminWorker = require('./admin_worker');
+    return AdminWorker.detectBrowsers();
+});
+
+// Set browser to use
+ipcMain.handle('set-browser', async (event, browserId) => {
+    selectedBrowserId = browserId;
+    console.log(`🌐 Selected browser: ${browserId}`);
+    return true;
+});
+
+// Resume create - tiếp tục từ trạng thái hiện tại
+ipcMain.handle('resume-create', async (event, config) => {
+    if (!adminWorker) {
+        adminWorker = new AdminWorker(mainWindow);
+    }
+    // Pass selected browser ID
+    config.browserId = selectedBrowserId;
+    return await adminWorker.resume(config);
 });
 
 // Xác định basePath cho cả dev và production
