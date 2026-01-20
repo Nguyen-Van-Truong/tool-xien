@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Admin Create Accounts</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔐 Google Admin Create Accounts</h1>
+            <div class="stats">
+                <span class="stat success">✅ <span id="stat-created">0</span></span>
+                <span class="stat failed">❌ <span id="stat-failed">0</span></span>
+            </div>
+            <div class="temp-info">
+                <span>🗂️ Temp: <span id="temp-size">0 MB</span> (<span id="temp-count">0</span> folders)</span>
+                <button id="btn-clear-temp" class="btn btn-small btn-warning">🧹 Clear</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Config -->
+            <div class="panel config-panel">
+                <div class="panel-header">
+                    <h2>⚙️ Cấu hình</h2>
+                </div>
+
+                <div class="config-section">
+                    <label>🔐 Login mode:</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="login-mode" value="password" checked>
+                            Password (email|password hoặc email|password|otp_secret)
+                        </label>
+                        <label>
+                            <input type="radio" name="login-mode" value="cookies">
+                            Cookies (nhập JSON cookies)
+                        </label>
+                        <label>
+                            <input type="radio" name="login-mode" value="manual">
+                            Thủ công (mở browser để đăng nhập tay)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="config-section" id="password-login-section">
+                    <label>🔑 Admin Account:</label>
+                    <input type="text" id="admin-account"
+                        placeholder="admin@domain.com|password123 hoặc admin@domain.com|pass|htgv z4z3 ...">
+                </div>
+
+                <div class="config-section" id="cookies-login-section" style="display: none;">
+                    <label>🍪 Cookies (JSON format hoặc Netscape format):</label>
+                    <textarea id="admin-cookies" rows="3"
+                        placeholder='[{"name":"SID","value":"xxx","domain":".google.com"},...] hoặc paste từ EditThisCookie'></textarea>
+                    <small style="color:#888;">Export từ EditThisCookie extension hoặc browser DevTools</small>
+                </div>
+
+                <div class="config-section" id="manual-login-section" style="display: none;">
+                    <label>✋ Đăng nhập thủ công:</label>
+                    <p style="color:#aaa; font-size:0.85rem; margin:5px 0;">
+                        Tool sẽ mở browser và chờ bạn đăng nhập vào admin.google.com.<br>
+                        Sau khi đăng nhập xong, bấm nút bên dưới để tiếp tục.
+                    </p>
+                    <button id="btn-manual-login-done" class="btn btn-primary" disabled>
+                        ✅ Đã đăng nhập xong - Tiếp tục
+                    </button>
+                </div>
+
+                <div class="config-section">
+                    <label>🔒 Password cho accounts mới:</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="password-mode" value="common" checked>
+                            Chung: <input type="text" id="common-password" placeholder="password123"
+                                class="inline-input">
+                        </label>
+                        <label>
+                            <input type="radio" name="password-mode" value="random">
+                            Random (tự động tạo)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <label>📋 Mode tạo accounts:</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="create-mode" value="random" checked>
+                            Random: <input type="number" id="random-count" value="5" min="1" max="50"
+                                class="inline-input small"> accounts
+                        </label>
+                        <label>
+                            <input type="radio" name="create-mode" value="list">
+                            Từ danh sách
+                        </label>
+                    </div>
+                </div>
+
+                <div class="panel-header">
+                    <h2>📥 Accounts To Create</h2>
+                    <span class="account-count">Count: <span id="account-count">0</span></span>
+                </div>
+                <textarea id="input-accounts"
+                    placeholder="Format: firstname|lastname|emailprefix&#10;&#10;Ví dụ:&#10;John|Doe|johndoe&#10;Jane|Smith|janesmith&#10;&#10;Hoặc click 'Random Generate' để tự động tạo"></textarea>
+                <div class="button-group">
+                    <button id="btn-generate" class="btn btn-secondary">🎲 Random Generate</button>
+                    <button id="btn-clear-input" class="btn btn-secondary">🗑 Xóa</button>
+                </div>
+            </div>
+
+            <!-- Right Panel - Results -->
+            <div class="panel results-panel">
+                <div class="panel-header">
+                    <h2>📊 Kết quả</h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="created">
+                        ✅ CREATED (<span id="tab-count-created">0</span>)
+                    </button>
+                    <button class="tab" data-tab="failed">
+                        ❌ FAILED (<span id="tab-count-failed">0</span>)
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content active" id="tab-created">
+                    <textarea id="result-created" readonly
+                        placeholder="Accounts đã tạo thành công sẽ hiển thị ở đây...&#10;Format: email|password"></textarea>
+                </div>
+                <div class="tab-content" id="tab-failed">
+                    <textarea id="result-failed" readonly
+                        placeholder="Accounts tạo thất bại sẽ hiển thị ở đây..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button id="btn-copy" class="btn btn-secondary">📋 Copy</button>
+                    <button id="btn-save" class="btn btn-secondary">💾 Save</button>
+                    <button id="btn-refresh" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="control-buttons">
+            <button id="btn-run" class="btn btn-primary btn-large">▶ Chạy</button>
+            <button id="btn-stop" class="btn btn-warning btn-large" disabled>⏸ Dừng</button>
+            <button id="btn-close-browser" class="btn btn-danger btn-large">✖ Đóng Browser</button>
+        </div>
+
+        <!-- Log Panel -->
+        <div class="panel log-panel">
+            <div class="panel-header">
+                <h2>📝 Log</h2>
+                <button id="btn-clear-log" class="btn btn-small">Xóa log</button>
+            </div>
+            <div id="log-container" class="log-container"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <span class="progress-text" id="progress-text">Sẵn sàng</span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,45 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('api', {
+    // Bắt đầu tạo accounts
+    startCreate: (config) => ipcRenderer.invoke('start-create', config),
+
+    // Dừng
+    stopCreate: () => ipcRenderer.invoke('stop-create'),
+
+    // Đóng browser
+    closeBrowser: () => ipcRenderer.invoke('close-browser'),
+
+    // Đọc kết quả
+    readResults: () => ipcRenderer.invoke('read-results'),
+
+    // Xóa kết quả
+    clearResults: () => ipcRenderer.invoke('clear-results'),
+
+    // Lưu file
+    saveFile: (filename, content) => ipcRenderer.invoke('save-file', { filename, content }),
+
+    // Nhận log từ main process
+    onLog: (callback) => ipcRenderer.on('log', (event, data) => callback(data)),
+
+    // Nhận kết quả realtime
+    onResult: (callback) => ipcRenderer.on('result', (event, data) => callback(data)),
+
+    // Nhận progress update
+    onProgress: (callback) => ipcRenderer.on('progress', (event, data) => callback(data)),
+
+    // Hoàn thành
+    onComplete: (callback) => ipcRenderer.on('complete', (event, data) => callback(data)),
+
+    // Lấy dung lượng Puppeteer temp
+    getTempSize: () => ipcRenderer.invoke('get-temp-size'),
+
+    // Xóa Puppeteer temp
+    clearTemp: () => ipcRenderer.invoke('clear-temp'),
+
+    // Manual login - thông báo đã đăng nhập xong
+    manualLoginContinue: () => ipcRenderer.invoke('manual-login-continue'),
+
+    // Event: đang chờ manual login
+    onWaitingManualLogin: (callback) => ipcRenderer.on('waiting-manual-login', (event, data) => callback(data))
+});

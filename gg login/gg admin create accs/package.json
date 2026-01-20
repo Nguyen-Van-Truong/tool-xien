@@ -1,0 +1,40 @@
+{
+  "name": "admin-create-accounts",
+  "version": "1.0.0",
+  "description": "Google Admin Create Accounts Tool",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-packager . \"Admin Create Accounts\" --platform=win32 --arch=x64 --out=dist --overwrite --ignore=node_modules/puppeteer/.local-chromium",
+    "dev": "electron ."
+  },
+  "build": {
+    "appId": "com.admin.createaccounts",
+    "productName": "Admin Create Accounts",
+    "forceCodeSigning": false,
+    "win": {
+      "target": "dir",
+      "icon": "icon.ico",
+      "signAndEditExecutable": false
+    },
+    "files": [
+      "**/*",
+      "!node_modules/puppeteer/.local-chromium/**/*"
+    ],
+    "asar": false
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "otplib": "^12.0.1",
+    "puppeteer": "^21.6.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^26.4.0",
+    "electron-packager": "^17.1.2"
+  },
+  "author": "Admin Tools",
+  "license": "MIT"
+}

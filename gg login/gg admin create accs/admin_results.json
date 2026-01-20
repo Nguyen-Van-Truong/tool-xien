@@ -1,0 +1,14 @@
+[
+  {
+    "status": "FAILED",
+    "email": "richardrrnz@rot.holisedpro.io.vn",
+    "error": "NO_VERIFY_LINK",
+    "timestamp": "2026-01-20T14:30:16.786Z"
+  },
+  {
+    "status": "FAILED",
+    "email": "harperydxa@example.com",
+    "error": "NO_VERIFY_LINK",
+    "timestamp": "2026-01-20T14:30:41.433Z"
+  }
+]

@@ -1,8 +1,3 @@
-cd "E:\tool xien\gg login\gg login flow_v3"
+cd "E:\tool xien\gg login\gg admin create accs"
 npm start
 
-:: Hoặc chạy trực tiếp:
-npx electron "E:\tool xien\gg login\gg login flow_v3"
-
-:: Build EXE:
-npm run build
