@@ -316,6 +316,10 @@ class FlowWorker {
         const content = await page.content();
 
         if (url.includes('accounts.google.com')) {
+            // Kiểm tra trang speedbump (cần bấm "Tôi hiểu" / "I understand")
+            if (url.includes('speedbump')) {
+                return 'SPEEDBUMP_PAGE';
+            }
             if (content.includes('input type="email"') || content.includes('identifierId')) {
                 return 'EMAIL_PAGE';
             }
@@ -341,12 +345,64 @@ class FlowWorker {
         return 'UNKNOWN';
     }
 
+    // Xử lý trang speedbump - bấm nút "Tôi hiểu" / "I understand"
+    async handleSpeedbumpPage(page) {
+        this.log(`   ⚠️ Phát hiện trang speedbump, đang xử lý...`, 'warning');
+
+        try {
+            // Chờ 1s để trang load
+            await this.delay(1000);
+
+            // Thử click nút confirm bằng nhiều cách
+            const clicked = await page.evaluate(() => {
+                // Cách 1: Tìm input[name="confirm"]
+                const confirmBtn = document.querySelector('input[name="confirm"]');
+                if (confirmBtn) {
+                    confirmBtn.click();
+                    return true;
+                }
+
+                // Cách 2: Tìm button có text "Tôi hiểu" hoặc "I understand"
+                const buttons = document.querySelectorAll('button, input[type="submit"]');
+                for (const btn of buttons) {
+                    const text = btn.value || btn.textContent || '';
+                    if (text.includes('Tôi hiểu') || text.includes('I understand') ||
+                        text.includes('Confirm') || text.includes('Continue')) {
+                        btn.click();
+                        return true;
+                    }
+                }
+
+                // Cách 3: Tìm theo class
+                const confirmByClass = document.querySelector('.MK9CEd, .MVpUfe, #confirm');
+                if (confirmByClass) {
+                    confirmByClass.click();
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (clicked) {
+                this.log(`   ✅ Đã bấm nút xác nhận speedbump`, 'success');
+                await this.delay(2000); // Chờ chuyển trang
+                return true;
+            } else {
+                this.log(`   ❌ Không tìm thấy nút xác nhận speedbump`, 'error');
+                return false;
+            }
+        } catch (error) {
+            this.log(`   ❌ Lỗi xử lý speedbump: ${error.message}`, 'error');
+            return false;
+        }
+    }
+
     // Kiểm tra Flow API với retry
-    async checkFlowWithRetry(page, maxRetries = 3) {
+    async checkFlowWithRetry(page, maxRetries = 6) {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             this.log(`   🔍 Kiểm tra Flow (lần ${attempt}/${maxRetries})...`, 'info');
 
-            await this.delay(1500); // Chờ 1.5s trước mỗi lần check
+            await this.delay(3000); // Chờ 3s trước mỗi lần check để đảm bảo chính xác
 
             const result = await this.checkFlowAvailability(page);
 
@@ -544,7 +600,7 @@ class FlowWorker {
             if (currentUrl.includes('accounts.google.com')) {
                 let loginSuccess = false;
                 let retryCount = 0;
-                const maxRetries = 3;
+                const maxRetries = 6;
 
                 while (!loginSuccess && retryCount < maxRetries && this.isRunning) {
                     retryCount++;
@@ -634,8 +690,16 @@ class FlowWorker {
                                     await this.delay(2000);
 
                                     // Kiểm tra vị trí hiện tại
-                                    const currentPage = await this.detectCurrentPage(page);
+                                    let currentPage = await this.detectCurrentPage(page);
                                     this.log(`   📍 Trang hiện tại: ${currentPage}`, 'info');
+
+                                    // Xử lý speedbump nếu cần
+                                    if (currentPage === 'SPEEDBUMP_PAGE') {
+                                        await this.handleSpeedbumpPage(page);
+                                        await this.delay(2000);
+                                        currentPage = await this.detectCurrentPage(page);
+                                        this.log(`   📍 Sau speedbump: ${currentPage}`, 'info');
+                                    }
 
                                     if (currentPage === 'FLOW_PAGE') {
                                         // Đã ở trang Flow, check API với retry

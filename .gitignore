@@ -11,3 +11,4 @@ accounts.txt
 # Build outputs - do not commit
 **/dist/
 **/node_modules/
+**/.puppeteer-cache/
