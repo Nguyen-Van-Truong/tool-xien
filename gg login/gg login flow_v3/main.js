@@ -146,3 +146,85 @@ ipcMain.handle('clear-results', async () => {
 
     return true;
 });
+
+// Lấy dung lượng Puppeteer temp folders
+ipcMain.handle('get-temp-size', async () => {
+    const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
+    let totalSize = 0;
+    let folderCount = 0;
+
+    try {
+        const items = fs.readdirSync(tempPath);
+        for (const item of items) {
+            if (item.startsWith('puppeteer')) {
+                folderCount++;
+                const itemPath = path.join(tempPath, item);
+                try {
+                    const stats = fs.statSync(itemPath);
+                    if (stats.isDirectory()) {
+                        // Tính size folder (recursive)
+                        const getFolderSize = (dirPath) => {
+                            let size = 0;
+                            try {
+                                const files = fs.readdirSync(dirPath);
+                                for (const file of files) {
+                                    const filePath = path.join(dirPath, file);
+                                    const stat = fs.statSync(filePath);
+                                    if (stat.isDirectory()) {
+                                        size += getFolderSize(filePath);
+                                    } else {
+                                        size += stat.size;
+                                    }
+                                }
+                            } catch (e) { }
+                            return size;
+                        };
+                        totalSize += getFolderSize(itemPath);
+                    } else {
+                        totalSize += stats.size;
+                    }
+                } catch (e) { }
+            }
+        }
+    } catch (e) {
+        console.log('Error getting temp size:', e.message);
+    }
+
+    return {
+        sizeBytes: totalSize,
+        sizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,
+        folderCount: folderCount
+    };
+});
+
+// Xóa Puppeteer temp folders
+ipcMain.handle('clear-temp', async () => {
+    const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
+    let deletedCount = 0;
+    let freedSize = 0;
+
+    try {
+        const items = fs.readdirSync(tempPath);
+        for (const item of items) {
+            if (item.startsWith('puppeteer')) {
+                const itemPath = path.join(tempPath, item);
+                try {
+                    // Tính size trước khi xóa
+                    const stats = fs.statSync(itemPath);
+                    if (stats.isDirectory()) {
+                        fs.rmSync(itemPath, { recursive: true, force: true });
+                    } else {
+                        fs.unlinkSync(itemPath);
+                    }
+                    deletedCount++;
+                } catch (e) {
+                    console.log('Cannot delete:', item, e.message);
+                }
+            }
+        }
+    } catch (e) {
+        console.log('Error clearing temp:', e.message);
+    }
+
+    return { deletedCount };
+});

@@ -38,5 +38,11 @@ contextBridge.exposeInMainWorld('api', {
     onProgress: (callback) => ipcRenderer.on('progress', (event, data) => callback(data)),
 
     // Hoàn thành
-    onComplete: (callback) => ipcRenderer.on('complete', (event, data) => callback(data))
+    onComplete: (callback) => ipcRenderer.on('complete', (event, data) => callback(data)),
+
+    // Lấy dung lượng Puppeteer temp
+    getTempSize: () => ipcRenderer.invoke('get-temp-size'),
+
+    // Xóa Puppeteer temp
+    clearTemp: () => ipcRenderer.invoke('clear-temp')
 });

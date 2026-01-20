@@ -27,6 +27,9 @@ const tabCountHasFlow = document.getElementById('tab-count-has-flow');
 const tabCountNoFlow = document.getElementById('tab-count-no-flow');
 const tabCountFailed = document.getElementById('tab-count-failed');
 const browserSelect = document.getElementById('browser-select');
+const tempSize = document.getElementById('temp-size');
+const tempCount = document.getElementById('temp-count');
+const btnClearTemp = document.getElementById('btn-clear-temp');
 
 // State
 let isRunning = false;
@@ -81,6 +84,42 @@ async function loadBrowsers() {
         addLog(`Lỗi detect browsers: ${error.message}`, 'error');
     }
 }
+
+// Load Puppeteer temp size
+async function loadTempSize() {
+    try {
+        const info = await window.api.getTempSize();
+        tempSize.textContent = info.sizeMB + ' MB';
+        tempCount.textContent = info.folderCount;
+
+        // Highlight nếu dung lượng lớn
+        if (info.sizeMB > 100) {
+            tempSize.style.color = '#f44336'; // Red
+        } else if (info.sizeMB > 50) {
+            tempSize.style.color = '#ff9800'; // Orange
+        } else {
+            tempSize.style.color = '#4caf50'; // Green
+        }
+    } catch (error) {
+        console.log('Error loading temp size:', error);
+    }
+}
+
+// Clear Puppeteer temp
+btnClearTemp.addEventListener('click', async () => {
+    const confirm = window.confirm('Xóa tất cả Puppeteer temp folders?');
+    if (!confirm) return;
+
+    addLog('🧹 Đang xóa Puppeteer temp...', 'info');
+
+    try {
+        const result = await window.api.clearTemp();
+        addLog(`✅ Đã xóa ${result.deletedCount} folders`, 'success');
+        await loadTempSize(); // Refresh size
+    } catch (error) {
+        addLog(`❌ Lỗi xóa temp: ${error.message}`, 'error');
+    }
+});
 
 // Handle browser change
 browserSelect.addEventListener('change', async () => {
@@ -312,5 +351,6 @@ window.api.onComplete((data) => {
 
 // Initial load
 loadBrowsers();
+loadTempSize();
 refreshResults();
 addLog('Sẵn sàng!', 'success');

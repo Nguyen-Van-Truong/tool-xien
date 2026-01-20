@@ -56,6 +56,26 @@ body {
     gap: 20px;
 }
 
+.temp-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-left: 20px;
+    padding-left: 20px;
+    border-left: 1px solid #444;
+}
+
+.temp-info span {
+    white-space: nowrap;
+}
+
+.btn-small {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+}
+
 .stat {
     font-size: 1.1rem;
     font-weight: bold;
