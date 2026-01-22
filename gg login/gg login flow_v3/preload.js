@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
     // Bắt đầu login
-    startLogin: (accounts) => ipcRenderer.invoke('start-login', accounts),
+    startLogin: (accounts, options = {}) => ipcRenderer.invoke('start-login', { accounts, options }),
 
     // Dừng login
     stopLogin: () => ipcRenderer.invoke('stop-login'),

@@ -60,8 +60,11 @@ ipcMain.handle('set-browser', async (event, browserId) => {
 });
 
 // Bắt đầu chạy
-ipcMain.handle('start-login', async (event, accounts) => {
-    flowWorker = new FlowWorker(mainWindow, selectedBrowserId);
+ipcMain.handle('start-login', async (event, data) => {
+    // data = { accounts, options: { headless, ramFlags } }
+    const accounts = Array.isArray(data) ? data : data.accounts;
+    const options = data.options || {};
+    flowWorker = new FlowWorker(mainWindow, selectedBrowserId, options);
     return await flowWorker.start(accounts);
 });
 

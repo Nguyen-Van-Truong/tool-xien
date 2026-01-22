@@ -230,7 +230,7 @@ class AdminWorker {
     }
 
     // Launch browser
-    async launchBrowser(browserId = 'puppeteer') {
+    async launchBrowser(browserId = 'puppeteer', headless = false, ramFlags = false) {
         let executablePath = null;
 
         // Tìm browser theo ID
@@ -264,21 +264,42 @@ class AdminWorker {
             }
         }
 
+        const launchArgs = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--disable-blink-features=AutomationControlled'
+        ];
+
+        // RAM saving flags
+        if (ramFlags) {
+            this.log('⚡ Áp dụng RAM flags tiết kiệm bộ nhớ', 'info');
+            launchArgs.push(
+                '--disable-gpu',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-software-rasterizer',
+                '--renderer-process-limit=1',
+                '--single-process'
+            );
+        } else {
+            launchArgs.push('--start-maximized');
+        }
+
         const launchOptions = {
-            headless: false,
-            defaultViewport: null,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-web-security',
-                '--disable-features=IsolateOrigins,site-per-process',
-                '--disable-blink-features=AutomationControlled',
-                '--start-maximized'
-            ]
+            headless: headless ? 'new' : false,
+            defaultViewport: headless ? { width: 1280, height: 720 } : null,
+            args: launchArgs
         };
 
-        // Load Dark Reader extension if exists
-        if (fs.existsSync(extensionPath)) {
+        // Log headless mode
+        if (headless) {
+            this.log('👻 Chạy ở chế độ Headless (ẩn browser)', 'info');
+        }
+
+        // Load Dark Reader extension if exists (only when not headless)
+        if (!headless && fs.existsSync(extensionPath)) {
             launchOptions.args.push(
                 `--disable-extensions-except=${extensionPath}`,
                 `--load-extension=${extensionPath}`
@@ -974,7 +995,7 @@ class AdminWorker {
 
     // Main function: Create accounts
     async start(config) {
-        const { loginMode, adminEmail, adminPassword, otpSecret, cookies, accounts, passwordMode, commonPassword, browserId } = config;
+        const { loginMode, adminEmail, adminPassword, otpSecret, cookies, accounts, passwordMode, commonPassword, browserId, headless, ramFlags } = config;
 
         this.isRunning = true;
         this.log(`🚀 Bắt đầu tạo ${accounts.length} accounts...`, 'info');
@@ -984,8 +1005,8 @@ class AdminWorker {
         let failed = 0;
 
         try {
-            // Launch browser with selected browser ID
-            await this.launchBrowser(browserId);
+            // Launch browser with selected browser ID and RAM settings
+            await this.launchBrowser(browserId, headless, ramFlags);
 
             // Login based on mode
             let loginSuccess = false;
@@ -1136,10 +1157,28 @@ class AdminWorker {
     async resume(config) {
         this.log('▶️ Tiếp tục từ trạng thái hiện tại...', 'info');
 
-        // Kiểm tra browser có đang mở không
+        const { browserId } = config;
+
+        // Kiểm tra browser có đang mở không - nếu chưa thì mở và đợi login thủ công
         if (!this.browser || !this.page) {
-            this.log('❌ Browser chưa mở, vui lòng bấm Chạy trước', 'error');
-            return false;
+            this.log('🌐 Mở browser để login thủ công...', 'info');
+            await this.launchBrowser(browserId);
+
+            await this.page.goto('https://admin.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await this.delay(2000);
+
+            if (this.mainWindow) {
+                this.mainWindow.webContents.send('waiting-manual-login', { waiting: true });
+            }
+
+            this.log('👆 Hãy đăng nhập vào Admin Console...', 'info');
+            this.log('👆 Sau khi đăng nhập xong, bấm nút "Đã đăng nhập xong"', 'info');
+
+            await new Promise((resolve) => {
+                this.manualLoginResolve = resolve;
+            });
+
+            await this.delay(2000);
         }
 
         // Kiểm tra trạng thái hiện tại

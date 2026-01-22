@@ -153,11 +153,13 @@ function findFirstAvailableBrowser() {
 }
 
 class FlowWorker {
-    constructor(mainWindow, selectedBrowserId = null) {
+    constructor(mainWindow, selectedBrowserId = null, options = {}) {
         this.mainWindow = mainWindow;
         this.isRunning = false;
         this.browsers = [];
         this.selectedBrowserId = selectedBrowserId;
+        this.headless = options.headless || false;
+        this.ramFlags = options.ramFlags || false;
 
         // Xác định basePath - dùng folder chứa EXE khi chạy production
         if (process.env.PORTABLE_EXECUTABLE_DIR) {
@@ -279,7 +281,7 @@ class FlowWorker {
     // Check Flow availability via API
     async checkFlowAvailability(page) {
         try {
-            await this.delay(2000);
+            await this.delay(4000); // Tăng từ 2000 để đợi load đủ
             this.log('   🔍 Kiểm tra Flow availability...', 'info');
 
             const response = await page.evaluate(async () => {
@@ -291,7 +293,14 @@ class FlowWorker {
                 }
             });
 
-            if (response.error) {
+            // Check UNAUTHORIZED - chưa login
+            if (response?.error?.json?.code === -32001 ||
+                response?.error?.json?.message === 'UNAUTHORIZED' ||
+                response?.error?.json?.data?.httpStatus === 401) {
+                return { available: false, state: 'UNAUTHORIZED', raw: 'Chưa đăng nhập' };
+            }
+
+            if (response.error && !response.result) {
                 return { available: false, state: 'API_ERROR', raw: response.error };
             }
 
@@ -312,6 +321,7 @@ class FlowWorker {
 
     // Kiểm tra đang ở trang nào
     async detectCurrentPage(page) {
+        await this.delay(2000); // Thêm delay 2s để đợi page load
         const url = page.url();
         const content = await page.content();
 
@@ -402,7 +412,7 @@ class FlowWorker {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             this.log(`   🔍 Kiểm tra Flow (lần ${attempt}/${maxRetries})...`, 'info');
 
-            await this.delay(3000); // Chờ 3s trước mỗi lần check để đảm bảo chính xác
+            await this.delay(5000); // Tăng từ 3000 - Chờ 5s trước mỗi lần check
 
             const result = await this.checkFlowAvailability(page);
 
@@ -489,20 +499,46 @@ class FlowWorker {
             }
         }
 
-        const launchOptions = {
-            headless: false,
-            slowMo: 0,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-blink-features=AutomationControlled',
-                '--disable-infobars',
-                '--start-maximized',
-                // Load Dark Reader extension
+        const launchArgs = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-blink-features=AutomationControlled',
+            '--disable-infobars'
+        ];
+
+        // RAM saving flags
+        if (this.ramFlags) {
+            this.log('⚡ Áp dụng RAM flags tiết kiệm bộ nhớ', 'info');
+            launchArgs.push(
+                '--disable-gpu',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-software-rasterizer',
+                '--renderer-process-limit=1',
+                '--single-process'
+            );
+        } else {
+            launchArgs.push('--start-maximized');
+        }
+
+        // Load Dark Reader extension (only when not headless)
+        if (!this.headless) {
+            launchArgs.push(
                 `--disable-extensions-except=${extensionPath}`,
                 `--load-extension=${extensionPath}`
-            ],
-            defaultViewport: null
+            );
+        }
+
+        // Log headless mode
+        if (this.headless) {
+            this.log('👻 Chạy ở chế độ Headless (ẩn browser)', 'info');
+        }
+
+        const launchOptions = {
+            headless: this.headless ? 'new' : false,
+            slowMo: 0,
+            args: launchArgs,
+            defaultViewport: this.headless ? { width: 1280, height: 720 } : null
         };
 
         // Nếu có browserPath (production hoặc browser cài sẵn)
@@ -642,7 +678,7 @@ class FlowWorker {
                             return false;
                         });
 
-                        await this.delay(2500);
+                        await this.delay(4500); // Tăng từ 2500 để đợi load đủ
 
                         const pageContent = await page.content();
                         if (pageContent.includes('Couldn\'t find') || pageContent.includes('Không tìm thấy')) {
@@ -670,7 +706,7 @@ class FlowWorker {
                                     return false;
                                 });
 
-                                await this.delay(4000);
+                                await this.delay(6000); // Tăng từ 4000 để đợi load đủ
 
                                 const finalContent = await page.content();
 
@@ -678,81 +714,102 @@ class FlowWorker {
                                     result.status = 'LOGIN_FAILED';
                                     result.flowState = 'WRONG_PASSWORD';
                                     this.log(`   ❌ Sai mật khẩu!`, 'error');
-                                } else if (finalContent.includes('verify') || finalContent.includes('Verify')) {
-                                    result.status = 'LOGIN_FAILED';
-                                    result.flowState = 'NEED_VERIFY';
-                                    this.log(`   ⚠️ Cần xác minh!`, 'warning');
                                 } else {
-                                    // ===== CHECKPOINT: Sau khi nhập password thành công =====
-                                    this.log(`   ✅ Đã qua bước password!`, 'success');
+                                    // Dùng API check thay vì check text
+                                    this.log(`   🔍 Kiểm tra trạng thái login qua API...`, 'info');
+                                    const apiCheck = await this.checkFlowAvailability(page);
 
-                                    // Chờ cho page ổn định
-                                    await this.delay(2000);
-
-                                    // Kiểm tra vị trí hiện tại
-                                    let currentPage = await this.detectCurrentPage(page);
-                                    this.log(`   📍 Trang hiện tại: ${currentPage}`, 'info');
-
-                                    // Xử lý speedbump nếu cần
-                                    if (currentPage === 'SPEEDBUMP_PAGE') {
-                                        await this.handleSpeedbumpPage(page);
-                                        await this.delay(2000);
-                                        currentPage = await this.detectCurrentPage(page);
-                                        this.log(`   📍 Sau speedbump: ${currentPage}`, 'info');
-                                    }
-
-                                    if (currentPage === 'FLOW_PAGE') {
-                                        // Đã ở trang Flow, check API với retry
-                                        const flowCheck = await this.checkFlowWithRetry(page, 3);
-                                        result.flowState = flowCheck.state;
-
-                                        if (flowCheck.available) {
-                                            result.status = 'HAS_FLOW';
-                                            this.log(`   🎬 CÓ FLOW! (${flowCheck.state})`, 'success');
+                                    if (apiCheck.state === 'UNAUTHORIZED') {
+                                        // Chưa login thành công - check thêm lý do
+                                        if (page.url().includes('accounts.google.com')) {
+                                            result.status = 'LOGIN_FAILED';
+                                            result.flowState = 'NEED_VERIFY';
+                                            this.log(`   ⚠️ Cần xác minh hoặc có vấn đề khác!`, 'warning');
                                         } else {
-                                            result.status = 'NO_FLOW';
-                                            this.log(`   ⚠️ KHÔNG CÓ FLOW (${flowCheck.state})`, 'warning');
+                                            result.status = 'LOGIN_FAILED';
+                                            result.flowState = 'UNAUTHORIZED';
+                                            this.log(`   ❌ Không thể xác thực!`, 'error');
                                         }
+                                    } else if (apiCheck.state === 'AVAILABLE') {
+                                        result.status = 'HAS_FLOW';
+                                        result.flowState = 'AVAILABLE';
+                                        this.log(`   🎬 CÓ FLOW!`, 'success');
+                                    } else if (apiCheck.state === 'UNAVAILABLE_LOW_REPUTATION') {
+                                        result.status = 'NO_FLOW';
+                                        result.flowState = 'UNAVAILABLE_LOW_REPUTATION';
+                                        this.log(`   ⚠️ KHÔNG CÓ FLOW (Low reputation)`, 'warning');
                                     } else {
-                                        // Navigate về Flow page
-                                        this.log(`   🔄 Chuyển về Flow page...`, 'info');
+                                        // ===== CHECKPOINT: Có kết quả khác, tiếp tục flow cũ =====
+                                        this.log(`   ✅ Đã qua bước password! (${apiCheck.state})`, 'success');
 
-                                        try {
-                                            await page.goto('https://labs.google/fx/tools/flow', {
-                                                waitUntil: 'domcontentloaded',
-                                                timeout: 15000
-                                            });
+                                        // Chờ cho page ổn định
+                                        await this.delay(4000); // Tăng từ 2000
+
+                                        // Kiểm tra vị trí hiện tại
+                                        let currentPage = await this.detectCurrentPage(page);
+                                        this.log(`   📍 Trang hiện tại: ${currentPage}`, 'info');
+
+                                        // Xử lý speedbump nếu cần
+                                        if (currentPage === 'SPEEDBUMP_PAGE') {
+                                            await this.handleSpeedbumpPage(page);
                                             await this.delay(2000);
+                                            currentPage = await this.detectCurrentPage(page);
+                                            this.log(`   📍 Sau speedbump: ${currentPage}`, 'info');
+                                        }
 
-                                            // Double check trang hiện tại
-                                            const newPage = await this.detectCurrentPage(page);
+                                        if (currentPage === 'FLOW_PAGE') {
+                                            // Đã ở trang Flow, check API với retry
+                                            const flowCheck = await this.checkFlowWithRetry(page, 3);
+                                            result.flowState = flowCheck.state;
 
-                                            if (newPage === 'FLOW_PAGE') {
-                                                // Check API với retry
-                                                const flowCheck = await this.checkFlowWithRetry(page, 3);
-                                                result.flowState = flowCheck.state;
-
-                                                if (flowCheck.available) {
-                                                    result.status = 'HAS_FLOW';
-                                                    this.log(`   🎬 CÓ FLOW! (${flowCheck.state})`, 'success');
-                                                } else {
-                                                    result.status = 'NO_FLOW';
-                                                    this.log(`   ⚠️ KHÔNG CÓ FLOW (${flowCheck.state})`, 'warning');
-                                                }
-                                            } else if (newPage.includes('GOOGLE')) {
-                                                // Vẫn ở trang Google login
-                                                result.status = 'CHECK_MANUALLY';
-                                                result.flowState = 'STUCK_AT_LOGIN';
-                                                this.log(`   ⚠️ Còn kẹt ở trang login`, 'warning');
+                                            if (flowCheck.available) {
+                                                result.status = 'HAS_FLOW';
+                                                this.log(`   🎬 CÓ FLOW! (${flowCheck.state})`, 'success');
                                             } else {
-                                                result.status = 'CHECK_MANUALLY';
-                                                result.flowState = newPage;
-                                                this.log(`   ⚠️ Trang không xác định: ${newPage}`, 'warning');
+                                                result.status = 'NO_FLOW';
+                                                this.log(`   ⚠️ KHÔNG CÓ FLOW (${flowCheck.state})`, 'warning');
                                             }
-                                        } catch (navError) {
-                                            result.status = 'CHECK_MANUALLY';
-                                            result.flowState = 'NAV_ERROR';
-                                            this.log(`   ⚠️ Không navigate được`, 'warning');
+                                        } else {
+                                            // Navigate về Flow page
+                                            this.log(`   🔄 Chuyển về Flow page...`, 'info');
+
+                                            try {
+                                                await page.goto('https://labs.google/fx/tools/flow', {
+                                                    waitUntil: 'domcontentloaded',
+                                                    timeout: 15000
+                                                });
+                                                await this.delay(2000);
+
+                                                // Double check trang hiện tại
+                                                const newPage = await this.detectCurrentPage(page);
+
+                                                if (newPage === 'FLOW_PAGE') {
+                                                    // Check API với retry
+                                                    const flowCheck = await this.checkFlowWithRetry(page, 3);
+                                                    result.flowState = flowCheck.state;
+
+                                                    if (flowCheck.available) {
+                                                        result.status = 'HAS_FLOW';
+                                                        this.log(`   🎬 CÓ FLOW! (${flowCheck.state})`, 'success');
+                                                    } else {
+                                                        result.status = 'NO_FLOW';
+                                                        this.log(`   ⚠️ KHÔNG CÓ FLOW (${flowCheck.state})`, 'warning');
+                                                    }
+                                                } else if (newPage.includes('GOOGLE')) {
+                                                    // Vẫn ở trang Google login
+                                                    result.status = 'CHECK_MANUALLY';
+                                                    result.flowState = 'STUCK_AT_LOGIN';
+                                                    this.log(`   ⚠️ Còn kẹt ở trang login`, 'warning');
+                                                } else {
+                                                    result.status = 'CHECK_MANUALLY';
+                                                    result.flowState = newPage;
+                                                    this.log(`   ⚠️ Trang không xác định: ${newPage}`, 'warning');
+                                                }
+                                            } catch (navError) {
+                                                result.status = 'CHECK_MANUALLY';
+                                                result.flowState = 'NAV_ERROR';
+                                                this.log(`   ⚠️ Không navigate được`, 'warning');
+                                            }
                                         }
                                     }
                                 }

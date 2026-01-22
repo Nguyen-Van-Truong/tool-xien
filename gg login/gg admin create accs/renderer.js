@@ -339,7 +339,9 @@ btnRun.addEventListener('click', async () => {
         cookies,
         accounts,
         passwordMode,
-        commonPassword: commonPassword.value.trim() || 'Password123!'
+        commonPassword: commonPassword.value.trim() || 'Password123!',
+        headless: document.getElementById('save-ram-headless').checked,
+        ramFlags: document.getElementById('save-ram-flags').checked
     };
 
     isRunning = true;

@@ -239,8 +239,15 @@ btnRun.addEventListener('click', async () => {
     addLog(`🚀 Bắt đầu với ${accounts.length} accounts...`, 'info');
     updateProgress(0, accounts.length, 'Đang khởi động...');
 
+    // RAM saving options
+    const headless = document.getElementById('save-ram-headless')?.checked || false;
+    const ramFlags = document.getElementById('save-ram-flags')?.checked || false;
+
+    if (headless) addLog('👻 Chế độ Headless (ẩn browser)', 'info');
+    if (ramFlags) addLog('⚡ Áp dụng RAM flags', 'info');
+
     try {
-        await window.api.startLogin(accounts);
+        await window.api.startLogin(accounts, { headless, ramFlags });
     } catch (error) {
         addLog(`Lỗi: ${error.message}`, 'error');
     }
