@@ -1,3 +1,9 @@
 cd "E:\tool xien\gg login\gg login flow_v3"
+
+# Chạy dev mode (không cần build)
 npm start
 
+# Build file EXE
+npm run build
+
+# Output: dist\Flow Login V3-win32-x64\Flow Login V3.exe

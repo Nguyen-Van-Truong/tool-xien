@@ -18,6 +18,13 @@
                 <select id="browser-select">
                     <option value="">Đang tải...</option>
                 </select>
+                <button id="btn-download-browser" class="btn btn-small btn-primary" title="Tải Chromium nếu chưa có">📥
+                    Tải Browser</button>
+            </div>
+            <div id="download-progress" style="display: none; margin-left: 10px;">
+                <span id="download-status">Đang tải...</span>
+                <progress id="download-bar" value="0" max="100" style="width: 100px;"></progress>
+                <span id="download-percent">0%</span>
             </div>
             <div class="stats">
                 <span class="stat has-flow">✅ <span id="stat-has-flow">0</span></span>

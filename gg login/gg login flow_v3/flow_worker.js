@@ -709,11 +709,24 @@ class FlowWorker {
                                 await this.delay(6000); // Tăng từ 4000 để đợi load đủ
 
                                 const finalContent = await page.content();
+                                const currentUrl = page.url();
 
                                 if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu')) {
                                     result.status = 'LOGIN_FAILED';
                                     result.flowState = 'WRONG_PASSWORD';
                                     this.log(`   ❌ Sai mật khẩu!`, 'error');
+                                    loginSuccess = true; // Dừng retry
+                                } else if (currentUrl.includes('challenge') ||
+                                    finalContent.includes('Enter a phone number') ||
+                                    finalContent.includes('Nhập số điện thoại') ||
+                                    finalContent.includes('Verify it') ||
+                                    finalContent.includes('verification code') ||
+                                    finalContent.includes('mã xác minh')) {
+                                    // Gặp trang xác minh số điện thoại - DỪNG NGAY
+                                    result.status = 'LOGIN_FAILED';
+                                    result.flowState = 'NEED_PHONE_VERIFY';
+                                    this.log(`   📱 Cần xác minh số điện thoại - DỪNG`, 'warning');
+                                    loginSuccess = true; // Dừng retry, để user tự xác minh
                                 } else {
                                     // Dùng API check thay vì check text
                                     this.log(`   🔍 Kiểm tra trạng thái login qua API...`, 'info');

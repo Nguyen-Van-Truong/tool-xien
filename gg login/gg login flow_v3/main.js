@@ -231,3 +231,70 @@ ipcMain.handle('clear-temp', async () => {
 
     return { deletedCount };
 });
+
+// Xác định đường dẫn chromium folder
+function getChromiumPath() {
+    if (process.resourcesPath) {
+        return path.join(process.resourcesPath, 'chromium');
+    }
+    return path.join(__dirname, 'chromium');
+}
+
+// Check browser exists
+ipcMain.handle('check-browser-exists', async () => {
+    const chromiumPath = getChromiumPath();
+    const chromePath = path.join(chromiumPath, 'chrome.exe');
+
+    return {
+        exists: fs.existsSync(chromePath),
+        path: chromiumPath
+    };
+});
+
+// Download browser (Chromium)
+ipcMain.handle('download-browser', async () => {
+    const chromiumPath = getChromiumPath();
+
+    try {
+        // Dùng @puppeteer/browsers để download
+        const { install, Browser, resolveBuildId } = require('@puppeteer/browsers');
+
+        // Tạo folder nếu chưa có
+        if (!fs.existsSync(chromiumPath)) {
+            fs.mkdirSync(chromiumPath, { recursive: true });
+        }
+
+        mainWindow.webContents.send('download-progress', {
+            status: 'Đang tải Chromium...',
+            percent: 0
+        });
+
+        const buildId = await resolveBuildId(Browser.CHROME, 'stable', 'stable');
+
+        const result = await install({
+            cacheDir: chromiumPath,
+            browser: Browser.CHROME,
+            buildId: buildId,
+            downloadProgressCallback: (downloadedBytes, totalBytes) => {
+                const percent = Math.round((downloadedBytes / totalBytes) * 100);
+                mainWindow.webContents.send('download-progress', {
+                    status: `Đang tải... ${Math.round(downloadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB`,
+                    percent
+                });
+            }
+        });
+
+        mainWindow.webContents.send('download-progress', {
+            status: 'Hoàn thành!',
+            percent: 100
+        });
+
+        return { success: true, path: result.executablePath };
+    } catch (error) {
+        mainWindow.webContents.send('download-progress', {
+            status: `Lỗi: ${error.message}`,
+            percent: 0
+        });
+        return { success: false, error: error.message };
+    }
+});

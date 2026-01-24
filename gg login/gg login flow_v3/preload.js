@@ -44,5 +44,14 @@ contextBridge.exposeInMainWorld('api', {
     getTempSize: () => ipcRenderer.invoke('get-temp-size'),
 
     // Xóa Puppeteer temp
-    clearTemp: () => ipcRenderer.invoke('clear-temp')
+    clearTemp: () => ipcRenderer.invoke('clear-temp'),
+
+    // Download browser
+    downloadBrowser: () => ipcRenderer.invoke('download-browser'),
+
+    // Check browser exists
+    checkBrowserExists: () => ipcRenderer.invoke('check-browser-exists'),
+
+    // Nhận download progress
+    onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (event, data) => callback(data))
 });

@@ -356,8 +356,60 @@ window.api.onComplete((data) => {
     refreshResults();
 });
 
+// Download Browser
+const btnDownloadBrowser = document.getElementById('btn-download-browser');
+const downloadProgress = document.getElementById('download-progress');
+const downloadStatus = document.getElementById('download-status');
+const downloadBar = document.getElementById('download-bar');
+const downloadPercent = document.getElementById('download-percent');
+
+btnDownloadBrowser.addEventListener('click', async () => {
+    btnDownloadBrowser.disabled = true;
+    downloadProgress.style.display = 'inline-block';
+    downloadStatus.textContent = 'Đang khởi động...';
+    downloadBar.value = 0;
+    downloadPercent.textContent = '0%';
+    addLog('📥 Bắt đầu tải Chromium...', 'info');
+
+    try {
+        const result = await window.api.downloadBrowser();
+        if (result.success) {
+            addLog(`✅ Tải thành công: ${result.path}`, 'success');
+            // Reload browser list
+            loadBrowsers();
+        } else {
+            addLog(`❌ Lỗi: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        addLog(`❌ Lỗi: ${error.message}`, 'error');
+    }
+
+    btnDownloadBrowser.disabled = false;
+    setTimeout(() => {
+        downloadProgress.style.display = 'none';
+    }, 3000);
+});
+
+// Download progress listener
+window.api.onDownloadProgress((data) => {
+    downloadStatus.textContent = data.status;
+    downloadBar.value = data.percent;
+    downloadPercent.textContent = `${data.percent}%`;
+});
+
+// Check browser on load
+async function checkBrowserExists() {
+    const result = await window.api.checkBrowserExists();
+    if (!result.exists) {
+        addLog('⚠️ Chưa có Chromium! Bấm nút "📥 Tải Browser" để tải.', 'warning');
+        btnDownloadBrowser.style.background = '#ff9800';
+    }
+}
+
 // Initial load
 loadBrowsers();
 loadTempSize();
 refreshResults();
+checkBrowserExists();
 addLog('Sẵn sàng!', 'success');
+
