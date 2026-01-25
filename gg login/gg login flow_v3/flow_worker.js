@@ -681,7 +681,18 @@ class FlowWorker {
                         await this.delay(4500); // Tăng từ 2500 để đợi load đủ
 
                         const pageContent = await page.content();
-                        if (pageContent.includes('Couldn\'t find') || pageContent.includes('Không tìm thấy')) {
+                        const pageUrl = page.url();
+
+                        // Check Account bị xóa (ngay sau nhập email)
+                        if (pageUrl.includes('deletedaccount') ||
+                            pageContent.includes('Account deleted') ||
+                            pageContent.includes('Tài khoản đã bị xóa') ||
+                            pageContent.includes('recently deleted')) {
+                            result.status = 'LOGIN_FAILED';
+                            result.flowState = 'ACCOUNT_DELETED';
+                            this.log(`   🗑️ Account đã bị xóa!`, 'error');
+                            loginSuccess = true;
+                        } else if (pageContent.includes('Couldn\'t find') || pageContent.includes('Không tìm thấy')) {
                             result.status = 'LOGIN_FAILED';
                             result.flowState = 'EMAIL_NOT_FOUND';
                             this.log(`   ❌ Email không tồn tại!`, 'error');
@@ -711,7 +722,16 @@ class FlowWorker {
                                 const finalContent = await page.content();
                                 const currentUrl = page.url();
 
-                                if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu')) {
+                                // Check Account bị xóa
+                                if (currentUrl.includes('deletedaccount') ||
+                                    finalContent.includes('Account deleted') ||
+                                    finalContent.includes('Tài khoản đã bị xóa') ||
+                                    finalContent.includes('recently deleted')) {
+                                    result.status = 'LOGIN_FAILED';
+                                    result.flowState = 'ACCOUNT_DELETED';
+                                    this.log(`   🗑️ Account đã bị xóa!`, 'error');
+                                    loginSuccess = true;
+                                } else if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu')) {
                                     result.status = 'LOGIN_FAILED';
                                     result.flowState = 'WRONG_PASSWORD';
                                     this.log(`   ❌ Sai mật khẩu!`, 'error');

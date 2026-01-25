@@ -184,11 +184,27 @@ function updateProgress(current, total, text) {
     progressText.textContent = text || `${current}/${total}`;
 }
 
-// Parse accounts from input
+// Parse accounts from input - hỗ trợ: email|pass, email\tpass (tab), email pass (khoảng trắng)
 function parseAccounts(text) {
     const lines = text.trim().split('\n').filter(line => line.trim());
     return lines.map(line => {
-        const [email, password] = line.trim().split('|');
+        const trimmedLine = line.trim();
+        let email, password;
+
+        // Thử các separator theo thứ tự ưu tiên
+        if (trimmedLine.includes('|')) {
+            // Format: email|pass
+            [email, password] = trimmedLine.split('|');
+        } else if (trimmedLine.includes('\t')) {
+            // Format: email\tpass (tab)
+            [email, password] = trimmedLine.split('\t');
+        } else if (trimmedLine.includes(' ')) {
+            // Format: email pass (khoảng trắng - chỉ lấy 2 phần đầu)
+            const parts = trimmedLine.split(/\s+/);
+            email = parts[0];
+            password = parts[1];
+        }
+
         return { email: email?.trim(), password: password?.trim() };
     }).filter(acc => acc.email && acc.password);
 }
