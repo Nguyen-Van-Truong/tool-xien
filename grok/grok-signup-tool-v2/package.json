@@ -1,0 +1,37 @@
+{
+    "name": "grok-signup-tool-v2",
+    "version": "2.0.0",
+    "description": "Grok Account Signup Automation Tool with Electron GUI",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "build": "electron-builder",
+        "test": "node test_single_account.js"
+    },
+    "keywords": [
+        "grok",
+        "automation",
+        "puppeteer",
+        "electron"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^1.6.0",
+        "puppeteer-core": "^21.0.0"
+    },
+    "devDependencies": {
+        "electron": "^27.3.11",
+        "electron-builder": "^24.6.0"
+    },
+    "build": {
+        "appId": "com.grok.signup-tool",
+        "productName": "Grok Signup Tool V2",
+        "directories": {
+            "output": "dist"
+        },
+        "win": {
+            "target": "portable"
+        }
+    }
+}

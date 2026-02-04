@@ -16,8 +16,9 @@ BROWSER_HEADLESS = False  # Set to True for production
 BROWSER_SLOW_MO = 500  # ms delay between actions for stealth
 BROWSER_TIMEOUT = 30000  # 30 seconds
 
-# Cloudflare settings
-CLOUDFLARE_WAIT_TIMEOUT = 30  # seconds to wait for challenge
+# Cloudflare/Turnstile settings
+CLOUDFLARE_WAIT_TIMEOUT = 60  # Increased from 30 to 60 seconds for better Cloudflare handling
+CLOUDFLARE_RETRY_DELAY = 3# seconds to wait for challenge
 
 # Signup flow timeouts
 SIGNUP_WAIT_AFTER_EMAIL = 3  # seconds

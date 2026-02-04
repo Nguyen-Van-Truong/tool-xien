@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Signup Tool V2</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>🤖 Grok Signup Tool V2</h1>
+            <div class="stats">
+                <span class="stat has-flow">✅ <span id="stat-success">0</span></span>
+                <span class="stat failed">❌ <span id="stat-failed">0</span></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Input -->
+            <div class="panel input-panel">
+                <div class="panel-header">
+                    <h2>📥 Input Accounts</h2>
+                    <span class="account-count">Accounts: <span id="account-count">0</span></span>
+                </div>
+                <textarea id="input-accounts"
+                    placeholder="Nhập accounts (format: email|password|firstname|lastname)&#10;&#10;Ví dụ:&#10;user1@domain.com|password123|John|Doe&#10;user2@domain.com|password456|Jane|Smith"></textarea>
+                <div class="button-group">
+                    <button id="btn-run" class="btn btn-primary">▶ Chạy</button>
+                    <button id="btn-stop" class="btn btn-warning" disabled>⏸ Dừng</button>
+                    <button id="btn-close-all" class="btn btn-danger">✖ Tắt Browser</button>
+                    <button id="btn-clear" class="btn btn-secondary">🗑 Xóa</button>
+                </div>
+            </div>
+
+            <!-- Right Panel - Results -->
+            <div class="panel results-panel">
+                <div class="panel-header">
+                    <h2>📊 Kết quả</h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="success">
+                        ✅ SUCCESS (<span id="tab-count-success">0</span>)
+                    </button>
+                    <button class="tab" data-tab="failed">
+                        ❌ FAILED (<span id="tab-count-failed">0</span>)
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content active" id="tab-success">
+                    <textarea id="result-success" readonly
+                        placeholder="Successfully created accounts sẽ hiển thị ở đây..."></textarea>
+                </div>
+                <div class="tab-content" id="tab-failed">
+                    <textarea id="result-failed" readonly placeholder="Failed signups sẽ hiển thị ở đây..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button id="btn-copy" class="btn btn-secondary">📋 Copy</button>
+                    <button id="btn-save" class="btn btn-secondary">💾 Save</button>
+                    <button id="btn-refresh" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Panel -->
+        <div class="panel log-panel">
+            <div class="panel-header">
+                <h2>📝 Log</h2>
+                <button id="btn-clear-log" class="btn btn-small">Xóa log</button>
+            </div>
+            <div id="log-container" class="log-container"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <span class="progress-text" id="progress-text">Sẵn sàng</span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+
+</html>

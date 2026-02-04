@@ -35,6 +35,7 @@ class GrokSignupGUI:
         # State variables
         self.is_running = False
         self.stats = {'total': 0, 'success': 0, 'failed': 0, 'current': 0}
+        self.signup_mode = tk.StringVar(value='browser')  # 'browser' or 'api_direct'
         
         # Setup UI
         self.setup_ui()
@@ -123,6 +124,51 @@ class GrokSignupGUI:
             cursor='hand2',
             activebackground='#a93226'
         ).pack(side=tk.LEFT, padx=2)
+        
+        # Mode Selection
+        mode_frame = tk.LabelFrame(left_panel, text="⚙️ Signup Mode", font=('Arial', 11, 'bold'), bg='#1e1e1e', fg='#00ffaa')
+        mode_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        mode_container = tk.Frame(mode_frame, bg='#1e1e1e')
+        mode_container.pack(pady=10, padx=10)
+        
+        tk.Radiobutton(
+            mode_container,
+            text="🌐 Browser Mode (Recommended - Auto Cloudflare)",
+            variable=self.signup_mode,
+            value='browser',
+            bg='#1e1e1e',
+            fg='#00ff00',
+            selectcolor='#2d2d2d',
+            activebackground='#1e1e1e',
+            activeforeground='#00ffaa',
+            font=('Arial', 10)
+        ).pack(anchor=tk.W, pady=2)
+        
+        tk.Radiobutton(
+            mode_container,
+            text="📡 API Direct Mode (Fast but needs Turnstile)",
+            variable=self.signup_mode,
+            value='api_direct',
+            bg='#1e1e1e',
+            fg='#ffaa00',
+            selectcolor='#2d2d2d',
+            activebackground='#1e1e1e',
+            activeforeground='#00ffaa',
+            font=('Arial', 10)
+        ).pack(anchor=tk.W, pady=2)
+        
+        # Mode info label
+        self.mode_info = tk.Label(
+            mode_container,
+            text="ℹ️ Browser mode: Slower but auto-solves Cloudflare",
+            bg='#1e1e1e',
+            fg='#888888',
+            font=('Arial', 8),
+            wraplength=350,
+            justify=tk.LEFT
+        )
+        self.mode_info.pack(anchor=tk.W, pady=(5, 0))
         
         # Control Section
         control_frame = tk.LabelFrame(left_panel, text="🎮 Controls", font=('Arial', 11, 'bold'), bg='#1e1e1e', fg='#00ffaa')
@@ -457,7 +503,16 @@ class GrokSignupGUI:
                 await asyncio.sleep(30)
     
     async def signup_account(self, account_data):
-        """Signup single account"""
+        """Signup single account using selected mode"""
+        mode = self.signup_mode.get()
+        
+        if mode == 'browser':
+            return await self.signup_browser_mode(account_data)
+        else:
+            return await self.signup_api_mode(account_data)
+    
+    async def signup_browser_mode(self, account_data):
+        """Signup using browser automation"""
         email = account_data['email']
         password = account_data['password']
         first_name = account_data['first_name']
@@ -468,7 +523,7 @@ class GrokSignupGUI:
         
         try:
             # Generate temp email
-            self.log("📧 Generating temporary email...", '#00ffff')
+            self.log("📧 [Browser Mode] Generating temporary email...", '#00ffff')
             temp_email = await generate_email()
             self.log(f"✅ Temp email: {temp_email}", '#00ff00')
             
@@ -481,9 +536,9 @@ class GrokSignupGUI:
             self.log("🔗 Navigating to signup page...", '#00ffff')
             await browser.navigate_to_signup()
             
-            # Cloudflare
-            self.log("🔐 Handling Cloudflare...", '#00ffff')
-            await browser.wait_for_cloudflare()
+            # Cloudflare - with longer timeout
+            self.log("🔐 Handling Cloudflare (60s timeout)...", '#00ffff')
+            await browser.wait_for_cloudflare(timeout=60)
             
             # Fill form
             self.log(f"📝 Filling form: {first_name} {last_name}", '#00ffff')
@@ -532,6 +587,34 @@ class GrokSignupGUI:
         finally:
             if browser:
                 await browser.close()
+    
+    async def signup_api_mode(self, account_data):
+        """Signup using API Direct mode"""
+        from utils.api_direct import signup_account_api
+        
+        email = account_data['email']
+        password = account_data['password']
+        first_name = account_data['first_name']
+        last_name = account_data['last_name']
+        
+        self.log("📡 [API Direct Mode] Starting...", '#ffaa00')
+        self.log("⚠️ Note: Requires Turnstile token solving", '#ff6600')
+        
+        try:
+            result = await signup_account_api(
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+            return result
+        except Exception as e:
+            return {
+                'status': 'failed',
+                'email': email,
+                'error': str(e),
+                'temp_email': None
+            }
     
     def save_result(self, result):
         """Save result to file"""

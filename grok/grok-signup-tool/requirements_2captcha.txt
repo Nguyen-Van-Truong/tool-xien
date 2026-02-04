@@ -1,0 +1,5 @@
+# Install 2Captcha library (optional, for paid solving)
+pip install 2captcha-python
+
+# Or if you want to use the improved API Direct with browser solving (free)
+# No additional dependencies needed beyond existing requirements.txt

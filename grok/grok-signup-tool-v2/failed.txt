@@ -1,0 +1,2 @@
+# FAILED accounts will be saved here
+# Format: email|error|timestamp

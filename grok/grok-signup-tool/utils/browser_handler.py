@@ -89,36 +89,74 @@ class GrokBrowser:
     
     async def wait_for_cloudflare(self, timeout: int = CLOUDFLARE_WAIT_TIMEOUT):
         """
-        Wait for Cloudflare challenge to complete
+        Wait for page to be ready (handles Cloudflare if present)
         
         Args:
             timeout: Maximum time to wait in seconds
         """
         try:
-            log_info("🔐 Checking for Cloudflare challenge...")
+            log_info("🔐 Waiting for page to load (checking for Cloudflare)...")
             
             # Wait a bit for page to load
+            await asyncio.sleep(3)
+            
+            # Try to find signup form elements directly
+            # If Cloudflare exists, Playwright will auto-solve it
+            selectors_to_try = [
+                'input[type="email"]',
+                'input[name="email"]',
+                'button:has-text("Continue")',
+                'button:has-text("Get started")',
+                'form',
+                '[data-testid="email-input"]',
+                'input[placeholder*="email" i]'
+            ]
+            
+            form_found = False
+            found_selector = None
+            
+            for selector in selectors_to_try:
+                try:
+                    log_info(f"🔍 Looking for: {selector}...")
+                    await self.page.wait_for_selector(selector, timeout=10000, state='visible')
+                    form_found = True
+                    found_selector = selector
+                    log_success(f"✅ Found signup form: {selector}")
+                    break
+                except PlaywrightTimeout:
+                    continue
+            
+            if not form_found:
+                # If no form found after trying all selectors
+                # Check if there's a Cloudflare challenge
+                page_content = await self.page.content()
+                if 'cloudflare' in page_content.lower() or 'challenge' in page_content.lower():
+                    log_warning("⚠️ Cloudflare challenge detected - waiting longer...")
+                    # Wait extra time for Cloudflare to auto-solve
+                    await asyncio.sleep(10)
+                    
+                    # Try again
+                    for selector in selectors_to_try:
+                        try:
+                            await self.page.wait_for_selector(selector, timeout=30000, state='visible')
+                            form_found = True
+                            found_selector = selector
+                            log_success(f"✅ Found after Cloudflare: {selector}")
+                            break
+                        except PlaywrightTimeout:
+                            continue
+                
+                if not form_found:
+                    log_error("❌ Could not find signup form - timeout")
+                    raise Exception("Signup form not found - possible Cloudflare timeout")
+            
+            log_success("✅ Page ready for signup")
+            
+            # Extra wait to ensure page is stable
             await asyncio.sleep(2)
             
-            # Check if we're on Cloudflare challenge page
-            page_content = await self.page.content()
-            
-            if 'cloudflare' in page_content.lower() or 'challenge' in page_content.lower():
-                log_warning("⚠️ Cloudflare challenge detected, waiting for auto-solve...")
-                
-                # Wait for challenge to complete (Playwright usually auto-handles this)
-                # We'll wait for the signup form to appear instead of the challenge
-                try:
-                    await self.page.wait_for_selector('input[type="email"]', timeout=timeout * 1000)
-                    log_success("✅ Cloudflare challenge passed")
-                except PlaywrightTimeout:
-                    log_error("❌ Timeout waiting for Cloudflare challenge to complete")
-                    raise Exception("Cloudflare challenge timeout")
-            else:
-                log_success("✅ No Cloudflare challenge detected")
-                
         except Exception as e:
-            log_error(f"❌ Cloudflare handling failed: {str(e)}")
+            log_error(f"❌ Page loading failed: {str(e)}")
             raise
     
     async def fill_email_field(self, email: str):

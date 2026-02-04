@@ -1,0 +1,9 @@
+# Failed signups will be saved here
+# Format: email|error_message|timestamp
+grok_user_1@example.com|Failed to retrieve verification code|2026-02-04T09:16:05.000938
+grok_user_1@example.com|Cloudflare challenge timeout|2026-02-04T09:33:54.419673
+grok_user_1@example.com|Cloudflare challenge timeout|2026-02-04T09:34:47.941253
+grok_headless_3819@example.com|Signup form not found - possible Cloudflare timeout|2026-02-04T10:15:39.703438
+grok_headless_1013@example.com|Target page, context or browser has been closed|2026-02-04T13:18:18.626299
+grok_headless_3316@example.com|Target page, context or browser has been closed|2026-02-04T13:18:58.863444
+api_test_6886@example.com|Failed to solve Turnstile - use Browser Mode instead|2026-02-04T13:23:10.291688
