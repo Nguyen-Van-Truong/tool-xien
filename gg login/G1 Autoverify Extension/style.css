@@ -1,0 +1,282 @@
+/* Button States */
+.btn-disabled {
+  background-color: #cccccc !important;
+  color: #666666 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.btn-success {
+  background-color: #4CAF50 !important;
+  /* Green */
+  color: white !important;
+  cursor: default !important;
+  box-shadow: none !important;
+}
+
+.btn-reviewing {
+  background-color: #FF9800 !important;
+  /* Orange */
+  color: white !important;
+  cursor: default !important;
+  box-shadow: none !important;
+}
+
+/* Existing styles... */
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9;
+}
+
+/* Header */
+.app-header {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.app-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: #2196F3;
+  letter-spacing: 0.5px;
+}
+
+.app-author {
+  font-size: 12px;
+  color: #888;
+  margin: 4px 0 0 0;
+  font-style: italic;
+}
+
+.container {
+  width: 400px;
+  padding: 20px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* Main Action */
+.main-action {
+  margin-bottom: 15px;
+}
+
+.btn-large {
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform 0.1s;
+}
+
+.btn-large:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background-color: #2196F3;
+  color: white;
+  box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: #1976D2;
+}
+
+/* Secondary Actions */
+.secondary-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.btn-secondary {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  background-color: #e0e0e0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background-color: #d5d5d5;
+}
+
+/* Toggle Link */
+.toggle-view {
+  margin-bottom: 10px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #666;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-link:hover {
+  color: #333;
+}
+
+/* Details */
+#details-container {
+  text-align: left;
+  margin-top: 15px;
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+
+.card-info {
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.card-info p {
+  margin: 4px 0;
+}
+
+#cardCanvas {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Chế độ chỉnh sửa X-Y */
+.xy-edit-panel {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  font-size: 12px;
+}
+
+.xy-edit-hint {
+  margin: 0 0 8px 0;
+  color: #666;
+  font-size: 11px;
+}
+
+.xy-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.xy-edit-table th,
+.xy-edit-table td {
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.xy-edit-table th {
+  font-weight: 600;
+  color: #333;
+}
+
+.xy-input {
+  width: 100%;
+  max-width: 70px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 11px;
+  box-sizing: border-box;
+}
+
+.xy-input.xy-font {
+  max-width: 48px;
+}
+
+.xy-edit-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.xy-edit-buttons .btn-secondary {
+  flex: none;
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
+
+.error-message {
+  color: #d32f2f;
+  background-color: #ffebee;
+  padding: 15px;
+  border-radius: 4px;
+  text-align: center;
+  border: 1px solid #ffcdd2;
+}
+
+.error-title {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.debug-banner {
+  background: #fff3e0;
+  color: #e65100;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #ffcc80;
+}
+
+.popup-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  color: #666;
+}
+
+.debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.debug-toggle input {
+  cursor: pointer;
+}
+
+.popup-footer .btn-link {
+  display: block;
+  margin-top: 4px;
+}

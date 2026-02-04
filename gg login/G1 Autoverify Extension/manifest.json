@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Verify G1 Student",
+  "version": "1.0.0",
+  "description": "Auto Verify G1 Student",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.sheerid.com/*",
+    "*://*/student/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Auto Verify G1 Student"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.sheerid.com/*",
+        "*://*/student/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "phoinam.png",
+        "phoinu.png"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

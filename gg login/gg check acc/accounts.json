@@ -1,0 +1,21 @@
+{
+  "accounts": [
+    {
+      "email": "sophiamilleradmin@banongianoel.id.vn",
+      "password": "Cmlz!veo3"
+    },
+    {
+      "email": "victoriamitchelladmin@banongianoel.id.vn",
+      "password": "Cmlz!veo3"
+    },
+    {
+      "email": "victoriamitchelladmin@banongianoel.id.vn",
+      "password": "Cmlz!veo3"
+    }
+  ],
+  "settings": {
+    "headless": false,
+    "slowMo": 0,
+    "timeout": 30000
+  }
+}

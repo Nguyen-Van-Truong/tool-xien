@@ -1,0 +1,309 @@
+https://accounts.x.ai/sign-up
+toi cần tạo tool chạy đăng ký tài khoản grok
+
+Request URL
+https://accounts.x.ai/auth_mgmt.AuthManagement/CreateEmailValidationCode
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+[2606:4700::6812:1250]:443
+Referrer Policy
+origin-when-cross-origin
+access-control-allow-origin
+*
+access-control-expose-headers
+*
+cf-cache-status
+DYNAMIC
+cf-ray
+9c82acf5a959a13e-HKG
+content-type
+application/grpc-web+proto
+date
+Tue, 03 Feb 2026 14:39:04 GMT
+server
+cloudflare
+strict-transport-security
+max-age=31536000; includeSubDomains
+vary
+origin, access-control-request-method, access-control-request-headers
+:authority
+accounts.x.ai
+:method
+POST
+:path
+/auth_mgmt.AuthManagement/CreateEmailValidationCode
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en-US,en;q=0.9
+content-length
+32
+content-type
+application/grpc-web+proto
+cookie
+redirect=%7B%22redirectDestination%22%3A%22grok-com%22%7D; referrer=grok-com; __cf_bm=Xruapz3q_Njdz9jui1jKTp31wa4RDe8axWepbODS6sk-1770129474-1.0.1.1-e6mD8iz2JY9RxsR.i5By84PGHu4Cx3vYA_ktSw0BG3c_0RmhdzAGGZBZnHfHTUTpYQ8VnElxThJLhvUefzS0um.GBLlz09tOLZ0IhazFH6U; cf_clearance=6lvPfC.9ji8yBwlJOfCv.QvmCYYDVOqwXl.PmMN.Xm0-1770129475-1.2.1.1-wgh7U_e6dbsWDrAh6mBksGOQ3uqeFnKlWBewDRH8ExwR3H5lBuQLUy1RR.5O06SLGhY0ye67ZYbRrkyTv_dL_n1q5XBiQ1NgRLYk.potXmfok5JpwQsMkxRy_LYEy6qkjmpveUmnIrnjRzgzJTSltHCPQSG240mXD7ERJN3cqpK_gAFDQDOWIOGIJPaJgVjsscMIIs_9iSqSUvYGTri2GWteLi6F6y2WXuwNBsTe6jo
+origin
+https://accounts.x.ai
+priority
+u=1, i
+referer
+https://accounts.x.ai/sign-up
+sec-ch-ua
+"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+x-grpc-web
+1
+x-user-agent
+connect-es/2.1.1
+Request conditions
+
+You are signing into
+Verify your email
+We’ve emailed a one time security code to josephga1@gddp2018.edu.vn. It should arrive in the next few minutes. If you don’t see it in your inbox, please check your spam/junk folder. Please enter it below:
+
+Confirm emailGo back
+By continuing, you agree to xAI's Terms of Service and Privacy Policy.
+
+Create Your Grok Account | xAI Single-Sign On
+
+
+Request URL
+https://accounts.x.ai/sign-up
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+[2606:4700::6812:1250]:443
+Referrer Policy
+origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+cf-cache-status
+DYNAMIC
+cf-ray
+9c82ae31dcd1a13e-HKG
+content-encoding
+gzip
+content-security-policy
+default-src 'self'; frame-src https://challenges.cloudflare.com; script-src 'self' 'strict-dynamic' 'nonce-Mzk1OGE1MTctZmJiZi00YzRlLWFhYTUtODM3NTcyN2RkOGQ4'; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.tile.openstreetmap.org blob: data: https://assets.x.ai; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; block-all-mixed-content; upgrade-insecure-requests; connect-src 'self' https://status.x.ai https://assets.x.ai https://auth.x.ai https://auth.grok.com https://auth.grokusercontent.com https://auth.grokipedia.com;
+content-type
+text/x-component
+cross-origin-opener-policy
+same-origin
+date
+Tue, 03 Feb 2026 14:39:55 GMT
+permissions-policy
+camera=(), microphone=(), geolocation=(), browsing-topics=()
+referrer-policy
+origin-when-cross-origin
+server
+cloudflare
+set-cookie
+last-logged-in-with=EMAIL; Path=/; Expires=Mon, 04 May 2026 14:39:55 GMT; Max-Age=7776000; Secure; HttpOnly; SameSite=lax
+strict-transport-security
+max-age=31536000; includeSubDomains
+vary
+rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding
+x-action-revalidated
+1
+x-content-type-options
+nosniff
+x-frame-options
+DENY
+x-nonce
+Mzk1OGE1MTctZmJiZi00YzRlLWFhYTUtODM3NTcyN2RkOGQ4
+:authority
+accounts.x.ai
+:method
+POST
+:path
+/sign-up
+:scheme
+https
+accept
+text/x-component
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en-US,en;q=0.9
+content-length
+1386
+content-type
+text/plain;charset=UTF-8
+cookie
+redirect=%7B%22redirectDestination%22%3A%22grok-com%22%7D; referrer=grok-com; __cf_bm=Xruapz3q_Njdz9jui1jKTp31wa4RDe8axWepbODS6sk-1770129474-1.0.1.1-e6mD8iz2JY9RxsR.i5By84PGHu4Cx3vYA_ktSw0BG3c_0RmhdzAGGZBZnHfHTUTpYQ8VnElxThJLhvUefzS0um.GBLlz09tOLZ0IhazFH6U; cf_clearance=6lvPfC.9ji8yBwlJOfCv.QvmCYYDVOqwXl.PmMN.Xm0-1770129475-1.2.1.1-wgh7U_e6dbsWDrAh6mBksGOQ3uqeFnKlWBewDRH8ExwR3H5lBuQLUy1RR.5O06SLGhY0ye67ZYbRrkyTv_dL_n1q5XBiQ1NgRLYk.potXmfok5JpwQsMkxRy_LYEy6qkjmpveUmnIrnjRzgzJTSltHCPQSG240mXD7ERJN3cqpK_gAFDQDOWIOGIJPaJgVjsscMIIs_9iSqSUvYGTri2GWteLi6F6y2WXuwNBsTe6jo
+next-action
+7fd6b9a73852b0057058b073330fde5a0e648a6bcf
+next-router-state-tree
+%5B%22%22%2C%7B%22children%22%3A%5B%22(app)%22%2C%7B%22children%22%3A%5B%22(auth)%22%2C%7B%22children%22%3A%5B%22sign-up%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2Cfalse%5D%7D%2Cnull%2Cnull%2Cfalse%5D%7D%2Cnull%2Cnull%2Cfalse%5D%7D%2Cnull%2Cnull%2Cfalse%5D%7D%2Cnull%2Cnull%2Ctrue%5D
+origin
+https://accounts.x.ai
+priority
+u=1, i
+referer
+https://accounts.x.ai/sign-up
+sec-ch-ua
+"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+
+
+[{emailValidationCode: "UCOX8L",…}, {client: "$T", meta: "$undefined", mutationKey: "$undefined"}]
+0
+: 
+{emailValidationCode: "UCOX8L",…}
+createUserAndSessionRequest
+: 
+{email: "josephga1@gddp2018.edu.vn", givenName: "josephga1", familyName: "ga",…}
+emailValidationCode
+: 
+"UCOX8L"
+promptOnDuplicateEmail
+: 
+true
+turnstileToken
+: 
+"0.gwN_O0pA3p93xUnPz9fppXEBNotiESD20kRPaP1aL-H6-n99C4PpLpFJpAR4xQ6CfpA_6M1AU0mYWwWqG9v2nOntrUaWqpT37hOVtByK5_cPkeI7MvJElzwnCkyb3HTj8mo76qJJM0OWi-4dt9WxB2ipdtKCg_rYKn04HHerkl8WW6XrwWfNvH1CpBBYxwC9i_HvTGi5Hhq8BHJJgwiC7GEirRUF5UAo1T_X4QTyPRZpmSaXju62Akdt-ll7tVMULWz8ovUlgBT-A-7DTwt6troh2UzcE10m3lteYz-qnLNMmnu5B1U0fJsmJsPY59H1VkBCWO6Fss-vTwtQlm_Fw8_xQ4f997iVw-L4gFe-aMPtaVt-sEuXci5OAC6nUFNIDemqvHnnf2JiiEvGmLPO7Sy5fDf3S_VSHhHY7NbogCWPokhojFnnta247ZpJV1LGlucWnrG6sB6BdGOso5_z1cXot6-z6Sy-5QI-33L6dLQUmCeVpiiM5FxgQLnFDvoR-PMeyVg_NybEuqiJwie63aCT_nJh5sj3-Zn_M2lAO-9PXav5NLxjwngcQeHnBNKquj7gwoj5ZNUzDiincs8QiIFeAuhcYCiH9xu5VaTAxcKUun-CMJr1ydFuWSr84OBnxVTsM22TmNU0qM34GgobyhMHzN67qM9WCkKTwE1Tr3WicOlA8uoB7Auy55xmSZm0fZUE4jaIEg2rU0e_xrKWAGKMg8u_F_O4lXWdlx31Krd0m5SJrdIZ4PcgeYQt2JZEohpIqaRI8IsvQTEvQ3wYZ5qIyo0MbIXA-RD3_niSAUCvymfoGpHlvP6Nq-4pyjcKTbi3K7RUUicN2UgK_W8Su8LRl5vWQPmjqXrF6VmqeNKESrTILKkyCP1ul_KtaTPeRHk3MipZseXzMJK-ZFXCPZuTrJuVfsF8ydMwf8MnF8P1UyCqNrAnuF_Acca8GNGv6_BcTWtJDNrLflfzOKi9UQ.sXzqMbYJZLfNhfbOiqOT-A.3b402665e1ad05c431ffaa45645f93e11c67a3d73ecdf5a92e37bee0d8b49567"
+1
+: 
+{client: "$T", meta: "$undefined", mutationKey: "$undefined"}
+client
+: 
+"$T"
+meta
+: 
+"$undefined"
+mutationKey
+: 
+"$undefined"
+
+Request URL
+https://accounts.x.ai/api/log
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+[2606:4700::6812:1250]:443
+Referrer Policy
+origin-when-cross-origin
+cf-cache-status
+DYNAMIC
+cf-ray
+9c82ae347cdda13e-HKG
+content-encoding
+gzip
+content-security-policy
+default-src 'self'; frame-src https://challenges.cloudflare.com; script-src 'self' 'strict-dynamic' 'nonce-ZmI4Njg2MDktMThjYi00Y2FiLTkzOTMtNzZhNDZhYTAwNDZl'; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.tile.openstreetmap.org blob: data: https://assets.x.ai; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; block-all-mixed-content; upgrade-insecure-requests; connect-src 'self' https://status.x.ai https://assets.x.ai https://auth.x.ai https://auth.grok.com https://auth.grokusercontent.com https://auth.grokipedia.com;
+content-type
+application/json
+cross-origin-opener-policy
+same-origin
+date
+Tue, 03 Feb 2026 14:39:55 GMT
+permissions-policy
+camera=(), microphone=(), geolocation=(), browsing-topics=()
+referrer-policy
+origin-when-cross-origin
+server
+cloudflare
+strict-transport-security
+max-age=31536000; includeSubDomains
+vary
+rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+x-content-type-options
+nosniff
+x-frame-options
+DENY
+x-nonce
+ZmI4Njg2MDktMThjYi00Y2FiLTkzOTMtNzZhNDZhYTAwNDZl
+:authority
+accounts.x.ai
+:method
+POST
+:path
+/api/log
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+en-US,en;q=0.9
+content-length
+161
+content-type
+application/json
+cookie
+redirect=%7B%22redirectDestination%22%3A%22grok-com%22%7D; referrer=grok-com; __cf_bm=Xruapz3q_Njdz9jui1jKTp31wa4RDe8axWepbODS6sk-1770129474-1.0.1.1-e6mD8iz2JY9RxsR.i5By84PGHu4Cx3vYA_ktSw0BG3c_0RmhdzAGGZBZnHfHTUTpYQ8VnElxThJLhvUefzS0um.GBLlz09tOLZ0IhazFH6U; cf_clearance=6lvPfC.9ji8yBwlJOfCv.QvmCYYDVOqwXl.PmMN.Xm0-1770129475-1.2.1.1-wgh7U_e6dbsWDrAh6mBksGOQ3uqeFnKlWBewDRH8ExwR3H5lBuQLUy1RR.5O06SLGhY0ye67ZYbRrkyTv_dL_n1q5XBiQ1NgRLYk.potXmfok5JpwQsMkxRy_LYEy6qkjmpveUmnIrnjRzgzJTSltHCPQSG240mXD7ERJN3cqpK_gAFDQDOWIOGIJPaJgVjsscMIIs_9iSqSUvYGTri2GWteLi6F6y2WXuwNBsTe6jo; last-logged-in-with=EMAIL
+origin
+https://accounts.x.ai
+priority
+u=1, i
+referer
+https://accounts.x.ai/sign-up
+sec-ch-ua
+"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+
+
+{logType: "info", message: "User successfully signed up with email.",…}
+fields
+: 
+{url: "https://accounts.x.ai/sign-in", isServerSide: false}
+isServerSide
+: 
+false
+url
+: 
+"https://accounts.x.ai/sign-in"
+isServerSide
+: 
+false
+logType
+: 
+"info"
+message
+: 
+"User successfully signed up with email."

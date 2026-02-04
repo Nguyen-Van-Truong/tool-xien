@@ -2,11 +2,11 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// Import flow worker
-const { FlowWorker, detectAllBrowsers } = require('./flow_worker');
+// Import check worker
+const { CheckWorker, detectAllBrowsers } = require('./check_worker');
 
 let mainWindow;
-let flowWorker;
+let checkWorker;
 let selectedBrowserId = null; // Lưu browser đã chọn
 
 function createWindow() {
@@ -21,7 +21,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js')
         },
         icon: path.join(__dirname, 'icon.ico'),
-        title: 'Google Flow Login V3',
+        title: 'GG Check Account',
         backgroundColor: '#1a1a2e'
     });
 
@@ -61,25 +61,23 @@ ipcMain.handle('set-browser', async (event, browserId) => {
 
 // Bắt đầu chạy
 ipcMain.handle('start-login', async (event, data) => {
-    // data = { accounts, options: { headless, ramFlags } }
     const accounts = Array.isArray(data) ? data : data.accounts;
     const options = data.options || {};
-    flowWorker = new FlowWorker(mainWindow, selectedBrowserId, options);
-    return await flowWorker.start(accounts);
+    checkWorker = new CheckWorker(mainWindow, selectedBrowserId, options);
+    return await checkWorker.startCheck(accounts);
 });
 
-// Dừng
 ipcMain.handle('stop-login', async () => {
-    if (flowWorker) {
-        await flowWorker.stop();
+    if (checkWorker) {
+        await checkWorker.stop();
     }
     return true;
 });
 
 // Đóng tất cả browsers
 ipcMain.handle('close-all-browsers', async () => {
-    if (flowWorker) {
-        await flowWorker.closeAllBrowsers();
+    if (checkWorker) {
+        await checkWorker.closeAllBrowsers();
     }
     return true;
 });
@@ -108,9 +106,9 @@ ipcMain.handle('read-results', async () => {
     };
 
     return {
-        hasFlow: readFile('has_flow.txt'),
-        noFlow: readFile('no_flow.txt'),
-        loginFailed: readFile('login_failed.txt')
+        loginOk: readFile('login_ok.txt'),
+        loginFailed: readFile('login_failed.txt'),
+        need2fa: readFile('need_2fa.txt')
     };
 });
 
@@ -132,7 +130,7 @@ ipcMain.handle('import-file', async (event, filePath) => {
 // Clear all result files
 ipcMain.handle('clear-results', async () => {
     const basePath = getBasePath();
-    const files = ['has_flow.txt', 'no_flow.txt', 'login_failed.txt', 'flow_results.json'];
+    const files = ['login_ok.txt', 'need_2fa.txt', 'login_failed.txt', 'check_results.json'];
 
     files.forEach(filename => {
         const filePath = path.join(basePath, filename);
@@ -140,7 +138,7 @@ ipcMain.handle('clear-results', async () => {
             fs.unlinkSync(filePath);
         }
         // Tạo file trống mới
-        if (filename === 'flow_results.json') {
+        if (filename === 'check_results.json') {
             fs.writeFileSync(filePath, '[]');
         } else {
             fs.writeFileSync(filePath, '');

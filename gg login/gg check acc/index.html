@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Flow Login V3</title>
+    <title>GG Check Account</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,7 +12,7 @@
     <div class="app">
         <!-- Header -->
         <header class="header">
-            <h1>🎬 Google Flow Login V3</h1>
+            <h1>🔐 GG Check Account</h1>
             <div class="browser-selector">
                 <span>🌐 Browser:</span>
                 <select id="browser-select">
@@ -27,15 +27,16 @@
                 <span id="download-percent">0%</span>
             </div>
             <div class="stats">
-                <span class="stat has-flow">✅ <span id="stat-has-flow">0</span></span>
-                <span class="stat no-flow">⚠️ <span id="stat-no-flow">0</span></span>
+                <span class="stat has-flow">✅ <span id="stat-login-ok">0</span></span>
                 <span class="stat failed">❌ <span id="stat-failed">0</span></span>
+                <span class="stat no-flow">⚠️ <span id="stat-need-2fa">0</span></span>
             </div>
             <div class="temp-info">
                 <span>🗂️ Temp: <span id="temp-size">0 MB</span> (<span id="temp-count">0</span> folders)</span>
                 <button id="btn-clear-temp" class="btn btn-small btn-warning">🧹 Clear Temp</button>
                 <span style="margin-left: 10px;">📦 Cache: <span id="cache-size">0 MB</span></span>
-                <button id="btn-clear-all" class="btn btn-small btn-danger" title="Xóa tất cả cache Puppeteer/Chromium">🗑️ Clear All</button>
+                <button id="btn-clear-all" class="btn btn-small btn-danger"
+                    title="Xóa tất cả cache Puppeteer/Chromium">🗑️ Clear All</button>
             </div>
         </header>
 
@@ -48,7 +49,7 @@
                     <span class="account-count">Accounts: <span id="account-count">0</span></span>
                 </div>
                 <textarea id="input-accounts"
-                    placeholder="Nhập accounts (format: email|password)&#10;&#10;Ví dụ:&#10;user1@domain.com|password123&#10;user2@domain.com|password456"></textarea>
+                    placeholder="Nhập accounts (format: email|password|2fa_secret)&#10;&#10;Ví dụ:&#10;user1@domain.com|pass123&#10;user2@domain.com|pass456|ABC123DEF456 (có 2FA)"></textarea>
                 <div class="button-group">
                     <button id="btn-run" class="btn btn-primary">▶ Chạy</button>
                     <button id="btn-stop" class="btn btn-warning" disabled>⏸ Dừng</button>
@@ -81,29 +82,26 @@
 
                 <!-- Tabs -->
                 <div class="tabs">
-                    <button class="tab active" data-tab="has-flow">
-                        ✅ HAS_FLOW (<span id="tab-count-has-flow">0</span>)
-                    </button>
-                    <button class="tab" data-tab="no-flow">
-                        ⚠️ NO_FLOW (<span id="tab-count-no-flow">0</span>)
+                    <button class="tab active" data-tab="login-ok">
+                        ✅ LOGIN OK (<span id="tab-count-login-ok">0</span>)
                     </button>
                     <button class="tab" data-tab="failed">
                         ❌ FAILED (<span id="tab-count-failed">0</span>)
                     </button>
+                    <button class="tab" data-tab="need-2fa">
+                        ⚠️ NEED 2FA (<span id="tab-count-need-2fa">0</span>)
+                    </button>
                 </div>
 
                 <!-- Tab Content -->
-                <div class="tab-content active" id="tab-has-flow">
-                    <textarea id="result-has-flow" readonly
-                        placeholder="Accounts có Flow sẽ hiển thị ở đây..."></textarea>
-                </div>
-                <div class="tab-content" id="tab-no-flow">
-                    <textarea id="result-no-flow" readonly
-                        placeholder="Accounts không có Flow sẽ hiển thị ở đây..."></textarea>
+                <div class="tab-content active" id="tab-login-ok">
+                    <textarea id="result-login-ok" readonly placeholder="Accounts login thành công..."></textarea>
                 </div>
                 <div class="tab-content" id="tab-failed">
-                    <textarea id="result-failed" readonly
-                        placeholder="Accounts login thất bại sẽ hiển thị ở đây..."></textarea>
+                    <textarea id="result-failed" readonly placeholder="Accounts login thất bại..."></textarea>
+                </div>
+                <div class="tab-content" id="tab-need-2fa">
+                    <textarea id="result-need-2fa" readonly placeholder="Accounts cần 2FA..."></textarea>
                 </div>
 
                 <div class="button-group">

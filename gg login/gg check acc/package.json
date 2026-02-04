@@ -1,0 +1,48 @@
+{
+  "name": "gg-check-acc",
+  "version": "1.0.0",
+  "description": "Google Account Checker with 2FA OTP Support",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --dir",
+    "build-pack": "electron-packager . \"GG Check Acc\" --platform=win32 --arch=x64 --out=dist --overwrite --no-prune --ignore=\"node_modules/puppeteer/.local-chromium\"",
+    "dev": "electron ."
+  },
+  "build": {
+    "appId": "com.ggcheckacc.v1",
+    "productName": "GG Check Acc",
+    "forceCodeSigning": false,
+    "win": {
+      "target": "dir",
+      "icon": "icon.ico",
+      "signAndEditExecutable": false
+    },
+    "files": [
+      "**/*",
+      "!node_modules/puppeteer/.local-chromium/**/*",
+      "node_modules/puppeteer-extra/**/*",
+      "node_modules/puppeteer-extra-plugin-stealth/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "chromium",
+        "to": "chromium"
+      }
+    ],
+    "asar": false
+  },
+  "dependencies": {
+    "puppeteer": "^21.6.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "speakeasy": "^2.0.0"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^26.4.0",
+    "electron-packager": "^17.1.2"
+  },
+  "author": "Flow Login",
+  "license": "MIT"
+}

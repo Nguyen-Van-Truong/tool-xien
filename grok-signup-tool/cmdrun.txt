@@ -1,0 +1,11 @@
+
+pip install -r requirements.txt
+playwright install chromium
+
+cd "e:\tool xien\grok-signup-tool"
+
+# RUN GUI (Recommended - Giao diện đồ họa)
+python gui.py
+
+# hoặc CLI version
+# python main.py

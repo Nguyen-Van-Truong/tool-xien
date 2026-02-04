@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Auto Verify G1 Student</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="container">
+    <header class="app-header">
+      <h1 class="app-title">AUTO VERIFY G1 STUDENT</h1>
+      <p class="app-author">Author: Dung Pham</p>
+    </header>
+
+    <!-- Màn hình lỗi (hiện khi sai URL, trừ khi bật debug) -->
+    <div id="error-view" class="hidden">
+      <div class="error-message">
+        <span class="error-title">⚠️ Không hoạt động</span>
+        Extension này chỉ hoạt động trên trang xác minh SheerID.<br>
+        (services.sheerid.com/verify/...)
+        <div class="error-actions">
+          <button id="btn-open-test-page" class="btn-secondary">Mở trang test</button>
+          <button id="btn-enable-debug" class="btn-secondary">Bật chế độ debug</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Màn hình chính -->
+    <div id="main-view" class="hidden">
+      <!-- Banner debug/test (chỉ hiện khi đang debug hoặc đang ở trang test) -->
+      <div id="debug-banner" class="hidden debug-banner">
+        <span id="debug-banner-text"></span>
+      </div>
+      <!-- Nút chính -->
+      <div class="main-action">
+        <button id="btn-verify" class="btn-large btn-primary">XÁC MINH NGAY</button>
+      </div>
+
+      <!-- Các nút phụ -->
+      <div class="secondary-actions">
+        <button id="btn-regenerate" class="btn-secondary">Tạo thẻ mới</button>
+        <button id="btn-download" class="btn-secondary">Tải ảnh thẻ</button>
+      </div>
+
+      <!-- Toggle xem chi tiết -->
+      <div class="toggle-view">
+        <button id="btn-toggle-details" class="btn-link">Xem chi tiết thẻ ▼</button>
+      </div>
+
+      <!-- Phần chi tiết (ẩn mặc định) -->
+      <div id="details-container" class="hidden">
+        <!-- Thông tin thẻ ngẫu nhiên -->
+        <div class="card-info">
+          <p><strong>Quốc gia:</strong> <span id="country"></span></p>
+          <p><strong>Đại học/Cao đẳng:</strong> <span id="collegeName"></span></p>
+          <p><strong>Họ:</strong> <span id="lastName"></span></p>
+          <p><strong>Tên:</strong> <span id="firstName"></span></p>
+          <p><strong>Ngày sinh:</strong> <span id="birthDate"></span></p>
+          <p><strong>Email:</strong> <span id="email"></span></p>
+        </div>
+
+        <!-- Canvas hiển thị thẻ sinh viên -->
+        <canvas id="cardCanvas" width="480" height="270"></canvas>
+
+        <!-- Chế độ chỉnh sửa vị trí X-Y (cho phôi ảnh khác) -->
+        <div class="toggle-view" style="margin-top: 12px;">
+          <button id="btn-toggle-xy" class="btn-link">Chỉnh sửa vị trí (X-Y) ▼</button>
+        </div>
+        <div id="xy-edit-container" class="hidden">
+          <div class="xy-edit-panel">
+            <p class="xy-edit-hint">Tỷ lệ 0–1 so với chiều rộng/cao ảnh. Chỉnh để khớp phôi mới.</p>
+            <table class="xy-edit-table">
+              <thead>
+                <tr>
+                  <th>Trường</th>
+                  <th>X (ratio)</th>
+                  <th>Y (ratio)</th>
+                  <th>Font</th>
+                </tr>
+              </thead>
+              <tbody id="xy-edit-tbody">
+                <tr data-key="ho_ten"><td>Họ tên</td><td><input type="number" step="0.0001" id="xy-ho_ten-x" class="xy-input"></td><td><input type="number" step="0.0001" id="xy-ho_ten-y" class="xy-input"></td><td><input type="number" min="8" max="48" id="xy-ho_ten-font" class="xy-input xy-font"></td></tr>
+                <tr data-key="ngay_sinh"><td>Ngày sinh</td><td><input type="number" step="0.0001" id="xy-ngay_sinh-x" class="xy-input"></td><td><input type="number" step="0.0001" id="xy-ngay_sinh-y" class="xy-input"></td><td><input type="number" min="8" max="48" id="xy-ngay_sinh-font" class="xy-input xy-font"></td></tr>
+                <tr data-key="chuyen_nganh"><td>Chuyên ngành</td><td><input type="number" step="0.0001" id="xy-chuyen_nganh-x" class="xy-input"></td><td><input type="number" step="0.0001" id="xy-chuyen_nganh-y" class="xy-input"></td><td><input type="number" min="8" max="48" id="xy-chuyen_nganh-font" class="xy-input xy-font"></td></tr>
+                <tr data-key="ma_sinh_vien"><td>Mã SV</td><td><input type="number" step="0.0001" id="xy-ma_sinh_vien-x" class="xy-input"></td><td><input type="number" step="0.0001" id="xy-ma_sinh_vien-y" class="xy-input"></td><td><input type="number" min="8" max="48" id="xy-ma_sinh_vien-font" class="xy-input xy-font"></td></tr>
+                <tr data-key="thoi_han_the"><td>Thời hạn thẻ</td><td><input type="number" step="0.0001" id="xy-thoi_han_the-x" class="xy-input"></td><td><input type="number" step="0.0001" id="xy-thoi_han_the-y" class="xy-input"></td><td><input type="number" min="8" max="48" id="xy-thoi_han_the-font" class="xy-input xy-font"></td></tr>
+                <tr data-key="email"><td>Email</td><td><input type="number" step="0.0001" id="xy-email-x" class="xy-input"></td><td><input type="number" step="0.0001" id="xy-email-y" class="xy-input"></td><td><input type="number" min="8" max="48" id="xy-email-font" class="xy-input xy-font"></td></tr>
+              </tbody>
+            </table>
+            <div class="xy-edit-buttons">
+              <button id="btn-xy-save" class="btn-secondary">Lưu cấu hình</button>
+              <button id="btn-xy-reset" class="btn-secondary">Khôi phục mặc định</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer: Debug + Trang test -->
+      <div class="popup-footer">
+        <label class="debug-toggle">
+          <input type="checkbox" id="checkbox-debug" />
+          <span>Debug: hiển thị trên mọi trang</span>
+        </label>
+        <button id="btn-open-test" class="btn-link">Mở trang test</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

@@ -14,17 +14,17 @@ const progressBar = document.getElementById('progress-bar');
 const progressText = document.getElementById('progress-text');
 const accountCount = document.getElementById('account-count');
 
-// Result textareas
-const resultHasFlow = document.getElementById('result-has-flow');
-const resultNoFlow = document.getElementById('result-no-flow');
+//  Result textareas
+const resultLoginOk = document.getElementById('result-login-ok');
+const resultNeed2fa = document.getElementById('result-need-2fa');
 const resultFailed = document.getElementById('result-failed');
 
 // Stats
-const statHasFlow = document.getElementById('stat-has-flow');
-const statNoFlow = document.getElementById('stat-no-flow');
+const statLoginOk = document.getElementById('stat-login-ok');
+const statNeed2fa = document.getElementById('stat-need-2fa');
 const statFailed = document.getElementById('stat-failed');
-const tabCountHasFlow = document.getElementById('tab-count-has-flow');
-const tabCountNoFlow = document.getElementById('tab-count-no-flow');
+const tabCountLoginOk = document.getElementById('tab-count-login-ok');
+const tabCountNeed2fa = document.getElementById('tab-count-need-2fa');
 const tabCountFailed = document.getElementById('tab-count-failed');
 const browserSelect = document.getElementById('browser-select');
 const tempSize = document.getElementById('temp-size');
@@ -33,7 +33,7 @@ const btnClearTemp = document.getElementById('btn-clear-temp');
 
 // State
 let isRunning = false;
-let currentTab = 'has-flow';
+let currentTab = 'login-ok';
 let detectedBrowsers = [];
 
 // Load danh sách browsers khi app khởi động
@@ -205,12 +205,12 @@ function clearLog() {
 }
 
 // Update stats
-function updateStats(hasFlow, noFlow, failed) {
-    statHasFlow.textContent = hasFlow;
-    statNoFlow.textContent = noFlow;
+function updateStats(loginOk, need2fa, failed) {
+    statLoginOk.textContent = loginOk;
+    statNeed2fa.textContent = need2fa;
     statFailed.textContent = failed;
-    tabCountHasFlow.textContent = hasFlow;
-    tabCountNoFlow.textContent = noFlow;
+    tabCountLoginOk.textContent = loginOk;
+    tabCountNeed2fa.textContent = need2fa;
     tabCountFailed.textContent = failed;
 }
 
@@ -221,45 +221,55 @@ function updateProgress(current, total, text) {
     progressText.textContent = text || `${current}/${total}`;
 }
 
-// Parse accounts from input - hỗ trợ: email|pass, email\tpass (tab), email pass (khoảng trắng)
+// Parse accounts from input - hỗ trợ: email|pass|2fa_secret
 function parseAccounts(text) {
     const lines = text.trim().split('\n').filter(line => line.trim());
     return lines.map(line => {
         const trimmedLine = line.trim();
-        let email, password;
+        let email, password, twoFASecret;
 
         // Thử các separator theo thứ tự ưu tiên
         if (trimmedLine.includes('|')) {
-            // Format: email|pass
-            [email, password] = trimmedLine.split('|');
+            // Format: email|pass or email|pass|2fa_secret
+            const parts = trimmedLine.split('|');
+            email = parts[0];
+            password = parts[1];
+            twoFASecret = parts[2] || null;
         } else if (trimmedLine.includes('\t')) {
-            // Format: email\tpass (tab)
-            [email, password] = trimmedLine.split('\t');
+            // Format: email\tpass\t2fa (tab)
+            const parts = trimmedLine.split('\t');
+            email = parts[0];
+            password = parts[1];
+            twoFASecret = parts[2] || null;
         } else if (trimmedLine.includes(' ')) {
-            // Format: email pass (khoảng trắng - chỉ lấy 2 phần đầu)
+            // Format: email pass 2fa (khoảng trắng)
             const parts = trimmedLine.split(/\s+/);
             email = parts[0];
             password = parts[1];
+            twoFASecret = parts[2] || null;
         }
 
-        return { email: email?.trim(), password: password?.trim() };
+        return {
+            email: email?.trim(),
+            password: password?.trim(),
+            twoFASecret: twoFASecret?.trim() || null
+        };
     }).filter(acc => acc.email && acc.password);
 }
 
-// Refresh results from files
 async function refreshResults() {
     try {
         const results = await window.api.readResults();
-        resultHasFlow.value = results.hasFlow;
-        resultNoFlow.value = results.noFlow;
+        resultLoginOk.value = results.loginOk;
+        resultNeed2fa.value = results.need2fa;
         resultFailed.value = results.loginFailed;
 
         // Count lines
-        const hasFlowCount = results.hasFlow ? results.hasFlow.split('\n').filter(l => l.trim()).length : 0;
-        const noFlowCount = results.noFlow ? results.noFlow.split('\n').filter(l => l.trim()).length : 0;
+        const loginOkCount = results.loginOk ? results.loginOk.split('\n').filter(l => l.trim()).length : 0;
+        const need2faCount = results.need2fa ? results.need2fa.split('\n').filter(l => l.trim()).length : 0;
         const failedCount = results.loginFailed ? results.loginFailed.split('\n').filter(l => l.trim()).length : 0;
 
-        updateStats(hasFlowCount, noFlowCount, failedCount);
+        updateStats(loginOkCount, need2faCount, failedCount);
     } catch (error) {
         addLog(`Lỗi đọc kết quả: ${error.message}`, 'error');
     }
@@ -283,8 +293,8 @@ btnRun.addEventListener('click', async () => {
     await window.api.clearResults();
 
     // Clear UI
-    resultHasFlow.value = '';
-    resultNoFlow.value = '';
+    resultLoginOk.value = '';
+    resultNeed2fa.value = '';
     resultFailed.value = '';
     updateStats(0, 0, 0);
     clearLog();
@@ -350,8 +360,8 @@ btnImport.addEventListener('click', async () => {
 
 btnCopy.addEventListener('click', () => {
     let content = '';
-    if (currentTab === 'has-flow') content = resultHasFlow.value;
-    else if (currentTab === 'no-flow') content = resultNoFlow.value;
+    if (currentTab === 'login-ok') content = resultLoginOk.value;
+    else if (currentTab === 'need-2fa') content = resultNeed2fa.value;
     else content = resultFailed.value;
 
     navigator.clipboard.writeText(content).then(() => {
@@ -363,12 +373,12 @@ btnSave.addEventListener('click', () => {
     let content = '';
     let filename = '';
 
-    if (currentTab === 'has-flow') {
-        content = resultHasFlow.value;
-        filename = 'has_flow_export.txt';
-    } else if (currentTab === 'no-flow') {
-        content = resultNoFlow.value;
-        filename = 'no_flow_export.txt';
+    if (currentTab === 'login-ok') {
+        content = resultLoginOk.value;
+        filename = 'login_ok_export.txt';
+    } else if (currentTab === 'need-2fa') {
+        content = resultNeed2fa.value;
+        filename = 'need_2fa_export.txt';
     } else {
         content = resultFailed.value;
         filename = 'login_failed_export.txt';

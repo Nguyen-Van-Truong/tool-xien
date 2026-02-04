@@ -1,0 +1,2 @@
+# Successful signups will be saved here
+# Format: email|password|temp_email|verification_code|timestamp
