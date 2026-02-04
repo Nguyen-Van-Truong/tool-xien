@@ -104,11 +104,17 @@ class GrokWorker {
             const batchNum = Math.floor(i / this.maxConcurrent) + 1;
             const totalBatches = Math.ceil(accounts.length / this.maxConcurrent);
 
-            this.log(`\n📦 Batch ${batchNum}/${totalBatches}: ${batch.length} account(s) in parallel...`, 'info');
+            this.log(`\n📦 Batch ${batchNum}/${totalBatches}: ${batch.length} account(s) with 1s stagger...`, 'info');
 
+            // Staggered launch - 1 second delay between each browser
             const promises = batch.map((account, idx) => {
                 const accountNum = i + idx + 1;
-                return this.signupAccount(account, accountNum, accounts.length);
+                return new Promise(async (resolve) => {
+                    // Wait idx seconds before starting (0s, 1s, 2s, ...)
+                    await new Promise(r => setTimeout(r, idx * 1000));
+                    const result = await this.signupAccount(account, accountNum, accounts.length);
+                    resolve(result);
+                });
             });
 
             await Promise.allSettled(promises);
