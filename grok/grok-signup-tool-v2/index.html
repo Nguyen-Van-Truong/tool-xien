@@ -14,10 +14,81 @@
         <header class="header">
             <h1>🤖 Grok Signup Tool V2</h1>
             <div class="stats">
+                <span class="stat browsers">🌐 <span id="stat-browsers">0/5</span></span>
                 <span class="stat has-flow">✅ <span id="stat-success">0</span></span>
                 <span class="stat failed">❌ <span id="stat-failed">0</span></span>
+                <button id="btn-settings" class="btn btn-icon" title="Settings">⚙️</button>
             </div>
         </header>
+
+        <!-- Settings Panel (Hidden by default) -->
+        <div id="settings-panel" class="settings-panel hidden">
+            <div class="settings-header">
+                <h3>⚙️ Settings</h3>
+                <button id="btn-close-settings" class="btn btn-small">✖</button>
+            </div>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label for="max-concurrent">
+                        <span>Max Concurrent Browsers:</span>
+                        <input type="number" id="max-concurrent" min="1" max="20" value="5">
+                    </label>
+                    <small>Number of browsers to run simultaneously (1-20)</small>
+                </div>
+                <div class="setting-item">
+                    <label for="headless-mode">
+                        <input type="checkbox" id="headless-mode">
+                        <span>Headless Mode (Hide browsers)</span>
+                    </label>
+                    <small>Faster, uses less memory. Disable to see browser windows.</small>
+                </div>
+                <div class="setting-item">
+                    <label for="keep-browsers">
+                        <input type="checkbox" id="keep-browsers" checked>
+                        <span>Keep Browsers Open After Completion</span>
+                    </label>
+                    <small>Useful for manual verification. Uncheck to auto-close.</small>
+                </div>
+            </div>
+            <div class="settings-footer">
+                <button id="btn-save-settings" class="btn btn-primary">💾 Save Settings</button>
+            </div>
+        </div>
+
+        <!-- Generate Accounts Modal -->
+        <div id="generate-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🎲 Generate Accounts</h3>
+                    <button id="btn-gen-close" class="btn btn-small">✖</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="gen-count">Number of Accounts:</label>
+                        <input type="number" id="gen-count" min="1" max="100" value="5">
+                        <small>Generate 1-100 random test accounts</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Fill Mode:</label>
+                        <div>
+                            <label style="display: inline-flex; align-items: center; margin-right: 15px;">
+                                <input type="radio" name="fill-mode" value="replace" checked>
+                                <span>Replace existing</span>
+                            </label>
+                            <label style="display: inline-flex; align-items: center;">
+                                <input type="radio" name="fill-mode" value="append">
+                                <span>Append to existing</span>
+                            </label>
+                        </div>
+                        <small>Replace or add to current accounts</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-gen-confirm" class="btn btn-primary">✅ Generate</button>
+                    <button id="btn-gen-cancel" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -25,7 +96,10 @@
             <div class="panel input-panel">
                 <div class="panel-header">
                     <h2>📥 Input Accounts</h2>
-                    <span class="account-count">Accounts: <span id="account-count">0</span></span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span class="account-count">Accounts: <span id="account-count">0</span></span>
+                        <button id="btn-generate" class="btn btn-generate">🎲 Generate</button>
+                    </div>
                 </div>
                 <textarea id="input-accounts"
                     placeholder="Nhập accounts (format: email|password|firstname|lastname)&#10;&#10;Ví dụ:&#10;user1@domain.com|password123|John|Doe&#10;user2@domain.com|password456|Jane|Smith"></textarea>

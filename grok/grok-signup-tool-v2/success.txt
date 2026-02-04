@@ -1,2 +1,2 @@
-# SUCCESS accounts will be saved here
-# Format: email|password|temp_email|otp|timestamp
+sarah.anderson.u2je@icloud.com|#lzCeKYgxa38|grok17701941515262u0o7t@issa.wiki|NZLA7F|2026-02-04T08:36:23.494Z
+john.taylor.ve2p@outlook.com|R1H%l1lCj*Ls|grok17701941514978yimcy@bagnelle.com|JKUWJH|2026-02-04T08:36:23.612Z

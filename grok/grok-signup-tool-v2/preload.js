@@ -25,5 +25,6 @@ contextBridge.exposeInMainWorld('api', {
     onLog: (callback) => ipcRenderer.on('log', (event, data) => callback(data)),
     onProgress: (callback) => ipcRenderer.on('progress', (event, data) => callback(data)),
     onResult: (callback) => ipcRenderer.on('result', (event, data) => callback(data)),
-    onComplete: (callback) => ipcRenderer.on('complete', (event, data) => callback(data))
+    onComplete: (callback) => ipcRenderer.on('complete', (event, data) => callback(data)),
+    onBrowserCount: (callback) => ipcRenderer.on('browser-count', (event, data) => callback(data))
 });

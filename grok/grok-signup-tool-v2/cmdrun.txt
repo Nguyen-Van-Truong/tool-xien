@@ -1,0 +1,5 @@
+cd "E:\tool xien\grok\grok-signup-tool-v2"
+npm start
+
+# Không UI (CLI)
+node test_cli.js -g 10 -m 5

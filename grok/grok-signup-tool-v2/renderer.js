@@ -233,3 +233,111 @@ window.api.onComplete((data) => {
 // Initial load
 refreshResults();
 addLog('Sẵn sàng!', 'success');
+// Settings handling
+const settings = {
+    maxConcurrent: 5,
+    headless: false,
+    keepBrowsers: true
+};
+
+// Settings elements
+const btnSettings = document.getElementById('btn-settings');
+const btnCloseSettings = document.getElementById('btn-close-settings');
+const btnSaveSettings = document.getElementById('btn-save-settings');
+const settingsPanel = document.getElementById('settings-panel');
+
+// Open settings
+btnSettings?.addEventListener('click', () => {
+    settingsPanel.classList.remove('hidden');
+    // Load current settings
+    document.getElementById('max-concurrent').value = settings.maxConcurrent;
+    document.getElementById('headless-mode').checked = settings.headless;
+    document.getElementById('keep-browsers').checked = settings.keepBrowsers;
+});
+
+// Close settings
+btnCloseSettings?.addEventListener('click', () => {
+    settingsPanel.classList.add('hidden');
+});
+
+// Save settings
+btnSaveSettings?.addEventListener('click', () => {
+    settings.maxConcurrent = parseInt(document.getElementById('max-concurrent').value);
+    settings.headless = document.getElementById('headless-mode').checked;
+    settings.keepBrowsers = document.getElementById('keep-browsers').checked;
+    settingsPanel.classList.add('hidden');
+    addLog( Settings saved:  concurrent, headless=, 'success');
+});
+// Import generate functions
+const { generateAccounts, formatForInput } = require('./generate_accounts');
+
+// Generate modal elements
+const btnGenerate = document.getElementById('btn-generate');
+const generateModal = document.getElementById('generate-modal');
+const btnGenClose = document.getElementById('btn-gen-close');
+const btnGenConfirm = document.getElementById('btn-gen-confirm');
+const btnGenCancel = document.getElementById('btn-gen-cancel');
+const genCount = document.getElementById('gen-count');
+
+// Open generate modal
+btnGenerate?.addEventListener('click', () => {
+    generateModal.classList.remove('hidden');
+    genCount.focus();
+});
+
+// Close modal handlers
+const closeGenerateModal = () => {
+    generateModal.classList.add('hidden');
+};
+btnGenClose?.addEventListener('click', closeGenerateModal);
+btnGenCancel?.addEventListener('click', closeGenerateModal);
+
+// Generate and fill
+btnGenConfirm?.addEventListener('click', () => {
+    const count = parseInt(genCount.value) || 5;
+    const fillMode = document.querySelector('input[name=\"fill-mode\"]:checked').value;
+    
+    addLog( Generating  accounts..., 'info');
+    
+    try {
+        const accounts = generateAccounts(count);
+        const formattedText = formatForInput(accounts);
+        
+        if (fillMode === 'replace') {
+            inputAccounts.value = formattedText;
+        } else {
+            // Append mode
+            const existing = inputAccounts.value.trim();
+            inputAccounts.value = existing ? existing + '\n' + formattedText : formattedText;
+        }
+        
+        // Trigger input event to update count
+        inputAccounts.dispatchEvent(new Event('input'));
+        
+        addLog( Generated  accounts ( mode), 'success');
+        closeGenerateModal();
+    } catch (error) {
+        addLog( Error: , 'error');
+    }
+});
+
+// Close modal on click outside
+generateModal?.addEventListener('click', (e) => {
+    if (e.target === generateModal) {
+        closeGenerateModal();
+    }
+});
+
+// Browser count display
+const statBrowsers = document.getElementById('stat-browsers');
+window.api.onBrowserCount((data) => {
+    statBrowsers.textContent = ${data.active}/;
+    // Change color when at max
+    if (data.active >= data.max) {
+        statBrowsers.parentElement.style.color = 'var(--accent-yellow)';
+    } else if (data.active > 0) {
+        statBrowsers.parentElement.style.color = 'var(--accent-blue)';
+    } else {
+        statBrowsers.parentElement.style.color = 'var(--text-secondary)';
+    }
+});

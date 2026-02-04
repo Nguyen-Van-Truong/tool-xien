@@ -6,7 +6,10 @@
     "scripts": {
         "start": "electron .",
         "build": "electron-builder",
-        "test": "node test_single_account.js"
+        "test": "node test_cli.js",
+        "test:auto": "node test_cli.js -g 1",
+        "test:batch": "node test_cli.js -g 3",
+        "generate": "node generate_accounts.js"
     },
     "keywords": [
         "grok",

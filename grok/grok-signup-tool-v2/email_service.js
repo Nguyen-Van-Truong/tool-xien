@@ -1,39 +1,41 @@
 /**
- * Email Service Module
- * Handles temporary email generation and OTP retrieval using tinyhost.shop API
+ * Email Service Module - UPDATED for new tinyhost.shop API
+ * Handles temporary email generation and OTP retrieval
  */
 
 const axios = require('axios');
 
-const EMAIL_API_BASE = 'https://www.tinyhost.shop/api';
+const EMAIL_API_BASE = 'https://tinyhost.shop/api';
 const MAX_RETRIES = 12; // 12 attempts x 5s = 60s max wait
 const RETRY_DELAY = 5000; // 5 seconds between retries
 
 /**
  * Generate a temporary email address
- * @returns {Promise<string>} Generated email address
+ * @returns {Promise<{email: string, domain: string, user: string}>}
  */
 async function generateEmail() {
     try {
         console.log('📧 Generating temporary email...');
 
-        // Get available domains
-        const domainResponse = await axios.get(`${EMAIL_API_BASE}/get-domain`);
-        const domains = domainResponse.data;
+        // Get random domain from API
+        const response = await axios.get(`${EMAIL_API_BASE}/random-domains/`, {
+            params: { limit: 5 }
+        });
 
-        if (!domains || domains.length === 0) {
-            throw new Error('No email domains available');
+        if (!response.data || !response.data.domains || response.data.domains.length === 0) {
+            throw new Error('No domains available from API');
         }
 
         // Pick random domain
+        const domains = response.data.domains;
         const domain = domains[Math.floor(Math.random() * domains.length)];
 
         // Generate random username
-        const username = `grok_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        const username = `grok${Date.now()}${Math.random().toString(36).substring(2, 8)}`;
         const email = `${username}@${domain}`;
 
         console.log(`✅ Generated email: ${email}`);
-        return email;
+        return { email, domain, user: username };
 
     } catch (error) {
         console.error('❌ Email generation failed:', error.message);
@@ -43,32 +45,36 @@ async function generateEmail() {
 
 /**
  * Check email inbox for OTP verification code
- * @param {string} email - Email address to check
+ * @param {string} domain - Email domain
+ * @param {string} user - Username (without @domain)
  * @returns {Promise<string|null>} OTP code if found, null otherwise
  */
-async function checkEmailForCode(email) {
+async function checkEmailForCode(domain, user) {
     try {
-        console.log(`📬 Checking inbox for ${email}...`);
+        console.log(`📬 Checking inbox for ${user}@${domain}...`);
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             console.log(`   Attempt ${attempt}/${MAX_RETRIES}...`);
 
             try {
-                // Fetch inbox
-                const inboxResponse = await axios.get(`${EMAIL_API_BASE}/get-mail`, {
-                    params: { email },
+                // Fetch inbox using new API format
+                const response = await axios.get(`${EMAIL_API_BASE}/email/${domain}/${user}/`, {
+                    params: {
+                        page: 1,
+                        limit: 20
+                    },
                     timeout: 10000
                 });
 
-                const emails = inboxResponse.data;
+                const data = response.data;
 
-                if (!emails || emails.length === 0) {
+                if (!data || !data.emails || data.emails.length === 0) {
                     console.log('   No emails yet...');
                 } else {
-                    console.log(`   Found ${emails.length} email(s)`);
+                    console.log(`   Found ${data.emails.length} email(s)`);
 
                     // Check each email for verification code
-                    for (const mail of emails) {
+                    for (const mail of data.emails) {
                         const code = extractCodeFromEmail(mail);
                         if (code) {
                             console.log(`✅ Found OTP code: ${code}`);
@@ -78,7 +84,11 @@ async function checkEmailForCode(email) {
                 }
 
             } catch (fetchError) {
-                console.log(`   Fetch error: ${fetchError.message}`);
+                if (fetchError.response && fetchError.response.status === 404) {
+                    console.log('   Inbox not created yet...');
+                } else {
+                    console.log(`   Fetch error: ${fetchError.message}`);
+                }
             }
 
             // Wait before next attempt (except on last attempt)
@@ -98,11 +108,11 @@ async function checkEmailForCode(email) {
 
 /**
  * Extract OTP code from email content
- * @param {Object} email - Email object with subject/body
+ * @param {Object} email - Email object with subject/body/html_body
  * @returns {string|null} Extracted code or null
  */
 function extractCodeFromEmail(email) {
-    const content = `${email.subject || ''} ${email.body || ''} ${email.text || ''}`;
+    const content = `${email.subject || ''} ${email.body || ''} ${email.html_body || ''}`;
 
     // Pattern 1: XXX-XXX format (e.g., OMK-QZN)
     const pattern1 = /\b([A-Z0-9]{3}-[A-Z0-9]{3})\b/i;
@@ -123,6 +133,13 @@ function extractCodeFromEmail(email) {
     const match3 = content.match(pattern3);
     if (match3) {
         return match3[1];
+    }
+
+    // Pattern 4: "verification code" followed by code
+    const pattern4 = /verification\s+code[:\s]+([A-Z0-9]{6})/i;
+    const match4 = content.match(pattern4);
+    if (match4) {
+        return match4[1];
     }
 
     return null;
