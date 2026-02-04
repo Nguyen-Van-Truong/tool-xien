@@ -44,13 +44,15 @@ class GrokWorker {
     saveResult(account, status, extraData = {}) {
         const timestamp = new Date().toISOString();
         if (status === 'success') {
-            // Simple format: email|password
-            const line = `${account.email}|${account.password}\n`;
+            // Format: grok_email|password (temp email used for Grok)
+            const grokEmail = extraData.grokEmail;
+            const line = `${grokEmail}|${account.password}\n`;
             fs.appendFileSync('success.txt', line);
             this.results.success++;
         } else {
-            // Failed format: email|password|error|timestamp (for debugging)
-            const line = `${account.email}|${account.password}|${extraData.error}|${timestamp}\n`;
+            // Failed format: email|error|timestamp (for debugging)
+            const failedEmail = extraData.grokEmail || 'unknown';
+            const line = `${failedEmail}|${extraData.error}|${timestamp}\n`;
             fs.appendFileSync('failed.txt', line);
             this.results.failed++;
         }
@@ -59,8 +61,38 @@ class GrokWorker {
         }
     }
 
-    async start(accounts) {
+    // Generate random password
+    generateRandomPassword(length = 12) {
+        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+        let password = '';
+        for (let i = 0; i < length; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+    }
+
+    // Generate accounts based on config
+    generateAccounts(config) {
+        const { count, passwordMode, customPassword } = config;
+        const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emma', 'James', 'Emily', 'Robert', 'Olivia', 'William', 'Sophia', 'Benjamin', 'Isabella', 'Daniel', 'Mia', 'Alexander', 'Charlotte', 'Henry', 'Amelia'];
+        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Martinez', 'Lopez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White'];
+
+        const accounts = [];
+        for (let i = 0; i < count; i++) {
+            accounts.push({
+                password: passwordMode === 'custom' ? customPassword : this.generateRandomPassword(),
+                firstname: firstNames[Math.floor(Math.random() * firstNames.length)],
+                lastname: lastNames[Math.floor(Math.random() * lastNames.length)]
+            });
+        }
+        return accounts;
+    }
+
+    async start(config) {
         this.isRunning = true;
+        
+        // Generate accounts from config
+        const accounts = this.generateAccounts(config);
         this.results = { success: 0, failed: 0, total: accounts.length };
         const startTime = Date.now();
 
@@ -96,16 +128,17 @@ class GrokWorker {
     }
 
     async signupAccount(account, accountNum, total) {
-        const { email, password, firstname, lastname } = account;
+        const { password, firstname, lastname } = account;
         let browser = null;
+        let tempEmailData = null;
 
         try {
-            this.log(`\n━━ [${accountNum}/${total}] ${email} ━━`, 'info');
+            this.log(`\n━━ [${accountNum}/${total}] Creating account... ━━`, 'info');
             this.updateProgress(accountNum, total, `Processing ${accountNum}/${total}...`);
 
             // Generate temp email
             this.log('📧 1/12: Generating temp email...', 'info');
-            const tempEmailData = await generateEmail();
+            tempEmailData = await generateEmail();
             this.log(`✅ Temp: ${tempEmailData.email}`, 'success');
 
             // Launch browser
@@ -124,7 +157,7 @@ class GrokWorker {
                 args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'],
                 defaultViewport: { width: 1280, height: 720 }
             });
-            this.browsers.push({ browser, email });
+            this.browsers.push({ browser, email: tempEmailData.email });
             this.updateBrowserCount();
             const page = await browser.newPage();
 
@@ -247,13 +280,16 @@ class GrokWorker {
             }
 
             if (success) {
-                this.log(`🎉 SUCCESS: ${email}`, 'success');
-                this.saveResult(account, 'success', { temp_email: tempEmailData.email, otp });
+                this.log(`🎉 SUCCESS: ${tempEmailData.email}`, 'success');
+                this.saveResult(account, 'success', { grokEmail: tempEmailData.email });
             }
 
         } catch (error) {
             this.log(`❌ FAILED: ${error.message}`, 'error');
-            this.saveResult(account, 'failed', { error: error.message });
+            this.saveResult(account, 'failed', { 
+                error: error.message, 
+                grokEmail: tempEmailData ? tempEmailData.email : null 
+            });
         } finally {
             if (!this.keepBrowserOpen && browser) {
                 await browser.close();

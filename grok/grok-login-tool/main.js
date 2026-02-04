@@ -1,15 +1,15 @@
 /**
  * Electron Main Process
- * Handles app initialization and IPC communication
+ * Grok Login Tool - Mass login verification
  */
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { GrokWorker } = require('./grok_worker');
+const { GrokLoginWorker } = require('./grok_login_worker');
 
 let mainWindow;
-let grokWorker;
+let loginWorker;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -22,7 +22,7 @@ function createWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js')
         },
-        title: 'Grok Signup Tool V2',
+        title: 'Grok Login Tool',
         backgroundColor: '#1a1a2e'
     });
 
@@ -48,24 +48,24 @@ app.on('activate', () => {
 
 // IPC Handlers
 
-// Start signup process
-ipcMain.handle('start-signup', async (event, config, options) => {
-    grokWorker = new GrokWorker(mainWindow, null, options);
-    return await grokWorker.start(config);
+// Start login process
+ipcMain.handle('start-login', async (event, accounts, options) => {
+    loginWorker = new GrokLoginWorker(mainWindow, options);
+    return await loginWorker.start(accounts);
 });
 
-// Stop signup process
-ipcMain.handle('stop-signup', async () => {
-    if (grokWorker) {
-        await grokWorker.stop();
+// Stop login process
+ipcMain.handle('stop-login', async () => {
+    if (loginWorker) {
+        await loginWorker.stop();
     }
     return true;
 });
 
 // Close all browsers
 ipcMain.handle('close-all-browsers', async () => {
-    if (grokWorker) {
-        await grokWorker.closeAllBrowsers();
+    if (loginWorker) {
+        await loginWorker.closeAllBrowsers();
     }
     return true;
 });
@@ -102,13 +102,6 @@ ipcMain.handle('clear-results', async () => {
     return true;
 });
 
-// Generate accounts handler
-ipcMain.handle('generate-accounts', async (event, count) => {
-    const { generateAccounts, formatForInput } = require('./generate_accounts');
-    const accounts = generateAccounts(count);
-    return formatForInput(accounts);
-});
-
 // Get Puppeteer temp folder size
 ipcMain.handle('get-temp-size', async () => {
     const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
@@ -124,7 +117,6 @@ ipcMain.handle('get-temp-size', async () => {
                 try {
                     const stats = fs.statSync(itemPath);
                     if (stats.isDirectory()) {
-                        // Calculate folder size recursively
                         const getFolderSize = (dirPath) => {
                             let size = 0;
                             try {

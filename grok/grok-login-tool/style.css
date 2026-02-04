@@ -54,26 +54,7 @@ body {
 .stats {
     display: flex;
     gap: 20px;
-}
-
-.temp-info {
-    display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 0.85rem;
-    color: #aaa;
-    margin-left: 20px;
-    padding-left: 20px;
-    border-left: 1px solid #444;
-}
-
-.temp-info span {
-    white-space: nowrap;
-}
-
-.btn-small {
-    padding: 4px 10px;
-    font-size: 0.75rem;
 }
 
 .stat {
@@ -85,44 +66,8 @@ body {
     color: var(--accent-green);
 }
 
-.stat.no-flow {
-    color: var(--accent-yellow);
-}
-
 .stat.failed {
     color: var(--accent-red);
-}
-
-/* Browser Selector */
-.browser-selector {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--text-secondary);
-}
-
-.browser-selector select {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-
-.browser-selector select:focus {
-    outline: none;
-    border-color: var(--accent-blue);
-}
-
-.browser-selector select option {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.browser-selector select option:disabled {
-    color: var(--text-secondary);
 }
 
 /* Main Content */
@@ -311,6 +256,14 @@ body {
     border: 1px solid var(--border-color);
 }
 
+.btn-icon {
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    font-size: 1.2rem;
+}
+
 /* Log Panel */
 .log-panel {
     height: 180px;
@@ -406,15 +359,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-blue);
 }
-/* Settings Panel */
-.btn-icon {
-    padding: 8px 12px;
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    font-size: 1.2rem;
-}
 
+/* Settings Panel */
 .settings-panel {
     position: fixed;
     top: 50%;
@@ -483,179 +429,4 @@ body {
     border-top: 1px solid var(--border-color);
     display: flex;
     gap: 10px;
-}
-
-/* Generate Button */
-.btn-generate {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    padding: 6px 12px;
-    font-size: 0.85rem;
-}
-
-.btn-generate:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-/* Modal */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-}
-
-.modal.hidden {
-    display: none;
-}
-
-.modal-content {
-    background: var(--bg-secondary);
-    border: 2px solid var(--accent-blue);
-    border-radius: 16px;
-    width: 450px;
-    max-width: 90%;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.modal-header h3 {
-    font-size: 1.2rem;
-    color: var(--accent-blue);
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.modal-footer {
-    padding: 15px 20px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 0.95rem;
-}
-
-.form-group input[type=number] {
-    width: 100%;
-    padding: 10px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 1rem;
-}
-
-.form-group input[type=number]:focus {
-    outline: none;
-    border-color: var(--accent-blue);
-}
-
-.form-group input[type=radio] {
-    margin-right: 8px;
-}
-
-.form-group small {
-    display: block;
-    margin-top: 5px;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-}
-
-/* Signup Config */
-.signup-config {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 10px 0;
-}
-
-.config-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.config-item label {
-    font-size: 1rem;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.config-input {
-    width: 100%;
-    padding: 12px 15px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 1rem;
-}
-
-.config-input:focus {
-    outline: none;
-    border-color: var(--accent-blue);
-}
-
-.config-input:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.password-options {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 5px;
-}
-
-.radio-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 0.95rem;
-}
-
-.radio-option input[type="radio"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.config-item small {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    margin-top: 5px;
-}
-
-.btn-large {
-    padding: 15px 30px;
-    font-size: 1.1rem;
-    flex: 2;
 }

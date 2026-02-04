@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grok Signup Tool V2</title>
+    <title>Grok Login Tool</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,7 +12,7 @@
     <div class="app">
         <!-- Header -->
         <header class="header">
-            <h1>🤖 Grok Signup Tool V2</h1>
+            <h1>🔐 Grok Login Tool</h1>
             <div class="stats">
                 <span class="stat browsers">🌐 <span id="stat-browsers">0/5</span></span>
                 <span class="stat has-flow">✅ <span id="stat-success">0</span></span>
@@ -82,40 +82,16 @@
             <!-- Left Panel - Input -->
             <div class="panel input-panel">
                 <div class="panel-header">
-                    <h2>� Tạo Accounts</h2>
+                    <h2>📥 Input Accounts</h2>
+                    <span class="account-count">Accounts: <span id="account-count">0</span></span>
                 </div>
-                
-                <div class="signup-config">
-                    <div class="config-item">
-                        <label for="account-count-input">
-                            <span>📊 Số lượng accounts:</span>
-                        </label>
-                        <input type="number" id="account-count-input" min="1" max="100" value="5" class="config-input">
-                        <small>Tạo 1-100 accounts cùng lúc</small>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label>🔑 Password:</label>
-                        <div class="password-options">
-                            <label class="radio-option">
-                                <input type="radio" name="password-mode" value="random" checked>
-                                <span>Random (tự động tạo password mạnh)</span>
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="password-mode" value="custom">
-                                <span>Custom (dùng chung 1 password):</span>
-                            </label>
-                            <input type="text" id="custom-password" placeholder="Nhập password..." 
-                                class="config-input" disabled style="margin-left: 24px;">
-                        </div>
-                        <small>Password random: 12 ký tự, bao gồm chữ hoa, thường, số, ký tự đặc biệt</small>
-                    </div>
-                </div>
-                
-                <div class="button-group" style="margin-top: auto;">
-                    <button id="btn-run" class="btn btn-primary btn-large">▶ Tạo <span id="account-count">5</span> Accounts</button>
+                <textarea id="input-accounts"
+                    placeholder="Nhập accounts theo format: email|password&#10;&#10;Ví dụ:&#10;user1@domain.com|password123&#10;user2@domain.com|password456&#10;user3@domain.com|password789"></textarea>
+                <div class="button-group">
+                    <button id="btn-run" class="btn btn-primary">▶ Chạy</button>
                     <button id="btn-stop" class="btn btn-warning" disabled>⏸ Dừng</button>
                     <button id="btn-close-all" class="btn btn-danger">✖ Tắt Browser</button>
+                    <button id="btn-clear" class="btn btn-secondary">🗑 Xóa</button>
                 </div>
             </div>
 
@@ -138,10 +114,10 @@
                 <!-- Tab Content -->
                 <div class="tab-content active" id="tab-success">
                     <textarea id="result-success" readonly
-                        placeholder="Successfully created accounts sẽ hiển thị ở đây..."></textarea>
+                        placeholder="Successfully logged in accounts sẽ hiển thị ở đây..."></textarea>
                 </div>
                 <div class="tab-content" id="tab-failed">
-                    <textarea id="result-failed" readonly placeholder="Failed signups sẽ hiển thị ở đây..."></textarea>
+                    <textarea id="result-failed" readonly placeholder="Failed logins sẽ hiển thị ở đây..."></textarea>
                 </div>
 
                 <div class="button-group">

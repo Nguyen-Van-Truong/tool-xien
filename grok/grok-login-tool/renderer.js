@@ -1,15 +1,14 @@
 /**
  * Renderer Process - Frontend Logic
- * Grok Signup Tool V2 - Simplified UI
+ * Grok Login Tool - Handles UI interactions and IPC communication
  */
 
 // DOM Elements
-const accountCountInput = document.getElementById('account-count-input');
-const accountCountDisplay = document.getElementById('account-count');
-const customPasswordInput = document.getElementById('custom-password');
+const inputAccounts = document.getElementById('input-accounts');
 const btnRun = document.getElementById('btn-run');
 const btnStop = document.getElementById('btn-stop');
 const btnCloseAll = document.getElementById('btn-close-all');
+const btnClear = document.getElementById('btn-clear');
 const btnCopy = document.getElementById('btn-copy');
 const btnSave = document.getElementById('btn-save');
 const btnRefresh = document.getElementById('btn-refresh');
@@ -17,6 +16,7 @@ const btnClearLog = document.getElementById('btn-clear-log');
 const logContainer = document.getElementById('log-container');
 const progressBar = document.getElementById('progress-bar');
 const progressText = document.getElementById('progress-text');
+const accountCount = document.getElementById('account-count');
 
 // Result textareas
 const resultSuccess = document.getElementById('result-success');
@@ -68,6 +68,21 @@ function updateProgress(current, total, text) {
     progressText.textContent = text || `${current}/${total}`;
 }
 
+// Parse accounts from input (format: email|password)
+function parseAccounts(text) {
+    const lines = text.trim().split('\n').filter(line => line.trim());
+    return lines.map(line => {
+        const parts = line.trim().split('|');
+        if (parts.length >= 2) {
+            return {
+                email: parts[0].trim(),
+                password: parts[1].trim()
+            };
+        }
+        return null;
+    }).filter(acc => acc && acc.email && acc.password);
+}
+
 // Refresh results from files
 async function refreshResults() {
     try {
@@ -84,21 +99,13 @@ async function refreshResults() {
     }
 }
 
-// Update button text when count changes
-accountCountInput.addEventListener('input', () => {
-    const count = parseInt(accountCountInput.value) || 0;
-    accountCountDisplay.textContent = count;
-});
-
-// Password mode toggle
-document.querySelectorAll('input[name="password-mode"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-        const isCustom = document.querySelector('input[name="password-mode"]:checked').value === 'custom';
-        customPasswordInput.disabled = !isCustom;
-        if (isCustom) {
-            customPasswordInput.focus();
-        }
+// Update account count on input
+inputAccounts.addEventListener('input', () => {
+    const lines = inputAccounts.value.trim().split('\n').filter(line => {
+        const trimmed = line.trim();
+        return trimmed && trimmed.includes('|');
     });
+    accountCount.textContent = lines.length;
 });
 
 // Tab switching
@@ -115,26 +122,12 @@ document.querySelectorAll('.tab').forEach(tab => {
     });
 });
 
-// Run button handler
+// Button handlers
 btnRun.addEventListener('click', async () => {
-    const count = parseInt(accountCountInput.value) || 0;
-    
-    if (count <= 0) {
-        addLog('❌ Số lượng accounts phải > 0!', 'error');
-        return;
-    }
-    
-    if (count > 100) {
-        addLog('❌ Tối đa 100 accounts mỗi lần!', 'error');
-        return;
-    }
+    const accounts = parseAccounts(inputAccounts.value);
 
-    const passwordMode = document.querySelector('input[name="password-mode"]:checked').value;
-    const customPassword = customPasswordInput.value.trim();
-    
-    if (passwordMode === 'custom' && !customPassword) {
-        addLog('❌ Vui lòng nhập custom password!', 'error');
-        customPasswordInput.focus();
+    if (accounts.length === 0) {
+        addLog('Không có accounts hợp lệ! Format: email|password', 'error');
         return;
     }
 
@@ -150,21 +143,11 @@ btnRun.addEventListener('click', async () => {
     updateStats(0, 0);
     clearLog();
 
-    addLog(`🚀 Bắt đầu tạo ${count} accounts...`, 'info');
-    if (passwordMode === 'random') {
-        addLog('🔑 Password mode: Random (auto-generate)', 'info');
-    } else {
-        addLog(`🔑 Password mode: Custom (${customPassword})`, 'info');
-    }
-    
-    updateProgress(0, count, 'Đang khởi động...');
+    addLog(`🚀 Bắt đầu login ${accounts.length} accounts...`, 'info');
+    updateProgress(0, accounts.length, 'Đang khởi động...');
 
     try {
-        await window.api.startSignup({
-            count,
-            passwordMode,
-            customPassword
-        }, {
+        await window.api.startLogin(accounts, {
             headless: settings.headless,
             maxConcurrent: settings.maxConcurrent,
             keepBrowserOpen: settings.keepBrowsers
@@ -176,7 +159,7 @@ btnRun.addEventListener('click', async () => {
 
 btnStop.addEventListener('click', async () => {
     addLog('Đang dừng...', 'warning');
-    await window.api.stopSignup();
+    await window.api.stopLogin();
     isRunning = false;
     btnRun.disabled = false;
     btnStop.disabled = true;
@@ -187,6 +170,11 @@ btnCloseAll.addEventListener('click', async () => {
     addLog('✖ Đang tắt tất cả browsers...', 'warning');
     await window.api.closeAllBrowsers();
     addLog('✅ Đã tắt xong!', 'success');
+});
+
+btnClear.addEventListener('click', () => {
+    inputAccounts.value = '';
+    accountCount.textContent = '0';
 });
 
 btnCopy.addEventListener('click', () => {
@@ -202,10 +190,10 @@ btnSave.addEventListener('click', () => {
 
     if (currentTab === 'success') {
         content = resultSuccess.value;
-        filename = 'grok_success_export.txt';
+        filename = 'grok_login_success.txt';
     } else {
         content = resultFailed.value;
-        filename = 'grok_failed_export.txt';
+        filename = 'grok_login_failed.txt';
     }
 
     const blob = new Blob([content], { type: 'text/plain' });
@@ -239,7 +227,7 @@ window.api.onComplete((data) => {
     btnRun.disabled = false;
     btnStop.disabled = true;
     updateProgress(data.total, data.total, `Hoàn thành! (${data.totalTime}s)`);
-    addLog(`🎉 Hoàn thành! SUCCESS: ${data.success}, FAILED: ${data.failed}`, 'success');
+    addLog(`Hoàn thành! SUCCESS: ${data.success}, FAILED: ${data.failed}`, 'success');
     refreshResults();
 });
 
@@ -279,7 +267,7 @@ btnSaveSettings?.addEventListener('click', () => {
     addLog(`⚙️ Settings saved: ${settings.maxConcurrent} concurrent, headless=${settings.headless}`, 'success');
 });
 
-// Delete browser data button
+// Delete browser data
 const btnDeleteBrowserDataTemp = document.getElementById('btn-delete-browser-data-temp');
 const btnRefreshTemp = document.getElementById('btn-refresh-temp');
 const tempSizeDisplay = document.getElementById('temp-size-display');
@@ -333,4 +321,4 @@ btnDeleteBrowserDataTemp?.addEventListener('click', async () => {
 // Initial load
 refreshResults();
 loadTempSize();
-addLog('🤖 Sẵn sàng tạo Grok accounts!', 'success');
+addLog('Sẵn sàng! Nhập accounts theo format: email|password', 'success');

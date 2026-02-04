@@ -1,0 +1,4 @@
+cd "E:\tool xien\grok\grok-login-tool"
+npm start
+
+npm install
