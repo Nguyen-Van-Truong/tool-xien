@@ -481,6 +481,8 @@ body {
 .settings-footer {
     padding: 15px 20px;
     border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 10px;
 }
 
 /* Generate Button */

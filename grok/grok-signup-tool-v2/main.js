@@ -101,3 +101,90 @@ ipcMain.handle('clear-results', async () => {
 
     return true;
 });
+
+// Generate accounts handler
+ipcMain.handle('generate-accounts', async (event, count) => {
+    const { generateAccounts, formatForInput } = require('./generate_accounts');
+    const accounts = generateAccounts(count);
+    return formatForInput(accounts);
+});
+
+// Get Puppeteer temp folder size
+ipcMain.handle('get-temp-size', async () => {
+    const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
+    let totalSize = 0;
+    let folderCount = 0;
+
+    try {
+        const items = fs.readdirSync(tempPath);
+        for (const item of items) {
+            if (item.startsWith('puppeteer')) {
+                folderCount++;
+                const itemPath = path.join(tempPath, item);
+                try {
+                    const stats = fs.statSync(itemPath);
+                    if (stats.isDirectory()) {
+                        // Calculate folder size recursively
+                        const getFolderSize = (dirPath) => {
+                            let size = 0;
+                            try {
+                                const files = fs.readdirSync(dirPath);
+                                for (const file of files) {
+                                    const filePath = path.join(dirPath, file);
+                                    const stat = fs.statSync(filePath);
+                                    if (stat.isDirectory()) {
+                                        size += getFolderSize(filePath);
+                                    } else {
+                                        size += stat.size;
+                                    }
+                                }
+                            } catch (e) { }
+                            return size;
+                        };
+                        totalSize += getFolderSize(itemPath);
+                    } else {
+                        totalSize += stats.size;
+                    }
+                } catch (e) { }
+            }
+        }
+    } catch (e) {
+        console.log('Error getting temp size:', e.message);
+    }
+
+    return {
+        sizeBytes: totalSize,
+        sizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,
+        folderCount: folderCount
+    };
+});
+
+// Delete Puppeteer browser data
+ipcMain.handle('delete-browser-data', async () => {
+    const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
+    let deletedCount = 0;
+
+    try {
+        const items = fs.readdirSync(tempPath);
+        for (const item of items) {
+            if (item.startsWith('puppeteer')) {
+                const itemPath = path.join(tempPath, item);
+                try {
+                    const stats = fs.statSync(itemPath);
+                    if (stats.isDirectory()) {
+                        fs.rmSync(itemPath, { recursive: true, force: true });
+                    } else {
+                        fs.unlinkSync(itemPath);
+                    }
+                    deletedCount++;
+                } catch (e) {
+                    console.log('Cannot delete:', item, e.message);
+                }
+            }
+        }
+    } catch (e) {
+        console.log('Error clearing temp:', e.message);
+    }
+
+    return { deletedCount };
+});

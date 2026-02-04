@@ -27,18 +27,35 @@ const statSuccess = document.getElementById('stat-success');
 const statFailed = document.getElementById('stat-failed');
 const tabCountSuccess = document.getElementById('tab-count-success');
 const tabCountFailed = document.getElementById('tab-count-failed');
-const statBrowsers = document.getElementById('stat-browsers');
 
 // State
 let isRunning = false;
 let currentTab = 'success';
 
-// Settings
-const settings = {
-    maxConcurrent: 5,
-    headless: false,
-    keepBrowsers: true
-};
+// Update account count on input
+inputAccounts.addEventListener('input', () => {
+    const lines = inputAccounts.value.trim().split('\n').filter(line => {
+        const trimmed = line.trim();
+        return trimmed && trimmed.split('|').length >= 4; // email|pass|first|last
+    });
+    accountCount.textContent = lines.length;
+});
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        currentTab = tabName;
+
+        // Update tab buttons
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    });
+});
 
 // Log functions
 function addLog(message, type = 'info') {
@@ -70,34 +87,19 @@ function updateProgress(current, total, text) {
 
 // Parse accounts from input
 function parseAccounts(text) {
-    const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emma', 'James', 'Emily', 'Robert', 'Olivia'];
-    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Martinez', 'Lopez'];
-
     const lines = text.trim().split('\n').filter(line => line.trim());
     return lines.map(line => {
         const parts = line.trim().split('|');
-
         if (parts.length >= 4) {
-            // Format: email|password|firstname|lastname
             return {
                 email: parts[0].trim(),
                 password: parts[1].trim(),
                 firstname: parts[2].trim(),
                 lastname: parts[3].trim()
             };
-        } else if (parts.length >= 2) {
-            // Format: email|password -> auto-generate names
-            const randomFirst = firstNames[Math.floor(Math.random() * firstNames.length)];
-            const randomLast = lastNames[Math.floor(Math.random() * lastNames.length)];
-            return {
-                email: parts[0].trim(),
-                password: parts[1].trim(),
-                firstname: randomFirst,
-                lastname: randomLast
-            };
         }
         return null;
-    }).filter(acc => acc && acc.email && acc.password);
+    }).filter(acc => acc && acc.email && acc.password && acc.firstname && acc.lastname);
 }
 
 // Refresh results from files
@@ -107,6 +109,7 @@ async function refreshResults() {
         resultSuccess.value = results.success;
         resultFailed.value = results.failed;
 
+        // Count lines
         const successCount = results.success ? results.success.split('\n').filter(l => l.trim()).length : 0;
         const failedCount = results.failed ? results.failed.split('\n').filter(l => l.trim()).length : 0;
 
@@ -115,31 +118,6 @@ async function refreshResults() {
         addLog(`Lỗi đọc kết quả: ${error.message}`, 'error');
     }
 }
-
-// Update account count on input
-inputAccounts.addEventListener('input', () => {
-    const lines = inputAccounts.value.trim().split('\n').filter(line => {
-        const trimmed = line.trim();
-        const parts = trimmed.split('|');
-        // Accept: email|password OR email|password|firstname|lastname
-        return trimmed && (parts.length >= 2 && parts.length <= 4);
-    });
-    accountCount.textContent = lines.length;
-});
-
-// Tab switching
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        const tabName = tab.dataset.tab;
-        currentTab = tabName;
-
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById(`tab-${tabName}`).classList.add('active');
-    });
-});
 
 // Button handlers
 btnRun.addEventListener('click', async () => {
@@ -154,9 +132,11 @@ btnRun.addEventListener('click', async () => {
     btnRun.disabled = true;
     btnStop.disabled = false;
 
+    // Clear kết quả cũ trước khi chạy
     addLog('🗑️ Xóa kết quả cũ...', 'info');
     await window.api.clearResults();
 
+    // Clear UI
     resultSuccess.value = '';
     resultFailed.value = '';
     updateStats(0, 0);
@@ -166,11 +146,7 @@ btnRun.addEventListener('click', async () => {
     updateProgress(0, accounts.length, 'Đang khởi động...');
 
     try {
-        await window.api.startSignup(accounts, {
-            headless: settings.headless,
-            maxConcurrent: settings.maxConcurrent,
-            keepBrowserOpen: settings.keepBrowsers
-        });
+        await window.api.startSignup(accounts, { headless: false });
     } catch (error) {
         addLog(`Lỗi: ${error.message}`, 'error');
     }
@@ -185,6 +161,7 @@ btnStop.addEventListener('click', async () => {
     updateProgress(0, 0, 'Đã dừng');
 });
 
+// Tắt tất cả browsers
 btnCloseAll.addEventListener('click', async () => {
     addLog('✖ Đang tắt tất cả browsers...', 'warning');
     await window.api.closeAllBrowsers();
@@ -197,7 +174,10 @@ btnClear.addEventListener('click', () => {
 });
 
 btnCopy.addEventListener('click', () => {
-    let content = currentTab === 'success' ? resultSuccess.value : resultFailed.value;
+    let content = '';
+    if (currentTab === 'success') content = resultSuccess.value;
+    else content = resultFailed.value;
+
     navigator.clipboard.writeText(content).then(() => {
         addLog('Đã copy vào clipboard!', 'success');
     });
@@ -250,16 +230,15 @@ window.api.onComplete((data) => {
     refreshResults();
 });
 
-window.api.onBrowserCount((data) => {
-    statBrowsers.textContent = `${data.active}/${data.max}`;
-    if (data.active >= data.max) {
-        statBrowsers.parentElement.style.color = 'var(--accent-yellow)';
-    } else if (data.active > 0) {
-        statBrowsers.parentElement.style.color = 'var(--accent-blue)';
-    } else {
-        statBrowsers.parentElement.style.color = 'var(--text-secondary)';
-    }
-});
+// Initial load
+refreshResults();
+addLog('Sẵn sàng!', 'success');
+// Settings handling
+const settings = {
+    maxConcurrent: 5,
+    headless: false,
+    keepBrowsers: true
+};
 
 // Settings elements
 const btnSettings = document.getElementById('btn-settings');
@@ -267,24 +246,30 @@ const btnCloseSettings = document.getElementById('btn-close-settings');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 const settingsPanel = document.getElementById('settings-panel');
 
+// Open settings
 btnSettings?.addEventListener('click', () => {
     settingsPanel.classList.remove('hidden');
+    // Load current settings
     document.getElementById('max-concurrent').value = settings.maxConcurrent;
     document.getElementById('headless-mode').checked = settings.headless;
     document.getElementById('keep-browsers').checked = settings.keepBrowsers;
 });
 
+// Close settings
 btnCloseSettings?.addEventListener('click', () => {
     settingsPanel.classList.add('hidden');
 });
 
+// Save settings
 btnSaveSettings?.addEventListener('click', () => {
     settings.maxConcurrent = parseInt(document.getElementById('max-concurrent').value);
     settings.headless = document.getElementById('headless-mode').checked;
     settings.keepBrowsers = document.getElementById('keep-browsers').checked;
     settingsPanel.classList.add('hidden');
-    addLog(`⚙️ Settings saved: ${settings.maxConcurrent} concurrent, headless=${settings.headless}`, 'success');
+    addLog( Settings saved:  concurrent, headless=, 'success');
 });
+// Import generate functions
+const { generateAccounts, formatForInput } = require('./generate_accounts');
 
 // Generate modal elements
 const btnGenerate = document.getElementById('btn-generate');
@@ -294,101 +279,94 @@ const btnGenConfirm = document.getElementById('btn-gen-confirm');
 const btnGenCancel = document.getElementById('btn-gen-cancel');
 const genCount = document.getElementById('gen-count');
 
+// Open generate modal
 btnGenerate?.addEventListener('click', () => {
     generateModal.classList.remove('hidden');
     genCount.focus();
 });
 
+// Close modal handlers
 const closeGenerateModal = () => {
     generateModal.classList.add('hidden');
 };
 btnGenClose?.addEventListener('click', closeGenerateModal);
 btnGenCancel?.addEventListener('click', closeGenerateModal);
 
-btnGenConfirm?.addEventListener('click', async () => {
+// Generate and fill
+btnGenConfirm?.addEventListener('click', () => {
     const count = parseInt(genCount.value) || 5;
-    const fillMode = document.querySelector('input[name="fill-mode"]:checked').value;
-
-    addLog(`🎲 Generating ${count} accounts...`, 'info');
-
+    const fillMode = document.querySelector('input[name=\"fill-mode\"]:checked').value;
+    
+    addLog( Generating  accounts..., 'info');
+    
     try {
-        const formattedText = await window.api.generateAccounts(count);
-
+        const accounts = generateAccounts(count);
+        const formattedText = formatForInput(accounts);
+        
         if (fillMode === 'replace') {
             inputAccounts.value = formattedText;
         } else {
+            // Append mode
             const existing = inputAccounts.value.trim();
             inputAccounts.value = existing ? existing + '\n' + formattedText : formattedText;
         }
-
+        
+        // Trigger input event to update count
         inputAccounts.dispatchEvent(new Event('input'));
-        addLog(`✅ Generated ${count} accounts (${fillMode} mode)`, 'success');
+        
+        addLog( Generated  accounts ( mode), 'success');
         closeGenerateModal();
     } catch (error) {
-        addLog(`❌ Error: ${error.message}`, 'error');
+        addLog( Error: , 'error');
     }
 });
 
+// Close modal on click outside
 generateModal?.addEventListener('click', (e) => {
     if (e.target === generateModal) {
         closeGenerateModal();
     }
 });
 
-// Delete browser data button
-const btnDeleteBrowserDataTemp = document.getElementById('btn-delete-browser-data-temp');
-const btnRefreshTemp = document.getElementById('btn-refresh-temp');
-const tempSizeDisplay = document.getElementById('temp-size-display');
-
-// Load temp size on startup
-async function loadTempSize() {
-    try {
-        const info = await window.api.getTempSize();
-        tempSizeDisplay.textContent = `📁 ${info.folderCount} folders (${info.sizeMB} MB)`;
-        
-        // Highlight if size is large
-        if (info.sizeMB > 100) {
-            tempSizeDisplay.style.color = '#ff4757'; // Red
-        } else if (info.sizeMB > 50) {
-            tempSizeDisplay.style.color = '#ffc107'; // Orange  
-        } else {
-            tempSizeDisplay.style.color = '#00d26a'; // Green
-        }
-    } catch (error) {
-        tempSizeDisplay.textContent = '❌ Error loading';
-        console.log('Error loading temp size:', error);
+// Browser count display
+const statBrowsers = document.getElementById('stat-browsers');
+window.api.onBrowserCount((data) => {
+    statBrowsers.textContent = ${data.active}/;
+    // Change color when at max
+    if (data.active >= data.max) {
+        statBrowsers.parentElement.style.color = 'var(--accent-yellow)';
+    } else if (data.active > 0) {
+        statBrowsers.parentElement.style.color = 'var(--accent-blue)';
+    } else {
+        statBrowsers.parentElement.style.color = 'var(--text-secondary)';
     }
-}
-
-btnRefreshTemp?.addEventListener('click', async () => {
-    tempSizeDisplay.textContent = '⏳ Checking...';
-    await loadTempSize();
 });
 
-btnDeleteBrowserDataTemp?.addEventListener('click', async () => {
-    const confirmed = confirm('⚠️ Xóa toàn bộ Puppeteer browser data?\n\nĐiều này sẽ xóa cache, cookies, và temp files.\nBạn có chắc chắn?');
-
+// Delete browser data button
+const btnDeleteBrowserData = document.getElementById('btn-delete-browser-data');
+btnDeleteBrowserData?.addEventListener('click', async () => {
+    const confirmed = confirm(' X�a to�n b? Puppeteer browser data?\n\n�i?u n�y s? x�a cache, cookies, v� temp files.\nB?n c� ch?c ch?n?');
+    
     if (!confirmed) return;
-
-    btnDeleteBrowserDataTemp.disabled = true;
-    btnDeleteBrowserDataTemp.textContent = '⏳ Đang xóa...';
-    addLog('🗑️ Deleting Puppeteer data...', 'info');
-
+    
+    btnDeleteBrowserData.disabled = true;
+    btnDeleteBrowserData.textContent = ' �ang x�a...';
+    addLog(' Deleting Puppeteer data...', 'info');
+    
     try {
         const result = await window.api.deleteBrowserData();
-        addLog(`✅ Deleted ${result.deletedCount} folders`, 'success');
-        alert(`✅ Xóa thành công!\n\nFolders deleted: ${result.deletedCount}`);
-        await loadTempSize(); // Refresh size
+        if (result.success) {
+            addLog(\ Deleted \ folders (\ MB freed)\, 'success');
+            alert(\ X�a th�nh c�ng!\n\nFolders deleted: \\nSpace freed: \ MB\);
+        } else {
+            addLog(\ Error: \\, 'error');
+            alert(\ L?i: \\);
+        }
     } catch (error) {
-        addLog(`❌ Error: ${error.message}`, 'error');
-        alert(`❌ Lỗi: ${error.message}`);
+        addLog(\ Error: \\, 'error');
+        alert(\ L?i: \\);
     }
-
-    btnDeleteBrowserDataTemp.disabled = false;
-    btnDeleteBrowserDataTemp.textContent = '🗑️ Clear Temp Folders';
+    
+    btnDeleteBrowserData.disabled = false;
+    btnDeleteBrowserData.textContent = ' Delete Puppeteer Data';
 });
-
-// Initial load
-refreshResults();
-loadTempSize();
-addLog('Sẵn sàng!', 'success');

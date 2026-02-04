@@ -47,7 +47,29 @@
                         <input type="checkbox" id="keep-browsers" checked>
                         <span>Keep Browsers Open After Completion</span>
                     </label>
-                    <small>Useful for manual verification. Uncheck to auto-close.</small>
+                    <small>Keep browsers open after completion to verify accounts manually</small>
+                </div>
+
+                <div style="border-top: 1px solid var(--border-color); margin: 15px 0;"></div>
+
+                <div class="setting-item">
+                    <label style="font-weight: bold; color: var(--accent-blue); margin-bottom: 10px;">
+                        🌐 Browser Management
+                    </label>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0;">
+                        <span id="temp-size-display" style="color: var(--text-secondary); font-size: 0.9rem;">
+                            Checking...
+                        </span>
+                        <button id="btn-refresh-temp" class="btn btn-secondary"
+                            style="padding: 4px 10px; font-size: 0.85rem;">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <button id="btn-delete-browser-data-temp" class="btn btn-danger"
+                        style="width: 100%; margin-top: 8px;">
+                        🗑️ Clear Temp Folders
+                    </button>
+                    <small>Clear Puppeteer browser cache and temporary data</small>
                 </div>
             </div>
             <div class="settings-footer">
@@ -102,7 +124,7 @@
                     </div>
                 </div>
                 <textarea id="input-accounts"
-                    placeholder="Nhập accounts (format: email|password|firstname|lastname)&#10;&#10;Ví dụ:&#10;user1@domain.com|password123|John|Doe&#10;user2@domain.com|password456|Jane|Smith"></textarea>
+                    placeholder="Nhập accounts. Hỗ trợ 2 formats:&#10;&#10;Format 1 (auto-generate names):&#10;user1@domain.com|password123&#10;user2@domain.com|password456&#10;&#10;Format 2 (custom names):&#10;user3@domain.com|password789|John|Doe"></textarea>
                 <div class="button-group">
                     <button id="btn-run" class="btn btn-primary">▶ Chạy</button>
                     <button id="btn-stop" class="btn btn-warning" disabled>⏸ Dừng</button>

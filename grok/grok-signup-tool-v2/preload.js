@@ -21,6 +21,15 @@ contextBridge.exposeInMainWorld('api', {
     // Clear results
     clearResults: () => ipcRenderer.invoke('clear-results'),
 
+    // Generate accounts
+    generateAccounts: (count) => ipcRenderer.invoke('generate-accounts', count),
+
+    // Get temp size
+    getTempSize: () => ipcRenderer.invoke('get-temp-size'),
+
+    // Delete browser data
+    deleteBrowserData: () => ipcRenderer.invoke('delete-browser-data'),
+
     // Event listeners
     onLog: (callback) => ipcRenderer.on('log', (event, data) => callback(data)),
     onProgress: (callback) => ipcRenderer.on('progress', (event, data) => callback(data)),
