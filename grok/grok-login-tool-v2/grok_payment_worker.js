@@ -193,12 +193,31 @@ class GrokPaymentWorker {
             // Navigate to subscribe page
             this.log('💳 9/19: Navigating to subscribe...', 'info');
             await page.goto('https://grok.com/#subscribe', { waitUntil: 'networkidle2', timeout: 30000 });
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(3000); // Wait for page to fully render
 
-            // Click "Start 7-day free trial" button
+            // Click "Start 7-day free trial" button - wait for button to be visible and enabled
             this.log('🖱️ 10/19: Clicking trial button...', 'info');
-            await page.waitForSelector('button[aria-label="Upgrade to SuperGrok"]', { timeout: 15000 });
+            
+            // Wait for button to appear and be visible
+            await page.waitForSelector('button[aria-label="Upgrade to SuperGrok"]', { visible: true, timeout: 15000 });
+            
+            // Additional delay to ensure button is fully interactive
+            await page.waitForTimeout(2000);
+            
+            // Check if button is enabled before clicking
+            const buttonEnabled = await page.evaluate(() => {
+                const btn = document.querySelector('button[aria-label="Upgrade to SuperGrok"]');
+                return btn && !btn.disabled && btn.offsetParent !== null;
+            });
+            
+            if (!buttonEnabled) {
+                this.log('⏳ Button not ready, waiting...', 'warning');
+                await page.waitForTimeout(2000);
+            }
+            
+            // Click the button
             await page.click('button[aria-label="Upgrade to SuperGrok"]');
+            this.log('✅ Trial button clicked!', 'success');
             await page.waitForTimeout(3000);
 
             // Wait for Stripe checkout page
@@ -312,49 +331,140 @@ class GrokPaymentWorker {
         await page.click('.SubmitButton');
         await page.waitForTimeout(3000);
 
-        // Check for verification checkbox (CAPTCHA)
+        // Check for verification checkbox (CAPTCHA) - may be in iframe
         this.log('🔍 18/19: Checking for verification...', 'info');
+        await page.waitForTimeout(2000); // Wait for any verification UI to appear
+        
         try {
+            // First check if verification modal/dialog appeared
+            const hasVerificationText = await page.evaluate(() => {
+                const text = document.body.innerText || '';
+                return text.includes('One more step') || text.includes('Select the checkbox');
+            });
+            
+            if (hasVerificationText) {
+                this.log('🤖 Verification dialog detected!', 'info');
+            }
+            
+            // Try to find checkbox in main page first
+            let checkboxClicked = false;
             const checkbox = await page.$('#checkbox');
             if (checkbox) {
-                this.log('🤖 Verification checkbox detected, clicking...', 'info');
+                this.log('🤖 Clicking verification checkbox...', 'info');
                 await checkbox.click();
+                checkboxClicked = true;
                 await page.waitForTimeout(3000);
             }
+            
+            // If not found, look for iframe (hCaptcha/reCAPTCHA typically uses iframe)
+            if (!checkboxClicked) {
+                const frames = page.frames();
+                for (const frame of frames) {
+                    try {
+                        // Check for hCaptcha checkbox
+                        const hcaptchaCheckbox = await frame.$('#checkbox');
+                        if (hcaptchaCheckbox) {
+                            this.log('🤖 Found checkbox in iframe, clicking...', 'info');
+                            await hcaptchaCheckbox.click();
+                            checkboxClicked = true;
+                            await page.waitForTimeout(3000);
+                            break;
+                        }
+                        
+                        // Check for reCAPTCHA checkbox
+                        const recaptchaCheckbox = await frame.$('.recaptcha-checkbox');
+                        if (recaptchaCheckbox) {
+                            this.log('🤖 Found reCAPTCHA in iframe, clicking...', 'info');
+                            await recaptchaCheckbox.click();
+                            checkboxClicked = true;
+                            await page.waitForTimeout(3000);
+                            break;
+                        }
+                    } catch (frameErr) {
+                        // Continue to next frame
+                    }
+                }
+            }
+            
+            // Also try clicking by coordinates if checkbox div exists but click didn't work
+            if (!checkboxClicked) {
+                const checkboxDiv = await page.$('div[role="checkbox"]');
+                if (checkboxDiv) {
+                    this.log('🤖 Trying checkbox by role...', 'info');
+                    await checkboxDiv.click();
+                    await page.waitForTimeout(3000);
+                }
+            }
+            
         } catch (e) {
-            // No checkbox, continue
+            this.log(`⚠️ Verification check: ${e.message}`, 'warning');
         }
 
         // Wait for redirect (success or failure)
-        this.log('⏳ 19/19: Waiting for result (max 30s)...', 'info');
+        this.log('⏳ 19/19: Waiting for result (max 45s)...', 'info');
         
-        // Wait up to 30 seconds for redirect
+        // Wait up to 45 seconds for redirect (payment processing can be slow)
         let success = false;
-        for (let i = 0; i < 30 && !success; i++) {
+        let lastUrl = '';
+        
+        for (let i = 0; i < 45 && !success; i++) {
             await page.waitForTimeout(1000);
             const url = page.url();
             
+            // Log URL change
+            if (url !== lastUrl) {
+                this.log(`🔗 URL: ${url.substring(0, 60)}...`, 'info');
+                lastUrl = url;
+            }
+            
+            // Check for success conditions
             if (url.includes('grok.com') && !url.includes('checkout.stripe.com')) {
                 // Redirected back to grok.com - success!
+                this.log('✅ Redirected to grok.com!', 'success');
                 success = true;
             } else if (url.includes('checkout=success')) {
+                this.log('✅ Checkout success detected!', 'success');
                 success = true;
             }
             
-            // Check for error messages on Stripe page
-            if (url.includes('checkout.stripe.com')) {
-                const errorExists = await page.evaluate(() => {
-                    const errorElement = document.querySelector('.FieldError, .Error, [class*="error"]');
-                    return errorElement && errorElement.textContent.length > 0;
+            // Check for error messages on Stripe page (wait longer before declaring failure)
+            if (url.includes('checkout.stripe.com') && i > 10) {
+                const errorInfo = await page.evaluate(() => {
+                    // Check for specific Stripe error elements
+                    const fieldError = document.querySelector('.FieldError');
+                    const paymentError = document.querySelector('[class*="PaymentError"]');
+                    const declineError = document.querySelector('[class*="decline"]');
+                    const errorBanner = document.querySelector('.Banner--error, .Banner--danger');
+                    
+                    // Check for error text content
+                    const bodyText = document.body.innerText || '';
+                    const hasDeclineText = bodyText.includes('declined') || 
+                                          bodyText.includes('couldn\'t be processed') ||
+                                          bodyText.includes('card was declined') ||
+                                          bodyText.includes('insufficient funds');
+                    
+                    return {
+                        hasFieldError: fieldError && fieldError.textContent.length > 0,
+                        hasPaymentError: !!paymentError || !!declineError || !!errorBanner,
+                        hasDeclineText: hasDeclineText,
+                        errorMessage: fieldError?.textContent || ''
+                    };
                 });
-                if (errorExists && i > 5) {
+                
+                if (errorInfo.hasDeclineText || errorInfo.hasPaymentError) {
+                    this.log(`❌ Payment error detected: ${errorInfo.errorMessage || 'Card declined'}`, 'error');
                     throw new Error('Payment declined');
                 }
+            }
+            
+            // Progress indicator
+            if (i > 0 && i % 10 === 0) {
+                this.log(`⏳ Still waiting... (${i}s)`, 'info');
             }
         }
 
         if (!success) {
-            throw new Error('Payment timeout - no redirect');
+            throw new Error('Payment timeout - no redirect after 45s');
         }
 
         return true;
