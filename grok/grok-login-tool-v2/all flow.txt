@@ -1,0 +1,163 @@
+tạo thêm tool login v2 là thêm cả thanh toán nữa
+sau khi login success thì vô trang https://grok.com/#subscribe
+
+
+Ctrl+J
+
+
+
+𝕏
+Connect your 𝕏 account
+
+Unlock early features and personalized content.
+
+Upgrade to SuperGrok
+
+Try Free For 7 Days
+
+Individual
+
+Business
+SuperGrok
+$30.00
+FREE
+7 days free then $30.00 monthly
+
+Longer conversations in Chat
+With Grok 4.1 - Fast & Expert mode
+Make more images & videos
+With Imagine 1.0 - longer, 720p videos
+Longer Voice Mode & Companion chats
+Priority access during peak times
+Early access to new features
+Save with yearly billing
+
+va bam nut nay:
+<button class="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none bg-button-filled text-fg-invert disabled:hover:bg-button-filled h-10 px-3.5 py-1.5 rounded-full w-full font-semibold text-sm hover:scale-[101%] transition-transform duration-300 hover:bg-button-filled-hover" type="button" aria-label="Upgrade to SuperGrok">Start 7-day free trial</button>
+
+se qua trang vi dụ: https://checkout.stripe.com/c/pay/cs_live_a1r2L0eSXYE8EPzBj0yty0Z5S7Kupn04nvSpvYiCWqukbdxS58A5rZ7miC#fid1d2BpamRhQ2prcSc%2FJ0xrcWB3JyknZ2p3YWB3VnF8aWAnPydhYGNkcGlxJykndnBndmZ3bHVxbGprUGtsdHBga2B2dkBrZGdpYGEnP2NkaXZgKSdkdWxOYHwnPyd1blppbHNgWjA0VW52YWFNT2ptfHNMQTdmf1xqVjAwUlV3U2p8MHFUN2QzVHRqQEN0YF9TPTBGRkJWbU5cdV8zd2swcn9hXDRNbUt%2FZnFxQ2FfcFF2RndybHU9VHU2VVZLNTVnalY2SWhAYScpJ2N3amhWYHdzYHcnP3F3cGApJ2dkZm5id2pwa2FGamlqdyc%2FJyY1NTU1NTUnKSdpZHxqcHFRfHVgJz8ndmxrYmlgWmxxYGgnKSdga2RnaWBVaWRmYG1qaWFgd3YnP3F3cGB4JSUl
+
+xAI, LLC logo
+Try SuperGrok
+7 days free
+Then $30.00 per month starting February 11, 2026
+Or
+Enter payment details
+Email
+grok17702174647915j3qdk@rocknetgroup.com
+Payment method
+
+
+Card
+Visa
+MasterCard
+American Express
+UnionPay
+JCB
+Discover
+Diners Club
+
+
+
+Cash App Pay
+
+
+
+Bank
+
+
+Pay securely at xAI, LLC and everywhere Link is accepted.
+
+Start trialProcessing
+By subscribing, you authorize xAI, LLC to charge you according to the terms until you cancel.
+Powered by 
+Terms
+Privacy
+
+roi hay bam chon card:
+<div class="AccordionItemCover PaymentMethodFormAccordionItem card-accordion-item-cover"><div class="AccordionItemHeader AccordionItemCover-header AccordionItemHeader--clickable"><div class="AccordionItemHeader-content"><div class="flex-container"><div class="AccordionItemCover-label"><div class="flex-container direction-row align-items-center wrap-wrap" style="height: auto; width: 100%;"><span class="Text Text-color--gray400 Text-fontSize--13 Text-fontWeight--500"></span></div></div><div class="flex-item width-grow"><div class="flex-container direction-row justify-content-space-between align-items-flex-start"><div class="AccordionItemCover-titleContainer flex-container direction-row justify-content-space-between"><div class="AccordionItemCover-title Text Text-color--gray800 Text-fontSize--14"><div class="PaymentMethodFormAccordionItemTitle flex-container direction-row justify-content-space-between align-items-center"><div class="flex-container direction-row align-items-center"><input id="payment-method-accordion-item-title-card" aria-checked="false" aria-labelledby="payment-method-label-card" name="payment-method-accordion-item-title" type="radio" class="RadioButton PaymentMethodFormAccordionItemTitle-radio" tabindex="-1" value="card"><div class="PaymentMethodFormAccordionItemTitle-icon"><img src="https://js.stripe.com/v3/fingerprinted/img/card-ce24697297bd3c6a00fdd2fb6f760f0d.svg" alt="" class="Icon Icon--md"></div><div id="payment-method-label-card">Card</div><div class="FormFieldInput-Icons vZCPWcyr__SupportedCardBrands-noRightPadding" style="opacity: 1;"><div style="transform: none;"><span class="FormFieldInput-IconsIcon is-visible"><img src="https://js.stripe.com/v3/fingerprinted/img/visa-729c05c240c4bdb47b03ac81d9945bfe.svg" alt="Visa" class="BrandIcon" loading="lazy" fetchpriority="low"></span></div><div style="transform: none;"><span class="FormFieldInput-IconsIcon is-visible"><img src="https://js.stripe.com/v3/fingerprinted/img/mastercard-4d8844094130711885b5e41b28c9848f.svg" alt="MasterCard" class="BrandIcon" loading="lazy" fetchpriority="low"></span></div><div style="transform: none;"><span class="FormFieldInput-IconsIcon is-visible"><img src="https://js.stripe.com/v3/fingerprinted/img/amex-a49b82f46c5cd6a96a6e418a6ca1717c.svg" alt="American Express" class="BrandIcon" loading="lazy" fetchpriority="low"></span></div><div class="CardFormFieldGroupIconOverflow"><span class="CardFormFieldGroupIconOverflow-Item CardFormFieldGroupIconOverflow-Item--invisible" role="presentation"><span class="FormFieldInput-IconsIcon" role="presentation"><img src="https://js.stripe.com/v3/fingerprinted/img/unionpay-8a10aefc7295216c338ba4e1224627a1.svg" alt="UnionPay" class="BrandIcon" loading="lazy" fetchpriority="low"></span></span><span class="CardFormFieldGroupIconOverflow-Item CardFormFieldGroupIconOverflow-Item--visible" role="presentation"><span class="FormFieldInput-IconsIcon" role="presentation"><img src="https://js.stripe.com/v3/fingerprinted/img/jcb-271fd06e6e7a2c52692ffa91a95fb64f.svg" alt="JCB" class="BrandIcon" loading="lazy" fetchpriority="low"></span></span><span class="CardFormFieldGroupIconOverflow-Item CardFormFieldGroupIconOverflow-Item--invisible" role="presentation"><span class="FormFieldInput-IconsIcon" role="presentation"><img src="https://js.stripe.com/v3/fingerprinted/img/discover-ac52cd46f89fa40a29a0bfb954e33173.svg" alt="Discover" class="BrandIcon" loading="lazy" fetchpriority="low"></span></span><span class="CardFormFieldGroupIconOverflow-Item CardFormFieldGroupIconOverflow-Item--invisible" role="presentation"><span class="FormFieldInput-IconsIcon" role="presentation"><img src="https://js.stripe.com/v3/fingerprinted/img/diners-fbcbd3360f8e3f629cdaa80e93abdb8b.svg" alt="Diners Club" class="BrandIcon" loading="lazy" fetchpriority="low"></span></span></div></div></div></div></div></div><div class="AccordionItemCover-actionContainer AccordionItemCover-actionContainer--noButton"><button class="Button AccordionButton AccordionButton-open AccordionButton-expandedClickArea AccordionButton-expandedFocusArea Button--link Button--sm" type="button" aria-label="Pay with card" data-testid="card-accordion-item-button"><div class="flex-container justify-content-center align-items-center"></div></button></div></div></div></div></div></div></div>
+
+se ra ui:
+xAI, LLC logo
+Try SuperGrok
+7 days free
+Then $30.00 per month starting February 11, 2026
+Or
+Enter payment details
+Email
+grok17702174647915j3qdk@rocknetgroup.com
+Payment method
+
+
+Card
+
+Card information
+
+1234 1234 1234 1234
+Visa
+MasterCard
+American Express
+UnionPay
+JCB
+Discover
+Diners Club
+MM / YY
+CVC
+Cardholder name
+Full name on card
+Country or region
+
+Vietnam
+
+
+Cash App Pay
+
+
+
+Bank
+
+
+Pay securely at xAI, LLC and everywhere Link is accepted.
+
+Start trialProcessing
+By subscribing, you authorize xAI, LLC to charge you according to the terms until you cancel.
+Powered by 
+Terms
+Privacy
+
+nhap so the:
+<input class="CheckoutInput CheckoutInput--tabularnums Input Input--empty" autocomplete="cc-number" autocorrect="off" spellcheck="false" id="cardNumber" name="cardNumber" type="text" inputmode="numeric" aria-label="Card number" placeholder="1234 1234 1234 1234" aria-invalid="false" aria-describedby="" data-1p-ignore="false" data-lp-ignore="false" value="">
+
+mm/yy:
+<input class="CheckoutInput CheckoutInput--tabularnums Input Input--empty" autocomplete="cc-number" autocorrect="off" spellcheck="false" id="cardNumber" name="cardNumber" type="text" inputmode="numeric" aria-label="Card number" placeholder="1234 1234 1234 1234" aria-invalid="false" aria-describedby="" data-1p-ignore="false" data-lp-ignore="false" value="">
+
+cvc:
+<input class="CheckoutInput CheckoutInput--tabularnums Input Input--empty" autocomplete="cc-csc" autocorrect="off" spellcheck="false" id="cardCvc" name="cardCvc" type="text" inputmode="numeric" aria-label="CVC" placeholder="CVC" aria-invalid="false" aria-describedby="" data-1p-ignore="false" data-lp-ignore="false" value="">
+
+ten ngau nhien:
+<input class="CheckoutInput Input Input--empty" autocomplete="cc-name" autocorrect="off" spellcheck="false" id="billingName" name="billingName" type="text" placeholder="Full name on card" aria-invalid="false" aria-describedby="" data-1p-ignore="false" data-lp-ignore="false" value="">
+
+roi bam pay
+<div class="SubmitButton-IconContainer"><div class="SubmitButton-Icon SubmitButton-SpinnerIcon SubmitButton-Icon--pre"><div class="Icon Icon--md"><div class="Icon Icon--md Icon--square"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false"><ellipse cx="12" cy="12" rx="10" ry="10" style="stroke: rgb(255, 255, 255);"></ellipse></svg></div></div></div></div>
+
+neu co verify thi bam:
+Close
+One more step before you’re done
+Select the checkbox below.
+
+bam cai nay:
+<div id="anchor-wr" style="position: relative; display: inline-block; height: 100%;"><div id="anchor-td" style="position: relative; display: table; top: 0px; height: 100%;"><div id="anchor-tc" style="display: table-cell; vertical-align: middle;"><div id="anchor-state" style="position: relative; width: 30px; height: 30px; margin: 0px 15px;"><div id="checkbox" aria-haspopup="true" aria-checked="false" role="checkbox" tabindex="0" aria-live="assertive" aria-labelledby="a11y-label" style="position: absolute; width: 28px; height: 28px; border-width: 1px; border-style: solid; border-color: rgb(85, 85, 85); border-radius: 4px; background-color: rgb(250, 250, 250); outline-color: rgb(0, 131, 143); top: 0px; left: 0px;"></div><div class="pulse" style="width: 30px; height: 30px; display: none; position: absolute; top: 0px; left: 0px;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 44 44" style="width: 30px; height: 30px; display: block;" xml:space="preserve"><style type="text/css"> .st0{fill:none;stroke:#FF7B00;stroke-width:2;}</style><g> <circle class="st0" cx="22" cy="22" r="1"> <animate accumulate="none" additive="replace" attributeName="r" begin="0s" calcMode="spline" dur="1.8s" fill="remove" keySplines="0.165, 0.84, 0.44, 1" keyTimes="0; 1" repeatCount="indefinite" restart="always" values="1; 20"> </animate> <animate accumulate="none" additive="replace" attributeName="stroke-opacity" begin="0s" calcMode="spline" dur="1.8s" fill="remove" keySplines="0.3, 0.61, 0.355, 1" keyTimes="0; 1" repeatCount="indefinite" restart="always" values="1; 0"> </animate> </circle> <circle class="st0" cx="22" cy="22" r="1"> <animate accumulate="none" additive="replace" attributeName="r" begin="-0.9s" calcMode="spline" dur="1.8s" fill="remove" keySplines="0.165, 0.84, 0.44, 1" keyTimes="0; 1" repeatCount="indefinite" restart="always" values="1; 20"> </animate> <animate accumulate="none" additive="replace" attributeName="stroke-opacity" begin="-0.9s" calcMode="spline" dur="1.8s" fill="remove" keySplines="0.3, 0.61, 0.355, 1" keyTimes="0; 1" repeatCount="indefinite" restart="always" values="1; 0"> </animate> </circle></g></svg></div><div class="check" aria-hidden="true" tabindex="-1" style="width: 30px; height: 30px; display: none; position: absolute; top: 0px; left: 0px; animation: auto ease 0s 1 normal none running none;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAAC00lEQVR4nO2aTU8TQRyHn39bIdXEm3jwLQhefPkAJorYLYslIF64ohwM8eQH0A/gzYSLIRooxBORKJr4Ultq4smz8YgQb3ow4YAmUHY8IEpgd7vQ3e0smee4+5/uPL+daXdmCwaDwWAwGAwGg8FgMBgM+wBr0u7JFe17QWrTUXcmbqxJuwdhTpDejsHO7Ne5hbJf/b4KYFMeJAuAcKleCPsmgB3ymwiX2m901BZfLHx0a5eKpXcR4ykPgPqdEvnk1Vai7Fgc1JMXkevlm+88p0CiA2hUHhIcQBjykNAAwpKHBAYQpjwkLICw5SFBAUQhDwkJICp5SEAAUcqD5gFELQ8aBxCHPGgaQFzyoGEAccpDwNXgxZmhLCr6sPJTvXk/eRSDYcpDgAAGxgcOZleW31hF+1GUIViTdo9S6qXfna+MlN6HfV3fAApjhdZfrauzInIFkdGoQoh72G/FM4ChmaGW1cPOM+Dav4MRhNBMefAJ4OfK8hjQv+OEyKhV7H0YRgjNmPPb8QxgndQDYMn1pHC30ZHQrDm/Hc8APoy8XVK1dDew6FrQwHTIFe0uRJ43a9hvpW7nc0/6TklmvQq0uxYoNV65VbqDoIJcMFe0uwR5DRxy+bBY5SHgg1B+On9SOZkqqNOuBQFD0E0edvEkuBFCeh7ocC2oE4KO8rCL9wLl4fK3tKOuAguuBT7fCbrKwx7WAvaEfcJJybyCTteCbSNBZ3nY42Ko+2nheKbmVOuFkJuyL+ssDw2sBnNT/cdErVWBMx4ls6D6/B5y4vidr0dDT3PWY+soBzLzwNngrfS485s09HK0crvynbVaDvgSrIVe8hDShsjfkVABznlX6ScPIe4I2dN2W82RisD5nWf1lIeQt8Tsabtt3aEMcuH/UX3lIeQ/SJSGSz9anLQF6vPGEb3lIaJN0cJE4ciaOK9IcV9n+WiJYRPVYDAYDAaDoRH+ALzfixyrasnFAAAAAElFTkSuQmCC" alt="Check mark" style="width: 30px; height: 30px; display: block;"></div></div></div></div><div id="a11y-label" aria-hidden="true" style="display: none;">'I am human', Select in order to trigger the challenge, or to bypass it if you have an accessibility cookie</div></div>
+
+doi 5s neu ve trang grok.com hoac trang https://grok.com/?checkout=success&tier=SUBSCRIPTION_TIER_GROK_PRO&interval=monthly
+thi da thanh cong
+
+neu that bai load lai trang va lam lai voi the khac
+
+them UI de toi nhap the, ví dụ:
+6258142602093862|04|2029|372
+6258142602095842|04|2029|786
+...
+
+tạo folder mới luôn
+
+giờ hãy tạo plan đầy đủ chi tiêt và dam bao hoat dong tot

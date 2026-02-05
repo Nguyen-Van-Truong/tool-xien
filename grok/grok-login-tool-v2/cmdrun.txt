@@ -1,0 +1,16 @@
+cd "E:\tool xien\grok\grok-login-tool-v2"
+npm start
+
+npm install
+
+# Input formats:
+# Accounts: email|password (one per line)
+# Cards: cardNumber|MM|YYYY|CVC (one per line)
+
+# Example accounts:
+# test@example.com|password123
+# user@domain.com|mypass456
+
+# Example cards:
+# 6258142602093862|04|2029|372
+# 6258142602095842|04|2029|786
