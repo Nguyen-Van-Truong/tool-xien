@@ -1,0 +1,713 @@
+/**
+ * Grok Payment Worker - Puppeteer Automation Module
+ * Handles login + SuperGrok trial payment via Stripe
+ * 
+ * Version: Propaganda Integration - Load extension for Stripe checkout
+ * Features:
+ *   - Auto hCaptcha bypass via Propaganda
+ *   - Stripe checkout autofill via Propaganda
+ */
+
+const puppeteer = require('puppeteer-core');
+const fs = require('fs');
+const path = require('path');
+
+// Path to Propaganda extension
+const PROPAGANDA_EXT_PATH = path.resolve(__dirname, '../../Propaganda-XLuxury_V2');
+
+class GrokPaymentWorker {
+    constructor(mainWindow, browserId, options = {}) {
+        this.mainWindow = mainWindow;
+        this.browsers = [];
+        this.isRunning = false;
+        this.maxConcurrent = options.maxConcurrent || 3;
+        this.keepBrowserOpen = options.keepBrowserOpen !== false;
+        this.headless = false; // MUST be false to load extensions
+        this.results = { success: 0, failed: 0, total: 0 };
+        this.cards = [];
+        
+        // Check if Propaganda extension exists
+        this.propagandaAvailable = fs.existsSync(PROPAGANDA_EXT_PATH);
+        
+        // Autofill options
+        this.autofillDelay = options.autofillDelay || 7; // seconds
+        this.randomName = options.randomName !== false; // default true
+        this.randomAddress = options.randomAddress !== false; // default true
+        this.billingInfo = options.billingInfo || {};
+    }
+
+    log(message, type = 'info') {
+        console.log(message);
+        if (this.mainWindow) {
+            this.mainWindow.webContents.send('log', { message, type });
+        }
+    }
+
+    updateProgress(current, total, text) {
+        if (this.mainWindow) {
+            this.mainWindow.webContents.send('progress', { current, total, text });
+        }
+    }
+
+    updateBrowserCount() {
+        const count = this.browsers.length;
+        if (this.mainWindow) {
+            this.mainWindow.webContents.send('browser-count', {
+                active: count,
+                max: this.maxConcurrent
+            });
+        }
+    }
+
+    saveResult(account, status, extraData = {}) {
+        const timestamp = new Date().toISOString();
+        if (status === 'success') {
+            const cardInfo = extraData.cardUsed || 'unknown';
+            const line = `${account.email}|${account.password}|${cardInfo}\n`;
+            fs.appendFileSync('success.txt', line);
+            this.results.success++;
+        } else {
+            const line = `${account.email}|${account.password}|${extraData.error || 'unknown'}|${timestamp}\n`;
+            fs.appendFileSync('failed.txt', line);
+            this.results.failed++;
+        }
+        if (this.mainWindow) {
+            this.mainWindow.webContents.send('result', this.results);
+        }
+    }
+
+    // Generate random cardholder name
+    generateRandomName() {
+        const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emma', 'James', 'Emily', 'Robert', 'Olivia', 'William', 'Sophia', 'Benjamin', 'Isabella', 'Daniel', 'Mia', 'Alexander', 'Charlotte', 'Henry', 'Amelia', 'Ethan', 'Harper', 'Mason', 'Evelyn', 'Logan', 'Abigail', 'Lucas', 'Elizabeth', 'Jackson', 'Sofia'];
+        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Martinez', 'Lopez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White', 'Harris', 'Clark', 'Lewis', 'Robinson', 'Walker', 'Young', 'Hall', 'Allen', 'King', 'Wright'];
+        
+        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+        return `${firstName} ${lastName}`;
+    }
+
+    // Generate random US address
+    generateRandomAddress() {
+        const streetNames = ['Main', 'Oak', 'Park', 'Elm', 'Maple', 'Cedar', 'Pine', 'Washington', 'Lake', 'Hill', 'Sunset', 'Spring', 'River', 'Forest', 'Valley', 'Highland', 'Meadow', 'Garden', 'Ridge', 'View'];
+        const streetTypes = ['St', 'Ave', 'Blvd', 'Dr', 'Ln', 'Way', 'Rd', 'Ct', 'Pl', 'Cir'];
+        const aptTypes = ['Apt', 'Suite', 'Unit', '#'];
+        
+        const cities = [
+            { city: 'New York', state: 'NY', zip: '10001' },
+            { city: 'Los Angeles', state: 'CA', zip: '90001' },
+            { city: 'Chicago', state: 'IL', zip: '60601' },
+            { city: 'Houston', state: 'TX', zip: '77001' },
+            { city: 'Phoenix', state: 'AZ', zip: '85001' },
+            { city: 'Philadelphia', state: 'PA', zip: '19101' },
+            { city: 'San Antonio', state: 'TX', zip: '78201' },
+            { city: 'San Diego', state: 'CA', zip: '92101' },
+            { city: 'Dallas', state: 'TX', zip: '75201' },
+            { city: 'San Jose', state: 'CA', zip: '95101' },
+            { city: 'Austin', state: 'TX', zip: '78701' },
+            { city: 'Jacksonville', state: 'FL', zip: '32201' },
+            { city: 'Fort Worth', state: 'TX', zip: '76101' },
+            { city: 'Columbus', state: 'OH', zip: '43201' },
+            { city: 'Charlotte', state: 'NC', zip: '28201' },
+            { city: 'Seattle', state: 'WA', zip: '98101' },
+            { city: 'Denver', state: 'CO', zip: '80201' },
+            { city: 'Boston', state: 'MA', zip: '02101' },
+            { city: 'Portland', state: 'OR', zip: '97201' },
+            { city: 'Miami', state: 'FL', zip: '33101' }
+        ];
+        
+        const streetNum = Math.floor(Math.random() * 999) + 1;
+        const streetName = streetNames[Math.floor(Math.random() * streetNames.length)];
+        const streetType = streetTypes[Math.floor(Math.random() * streetTypes.length)];
+        const cityData = cities[Math.floor(Math.random() * cities.length)];
+        
+        // 30% chance of having apt number
+        let address2 = '';
+        if (Math.random() < 0.3) {
+            const aptType = aptTypes[Math.floor(Math.random() * aptTypes.length)];
+            const aptNum = Math.floor(Math.random() * 999) + 1;
+            address2 = `${aptType} ${aptNum}`;
+        }
+        
+        return {
+            address1: `${streetNum} ${streetName} ${streetType}`,
+            address2: address2,
+            city: cityData.city,
+            state: cityData.state,
+            zip: cityData.zip
+        };
+    }
+
+    async start(accounts, cards) {
+        this.isRunning = true;
+        this.cards = [...cards];
+        this.results = { success: 0, failed: 0, total: accounts.length };
+        const startTime = Date.now();
+
+        this.log(`🚀 Starting login + payment for ${accounts.length} accounts (max ${this.maxConcurrent} concurrent)...`, 'info');
+        this.log(`💳 ${cards.length} cards available for payment`, 'info');
+        
+        // Log Propaganda status
+        if (this.propagandaAvailable) {
+            this.log(`🎯 PROPAGANDA MODE: Extension loaded from ${PROPAGANDA_EXT_PATH}`, 'success');
+            this.log(`   ✓ hCaptcha auto-bypass enabled`, 'info');
+            this.log(`   ✓ Stripe autofill enabled`, 'info');
+        } else {
+            this.log(`⚠️ Propaganda extension not found at: ${PROPAGANDA_EXT_PATH}`, 'warning');
+            this.log(`   Using manual Stripe input mode`, 'warning');
+        }
+
+        // Process in batches
+        for (let i = 0; i < accounts.length && this.isRunning; i += this.maxConcurrent) {
+            const batch = accounts.slice(i, i + this.maxConcurrent);
+            const batchNum = Math.floor(i / this.maxConcurrent) + 1;
+            const totalBatches = Math.ceil(accounts.length / this.maxConcurrent);
+
+            this.log(`\n📦 Batch ${batchNum}/${totalBatches}: ${batch.length} account(s) with 1s stagger...`, 'info');
+
+            // Staggered launch
+            const promises = batch.map((account, idx) => {
+                const accountNum = i + idx + 1;
+                return new Promise(async (resolve) => {
+                    await new Promise(r => setTimeout(r, idx * 1000));
+                    const result = await this.processAccount(account, accountNum, accounts.length);
+                    resolve(result);
+                });
+            });
+
+            await Promise.allSettled(promises);
+            this.log(`✅ Batch ${batchNum}/${totalBatches} completed!`, 'success');
+        }
+
+        const totalTime = Math.round((Date.now() - startTime) / 1000);
+        this.log(`\n🎉 Done! Success: ${this.results.success}, Failed: ${this.results.failed} (${totalTime}s)`, 'success');
+
+        if (this.keepBrowserOpen) {
+            this.log(`🌐 ${this.browsers.length} browser(s) kept open. Use "Close All Browsers" to close.`, 'info');
+        }
+
+        if (this.mainWindow) {
+            this.mainWindow.webContents.send('complete', { ...this.results, totalTime });
+        }
+    }
+
+    async processAccount(account, accountNum, total) {
+        const { email, password } = account;
+        let browser = null;
+
+        try {
+            this.log(`\n━━ [${accountNum}/${total}] ${email} ━━`, 'info');
+            this.updateProgress(accountNum, total, `Processing ${accountNum}/${total}...`);
+
+            // Launch browser with Propaganda extension
+            this.log('🌐 1/19: Launching browser with Propaganda...', 'info');
+            const chromePaths = [
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+                process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
+            ];
+            const executablePath = chromePaths.find(p => fs.existsSync(p));
+            if (!executablePath) throw new Error('Chrome not found');
+
+            // Build browser args with Propaganda extension
+            const browserArgs = [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-web-security',
+                '--disable-features=IsolateOrigins,site-per-process'
+            ];
+            
+            // Add Propaganda extension if available
+            if (this.propagandaAvailable) {
+                browserArgs.push(`--disable-extensions-except=${PROPAGANDA_EXT_PATH}`);
+                browserArgs.push(`--load-extension=${PROPAGANDA_EXT_PATH}`);
+                this.log(`🎯 Loading Propaganda extension...`, 'info');
+            }
+
+            browser = await puppeteer.launch({
+                executablePath,
+                headless: false, // Must be false to load extensions
+                args: browserArgs,
+                defaultViewport: { width: 1280, height: 800 }
+            });
+            this.browsers.push({ browser, email });
+            this.updateBrowserCount();
+            const page = await browser.newPage();
+
+            // ========== LOGIN PHASE ==========
+            
+            this.log('🔗 2/19: Navigating to sign-in...', 'info');
+            await page.goto('https://accounts.x.ai/sign-in', { waitUntil: 'networkidle2', timeout: 30000 });
+
+            this.log('🖱️ 3/19: Clicking email button...', 'info');
+            await page.waitForSelector('button svg.lucide-mail', { timeout: 10000 });
+            await page.evaluate(() => document.querySelector('button svg.lucide-mail').closest('button').click());
+            await page.waitForTimeout(2000);
+
+            this.log('📧 4/19: Entering email...', 'info');
+            await page.waitForSelector('input[type="email"]', { timeout: 10000 });
+            await page.type('input[type="email"]', email, { delay: 50 });
+            await page.waitForTimeout(500);
+
+            this.log('➡️ 5/19: Clicking Next...', 'info');
+            await page.waitForSelector('button[type="submit"]', { timeout: 5000 });
+            await page.click('button[type="submit"]');
+            await page.waitForTimeout(2000);
+
+            this.log('🔑 6/19: Entering password...', 'info');
+            await page.waitForSelector('input[type="password"]', { timeout: 10000 });
+            await page.type('input[type="password"]', password, { delay: 50 });
+            await page.waitForTimeout(500);
+
+            this.log('🔓 7/19: Clicking Login...', 'info');
+            await page.click('button[type="submit"]');
+            await page.waitForTimeout(3000);
+
+            this.log('⏳ 8/19: Verifying login...', 'info');
+            await page.waitForTimeout(2000);
+            
+            const currentUrl = page.url();
+            if (currentUrl.includes('sign-in') || currentUrl.includes('sign-up')) {
+                throw new Error('Login failed - still on auth page');
+            }
+
+            this.log('✅ Login successful!', 'success');
+
+            // ========== PAYMENT PHASE ==========
+            
+            this.log('💳 9/19: Navigating to subscribe...', 'info');
+            await page.goto('https://grok.com/#subscribe', { waitUntil: 'networkidle2', timeout: 30000 });
+            await page.waitForTimeout(3000);
+
+            this.log('🖱️ 10/19: Clicking trial button...', 'info');
+            await page.waitForSelector('button[aria-label="Upgrade to SuperGrok"]', { visible: true, timeout: 15000 });
+            await page.waitForTimeout(2000);
+            
+            const buttonEnabled = await page.evaluate(() => {
+                const btn = document.querySelector('button[aria-label="Upgrade to SuperGrok"]');
+                return btn && !btn.disabled && btn.offsetParent !== null;
+            });
+            
+            if (!buttonEnabled) {
+                this.log('⏳ Button not ready, waiting...', 'warning');
+                await page.waitForTimeout(2000);
+            }
+            
+            await page.click('button[aria-label="Upgrade to SuperGrok"]');
+            this.log('✅ Trial button clicked!', 'success');
+            await page.waitForTimeout(3000);
+
+            this.log('⏳ 11/19: Waiting for Stripe checkout...', 'info');
+            await page.waitForFunction(
+                () => window.location.href.includes('checkout.stripe.com'),
+                { timeout: 30000 }
+            );
+            await page.waitForTimeout(2000);
+
+            // Try each card
+            let paymentSuccess = false;
+            let usedCard = null;
+
+            for (let cardIdx = 0; cardIdx < this.cards.length && !paymentSuccess; cardIdx++) {
+                const card = this.cards[cardIdx];
+                this.log(`💳 Trying card ${cardIdx + 1}/${this.cards.length}: ****${card.number.slice(-4)}`, 'info');
+
+                try {
+                    paymentSuccess = await this.tryPayment(page, card);
+                    if (paymentSuccess) {
+                        usedCard = card;
+                        this.log(`✅ Payment successful with card ****${card.number.slice(-4)}!`, 'success');
+                    }
+                } catch (payError) {
+                    this.log(`❌ Card ****${card.number.slice(-4)} failed: ${payError.message}`, 'warning');
+                    
+                    if (cardIdx < this.cards.length - 1) {
+                        this.log('🔄 Reloading checkout page for next card...', 'info');
+                        await page.goto('https://grok.com/#subscribe', { waitUntil: 'networkidle2', timeout: 30000 });
+                        await page.waitForTimeout(2000);
+                        await page.waitForSelector('button[aria-label="Upgrade to SuperGrok"]', { timeout: 15000 });
+                        await page.click('button[aria-label="Upgrade to SuperGrok"]');
+                        await page.waitForTimeout(3000);
+                        await page.waitForFunction(
+                            () => window.location.href.includes('checkout.stripe.com'),
+                            { timeout: 30000 }
+                        );
+                        await page.waitForTimeout(2000);
+                    }
+                }
+            }
+
+            if (paymentSuccess) {
+                this.log(`🎉 SUCCESS: ${email} - card ****${usedCard.number.slice(-4)}`, 'success');
+                this.saveResult(account, 'success', { cardUsed: `****${usedCard.number.slice(-4)}` });
+            } else {
+                throw new Error('All cards failed');
+            }
+
+        } catch (error) {
+            this.log(`❌ FAILED: ${email} - ${error.message}`, 'error');
+            this.saveResult(account, 'failed', { error: error.message });
+        } finally {
+            if (!this.keepBrowserOpen && browser) {
+                await browser.close();
+                this.browsers = this.browsers.filter(b => b.browser !== browser);
+                this.updateBrowserCount();
+            }
+        }
+    }
+
+    async tryPayment(page, card) {
+        // ========== PROPAGANDA MODE: Let extension handle everything ==========
+        if (this.propagandaAvailable) {
+            this.log('🎯 PROPAGANDA MODE: Extension will handle payment + captcha', 'success');
+            this.log(`💳 Using card from Propaganda settings (or waiting for auto-fill)...`, 'info');
+            
+            // Wait for Propaganda to detect and start auto-fill
+            this.log('⏳ Waiting for Propaganda to auto-fill (up to 60s)...', 'info');
+            
+            // Monitor for payment completion
+            let propagandaSuccess = false;
+            let lastUrl = '';
+            const maxWaitTime = 90; // 90 seconds for Propaganda to handle
+            
+            for (let i = 0; i < maxWaitTime && !propagandaSuccess; i++) {
+                await page.waitForTimeout(1000);
+                const url = page.url();
+                
+                if (url !== lastUrl) {
+                    this.log(`🔗 [${i}s] URL: ${url.substring(0, 60)}...`, 'info');
+                    lastUrl = url;
+                }
+                
+                // Check for success redirect
+                if (url.includes('grok.com') && !url.includes('checkout.stripe.com')) {
+                    this.log('✅ PROPAGANDA: Payment successful! Redirected to grok.com', 'success');
+                    propagandaSuccess = true;
+                } else if (url.includes('checkout=success') || url.includes('success=true')) {
+                    this.log('✅ PROPAGANDA: Checkout success detected!', 'success');
+                    propagandaSuccess = true;
+                }
+                
+                // Check for errors after some time
+                if (url.includes('checkout.stripe.com') && i > 20) {
+                    const pageStatus = await page.evaluate(() => {
+                        const bodyText = document.body.innerText || '';
+                        const hasError = bodyText.includes('declined') || 
+                                        bodyText.includes('couldn\'t be processed') ||
+                                        bodyText.includes('card was declined');
+                        const hasHCaptcha = bodyText.includes('One more step') || 
+                                           document.querySelector('iframe[src*="hcaptcha"]') !== null;
+                        const submitBtn = document.querySelector('.SubmitButton');
+                        const isProcessing = submitBtn?.classList.contains('SubmitButton--processing');
+                        
+                        return { hasError, hasHCaptcha, isProcessing };
+                    });
+                    
+                    if (pageStatus.hasError) {
+                        this.log('❌ PROPAGANDA: Payment declined detected', 'error');
+                        throw new Error('Payment declined - Propaganda detected error');
+                    }
+                    
+                    if (pageStatus.hasHCaptcha && i < 60) {
+                        this.log('🤖 PROPAGANDA: hCaptcha detected, extension should auto-solve...', 'info');
+                    }
+                    
+                    if (pageStatus.isProcessing) {
+                        this.log('⏳ PROPAGANDA: Payment is processing...', 'info');
+                    }
+                }
+                
+                // Progress log every 15 seconds
+                if (i > 0 && i % 15 === 0) {
+                    this.log(`⏳ PROPAGANDA: Still waiting... (${i}s/${maxWaitTime}s)`, 'info');
+                }
+            }
+            
+            if (!propagandaSuccess) {
+                throw new Error('PROPAGANDA: Timeout - no success redirect after 90s');
+            }
+            
+            return true;
+        }
+        
+        // ========== MANUAL MODE: Fill card info ourselves ==========
+        this.log('📝 MANUAL MODE: Filling card info...', 'info');
+        
+        // Autofill delay
+        if (this.autofillDelay > 0) {
+            this.log(`⏳ Waiting ${this.autofillDelay}s before autofill...`, 'info');
+            for (let i = this.autofillDelay; i > 0; i--) {
+                this.log(`⏳ Autofill in ${i}s...`, 'info');
+                await page.waitForTimeout(1000);
+            }
+        }
+
+        // Select card payment method
+        this.log('💳 12/19: Selecting card payment...', 'info');
+        try {
+            const cardRadio = await page.$('#payment-method-accordion-item-title-card');
+            if (cardRadio) {
+                const isChecked = await page.evaluate(el => el.getAttribute('aria-checked') === 'true', cardRadio);
+                if (!isChecked) {
+                    await page.click('.card-accordion-item-cover');
+                    await page.waitForTimeout(1000);
+                }
+            }
+        } catch (e) {
+            // Card might already be selected
+        }
+
+        // Wait for card inputs
+        await page.waitForSelector('#cardNumber', { timeout: 10000 });
+
+        // Fill REAL card number directly
+        this.log('💳 13/19: Entering card number...', 'info');
+        await page.click('#cardNumber', { clickCount: 3 });
+        await page.type('#cardNumber', card.number, { delay: 30 });
+        await page.waitForTimeout(500);
+
+        // Fill expiry (MM/YY)
+        this.log('📅 14/19: Entering expiry...', 'info');
+        const expiryFormatted = `${card.month}${card.year.slice(-2)}`;
+        await page.click('#cardExpiry', { clickCount: 3 });
+        await page.type('#cardExpiry', expiryFormatted, { delay: 30 });
+        await page.waitForTimeout(500);
+
+        // Fill CVC
+        this.log('🔒 15/19: Entering CVC...', 'info');
+        await page.click('#cardCvc', { clickCount: 3 });
+        await page.type('#cardCvc', card.cvc, { delay: 30 });
+        await page.waitForTimeout(500);
+
+        // Fill cardholder name
+        this.log('👤 16/19: Entering cardholder name...', 'info');
+        let cardholderName;
+        if (this.randomName) {
+            cardholderName = this.generateRandomName();
+            this.log(`🎲 Using random name: ${cardholderName}`, 'info');
+        } else if (this.billingInfo.name) {
+            cardholderName = this.billingInfo.name;
+        } else {
+            cardholderName = this.generateRandomName();
+        }
+        await page.click('#billingName', { clickCount: 3 });
+        await page.type('#billingName', cardholderName, { delay: 30 });
+        await page.waitForTimeout(500);
+
+        // Fill billing address if fields exist
+        let addressInfo;
+        if (this.randomAddress) {
+            addressInfo = this.generateRandomAddress();
+            this.log(`🎲 Using random address: ${addressInfo.address1}, ${addressInfo.city}`, 'info');
+        } else if (this.billingInfo.address1) {
+            addressInfo = {
+                address1: this.billingInfo.address1,
+                address2: this.billingInfo.address2 || '',
+                city: this.billingInfo.city || '',
+                state: this.billingInfo.state || '',
+                zip: this.billingInfo.zip || ''
+            };
+        } else {
+            addressInfo = this.generateRandomAddress();
+        }
+
+        try {
+            const addressLine1 = await page.$('#billingAddressLine1, #billingAddress, input[name="billingAddressLine1"]');
+            if (addressLine1) {
+                this.log('🏠 Filling billing address...', 'info');
+                await addressLine1.click({ clickCount: 3 });
+                await addressLine1.type(addressInfo.address1, { delay: 30 });
+                await page.waitForTimeout(300);
+                
+                const addressLine2 = await page.$('#billingAddressLine2, input[name="billingAddressLine2"]');
+                if (addressLine2 && addressInfo.address2) {
+                    await addressLine2.click({ clickCount: 3 });
+                    await addressLine2.type(addressInfo.address2, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+                
+                const cityField = await page.$('#billingLocality, #billingCity, input[name="billingLocality"]');
+                if (cityField && addressInfo.city) {
+                    await cityField.click({ clickCount: 3 });
+                    await cityField.type(addressInfo.city, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+                
+                const stateField = await page.$('#billingAdministrativeArea, #billingState, input[name="billingAdministrativeArea"]');
+                if (stateField && addressInfo.state) {
+                    await stateField.click({ clickCount: 3 });
+                    await stateField.type(addressInfo.state, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+                
+                const zipField = await page.$('#billingPostalCode, #billingZip, input[name="billingPostalCode"]');
+                if (zipField && addressInfo.zip) {
+                    await zipField.click({ clickCount: 3 });
+                    await zipField.type(addressInfo.zip, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+            }
+        } catch (e) {
+            this.log(`⚠️ Address fields not found or not required`, 'warning');
+        }
+
+        // Submit payment
+        this.log('🚀 17/19: Submitting payment...', 'info');
+        await page.click('.SubmitButton');
+        await page.waitForTimeout(3000);
+
+        // Check for hCaptcha
+        this.log('🔍 18/19: Checking for hCaptcha verification...', 'info');
+        await page.waitForTimeout(2000);
+        
+        try {
+            const hasHCaptcha = await page.evaluate(() => {
+                const text = document.body.innerText || '';
+                return text.includes('One more step') || text.includes('Select the checkbox') || 
+                       document.querySelector('iframe[src*="hcaptcha"]') !== null;
+            });
+            
+            if (hasHCaptcha) {
+                this.log('🤖 hCaptcha detected! Looking for checkbox...', 'info');
+                await page.waitForTimeout(2000);
+                
+                let checkboxClicked = false;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (!checkboxClicked && retryCount < maxRetries) {
+                    retryCount++;
+                    this.log(`🔄 Attempt ${retryCount}/${maxRetries} to click checkbox...`, 'info');
+                    
+                    const frames = page.frames();
+                    
+                    for (const frame of frames) {
+                        try {
+                            const frameUrl = frame.url();
+                            
+                            if (frameUrl.includes('hcaptcha') || frameUrl.includes('newassets.hcaptcha')) {
+                                await page.waitForTimeout(1000);
+                                
+                                const checkbox = await frame.$('#checkbox');
+                                if (checkbox) {
+                                    const isChecked = await frame.evaluate(() => {
+                                        const cb = document.querySelector('#checkbox');
+                                        return cb ? cb.getAttribute('aria-checked') === 'true' : false;
+                                    });
+                                    
+                                    if (isChecked) {
+                                        this.log('✅ Checkbox already checked!', 'success');
+                                        checkboxClicked = true;
+                                        break;
+                                    }
+                                    
+                                    this.log('🖱️ Clicking hCaptcha checkbox...', 'info');
+                                    await checkbox.click();
+                                    await page.waitForTimeout(2000);
+                                    
+                                    const nowChecked = await frame.evaluate(() => {
+                                        const cb = document.querySelector('#checkbox');
+                                        return cb ? cb.getAttribute('aria-checked') === 'true' : false;
+                                    });
+                                    
+                                    if (nowChecked) {
+                                        this.log('✅ Checkbox clicked successfully!', 'success');
+                                        checkboxClicked = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (frameErr) {
+                            // Ignore frame errors
+                        }
+                    }
+                    
+                    if (!checkboxClicked && retryCount < maxRetries) {
+                        await page.waitForTimeout(2000);
+                    }
+                }
+                
+                await page.waitForTimeout(3000);
+            } else {
+                this.log('ℹ️ No hCaptcha detected', 'info');
+            }
+        } catch (e) {
+            this.log(`⚠️ Verification error: ${e.message}`, 'warning');
+        }
+
+        // Wait for result
+        this.log('⏳ 19/19: Waiting for result (max 45s)...', 'info');
+        
+        let success = false;
+        let lastUrl = '';
+        
+        for (let i = 0; i < 45 && !success; i++) {
+            await page.waitForTimeout(1000);
+            const url = page.url();
+            
+            if (url !== lastUrl) {
+                this.log(`🔗 URL: ${url.substring(0, 60)}...`, 'info');
+                lastUrl = url;
+            }
+            
+            if (url.includes('grok.com') && !url.includes('checkout.stripe.com')) {
+                this.log('✅ Redirected to grok.com!', 'success');
+                success = true;
+            } else if (url.includes('checkout=success')) {
+                this.log('✅ Checkout success detected!', 'success');
+                success = true;
+            }
+            
+            if (url.includes('checkout.stripe.com') && i > 10) {
+                const errorInfo = await page.evaluate(() => {
+                    const fieldError = document.querySelector('.FieldError');
+                    const bodyText = document.body.innerText || '';
+                    const hasDeclineText = bodyText.includes('declined') || 
+                                          bodyText.includes('couldn\'t be processed') ||
+                                          bodyText.includes('card was declined') ||
+                                          bodyText.includes('insufficient funds');
+                    
+                    return {
+                        hasDeclineText: hasDeclineText,
+                        errorMessage: fieldError?.textContent || ''
+                    };
+                });
+                
+                if (errorInfo.hasDeclineText) {
+                    this.log(`❌ Payment error detected: ${errorInfo.errorMessage || 'Card declined'}`, 'error');
+                    throw new Error('Payment declined');
+                }
+            }
+            
+            if (i > 0 && i % 10 === 0) {
+                this.log(`⏳ Still waiting... (${i}s)`, 'info');
+            }
+        }
+
+        if (!success) {
+            throw new Error('Payment timeout - no redirect after 45s');
+        }
+
+        return true;
+    }
+
+    async stop() {
+        this.isRunning = false;
+        this.log('⏸️ Stopping...', 'warning');
+        await this.closeAllBrowsers();
+    }
+
+    async closeAllBrowsers() {
+        this.log(`🗑️ Closing ${this.browsers.length} browser(s)...`, 'warning');
+        for (const b of this.browsers) {
+            try {
+                await b.browser.close();
+                this.log(`✅ Closed: ${b.email}`, 'success');
+            } catch (e) { }
+        }
+        this.browsers = [];
+        this.updateBrowserCount();
+    }
+}
+
+module.exports = { GrokPaymentWorker };

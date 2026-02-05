@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Login + Payment Tool V2 - Propaganda Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="logo">🤖 Grok Login + Payment V2</h1>
+                <span class="version">Propaganda</span>
+                <span class="stealth-badge">🎭 STEALTH</span>
+            </div>
+            <div class="header-right">
+                <button id="btn-settings" class="btn btn-icon" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel - Input -->
+            <section class="panel input-panel">
+                <div class="panel-header">
+                    <h2>📥 Input</h2>
+                    <div class="input-stats">
+                        <span>Accounts: <strong id="account-count">0</strong></span>
+                        <span>Cards: <strong id="card-count">0</strong></span>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <label for="input-accounts">Accounts (email|password per line):</label>
+                    <textarea id="input-accounts" placeholder="email1@example.com|password123&#10;email2@example.com|password456&#10;..."></textarea>
+                </div>
+
+                <div class="input-section">
+                    <label for="input-cards">Cards (number|MM|YYYY|CVC per line):</label>
+                    <textarea id="input-cards" placeholder="6258142602093862|04|2029|372&#10;6258142602095842|04|2029|786&#10;..."></textarea>
+                </div>
+                
+                <div class="stealth-info">
+                    <div class="stealth-info-title">🎭 Anti-Fingerprint Stealth Mode</div>
+                    <div class="stealth-info-text">
+                        Form sẽ hiển thị số thẻ giả (0000...) nhưng thẻ thật được gửi qua network request. Kỹ thuật này giúp tránh bị phát hiện qua typing patterns, mouse movements và timing analysis.
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-run" class="btn btn-primary btn-large">
+                        ▶️ Start Process
+                    </button>
+                    <button id="btn-stop" class="btn btn-danger" disabled>
+                        ⏹️ Stop
+                    </button>
+                    <button id="btn-close-all" class="btn btn-secondary">
+                        ✖️ Close Browsers
+                    </button>
+                </div>
+            </section>
+
+            <!-- Center Panel - Results -->
+            <section class="panel results-panel">
+                <div class="panel-header">
+                    <h2>📊 Results</h2>
+                    <div class="stats">
+                        <span class="stat stat-success">✅ <strong id="stat-success">0</strong></span>
+                        <span class="stat stat-failed">❌ <strong id="stat-failed">0</strong></span>
+                        <span class="stat stat-browsers">🌐 <strong id="stat-browsers">0/0</strong></span>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                    <span id="progress-text" class="progress-text">Ready</span>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="success">
+                        ✅ Success <span id="tab-count-success">0</span>
+                    </button>
+                    <button class="tab" data-tab="failed">
+                        ❌ Failed <span id="tab-count-failed">0</span>
+                    </button>
+                </div>
+
+                <div class="tab-content active" id="tab-success">
+                    <textarea id="result-success" readonly placeholder="Success results will appear here...&#10;Format: email|password|cardUsed"></textarea>
+                </div>
+                <div class="tab-content" id="tab-failed">
+                    <textarea id="result-failed" readonly placeholder="Failed results will appear here...&#10;Format: email|password|error|timestamp"></textarea>
+                </div>
+
+                <div class="result-buttons">
+                    <button id="btn-copy" class="btn btn-secondary">📋 Copy</button>
+                    <button id="btn-save" class="btn btn-secondary">💾 Save</button>
+                    <button id="btn-refresh" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+            </section>
+
+            <!-- Right Panel - Logs -->
+            <section class="panel log-panel">
+                <div class="panel-header">
+                    <h2>📝 Logs</h2>
+                    <button id="btn-clear-log" class="btn btn-sm">🗑️ Clear</button>
+                </div>
+                <div id="log-container" class="log-container"></div>
+            </section>
+        </main>
+
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="settings-panel hidden">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>⚙️ Settings</h3>
+                    <button id="btn-close-settings" class="btn btn-icon">✖️</button>
+                </div>
+                <div class="settings-body">
+                    <div class="setting-item">
+                        <label for="max-concurrent">Max Concurrent Browsers:</label>
+                        <input type="number" id="max-concurrent" value="3" min="1" max="10">
+                    </div>
+                    <div class="setting-item">
+                        <label for="headless-mode">Headless Mode:</label>
+                        <input type="checkbox" id="headless-mode">
+                    </div>
+                    <div class="setting-item">
+                        <label for="keep-browsers">Keep Browsers Open:</label>
+                        <input type="checkbox" id="keep-browsers" checked>
+                    </div>
+                    
+                    <div class="setting-section">
+                        <h4>� Autofill Settings</h4>
+                        <div class="setting-item">
+                            <label for="autofill-delay">Autofill Delay (seconds):</label>
+                            <input type="number" id="autofill-delay" value="7" min="1" max="30" step="0.5">
+                        </div>
+                        <div class="setting-item">
+                            <label for="random-name">Random Names:</label>
+                            <input type="checkbox" id="random-name" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label for="random-address">Random Addresses:</label>
+                            <input type="checkbox" id="random-address" checked>
+                        </div>                        <div class="setting-item">
+                            <label for="mask-cards">🎭 Mask Cards in Logs:</label>
+                            <input type="checkbox" id="mask-cards" checked>
+                        </div>                    </div>
+
+                    <div class="setting-section">
+                        <h4>🏠 Default Billing Info</h4>
+                        <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">Used when random options are OFF</p>
+                        <div class="setting-item">
+                            <label for="billing-name">Full Name:</label>
+                            <input type="text" id="billing-name" placeholder="John Doe">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-address1">Address Line 1:</label>
+                            <input type="text" id="billing-address1" placeholder="123 Main St">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-address2">Address Line 2:</label>
+                            <input type="text" id="billing-address2" placeholder="Apt 4B">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-city">City:</label>
+                            <input type="text" id="billing-city" placeholder="New York">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-state">State:</label>
+                            <input type="text" id="billing-state" placeholder="NY">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-zip">ZIP Code:</label>
+                            <input type="text" id="billing-zip" placeholder="10001">
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <h4>�🗑️ Browser Data</h4>
+                        <div class="setting-item">
+                            <span id="temp-size-display">Loading...</span>
+                            <button id="btn-refresh-temp" class="btn btn-sm">🔄</button>
+                        </div>
+                        <button id="btn-delete-browser-data-temp" class="btn btn-danger btn-full">
+                            🗑️ Clear Temp Folders
+                        </button>
+                    </div>
+                </div>
+                <div class="settings-footer">
+                    <button id="btn-save-settings" class="btn btn-primary">💾 Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

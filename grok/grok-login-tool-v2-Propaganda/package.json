@@ -1,0 +1,15 @@
+{
+  "name": "grok-login-tool-v2-propaganda",
+  "version": "2.1.0",
+  "description": "Grok Login + Payment Tool - Propaganda Edition with Anti-Fingerprint Stealth Mode",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^28.0.0",
+    "puppeteer-core": "^21.6.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
