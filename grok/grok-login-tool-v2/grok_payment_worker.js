@@ -331,73 +331,109 @@ class GrokPaymentWorker {
         await page.click('.SubmitButton');
         await page.waitForTimeout(3000);
 
-        // Check for verification checkbox (CAPTCHA) - may be in iframe
-        this.log('🔍 18/19: Checking for verification...', 'info');
-        await page.waitForTimeout(2000); // Wait for any verification UI to appear
+        // Check for hCaptcha verification - MUST handle iframe properly
+        this.log('🔍 18/19: Checking for hCaptcha verification...', 'info');
+        await page.waitForTimeout(2000); // Wait for verification UI to appear
         
         try {
-            // First check if verification modal/dialog appeared
-            const hasVerificationText = await page.evaluate(() => {
+            // Check if hCaptcha dialog appeared
+            const hasHCaptcha = await page.evaluate(() => {
                 const text = document.body.innerText || '';
-                return text.includes('One more step') || text.includes('Select the checkbox');
+                return text.includes('One more step') || text.includes('Select the checkbox') || 
+                       document.querySelector('iframe[src*="hcaptcha"]') !== null;
             });
             
-            if (hasVerificationText) {
-                this.log('🤖 Verification dialog detected!', 'info');
-            }
-            
-            // Try to find checkbox in main page first
-            let checkboxClicked = false;
-            const checkbox = await page.$('#checkbox');
-            if (checkbox) {
-                this.log('🤖 Clicking verification checkbox...', 'info');
-                await checkbox.click();
-                checkboxClicked = true;
-                await page.waitForTimeout(3000);
-            }
-            
-            // If not found, look for iframe (hCaptcha/reCAPTCHA typically uses iframe)
-            if (!checkboxClicked) {
-                const frames = page.frames();
-                for (const frame of frames) {
-                    try {
-                        // Check for hCaptcha checkbox
-                        const hcaptchaCheckbox = await frame.$('#checkbox');
-                        if (hcaptchaCheckbox) {
-                            this.log('🤖 Found checkbox in iframe, clicking...', 'info');
-                            await hcaptchaCheckbox.click();
-                            checkboxClicked = true;
-                            await page.waitForTimeout(3000);
-                            break;
+            if (hasHCaptcha) {
+                this.log('🤖 hCaptcha detected! Looking for checkbox...', 'info');
+                
+                // Wait for hCaptcha iframe to fully load
+                await page.waitForTimeout(2000);
+                
+                // Find the hCaptcha iframe
+                let checkboxClicked = false;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (!checkboxClicked && retryCount < maxRetries) {
+                    retryCount++;
+                    this.log(`🔄 Attempt ${retryCount}/${maxRetries} to click checkbox...`, 'info');
+                    
+                    // Get all frames and find hCaptcha iframe
+                    const frames = page.frames();
+                    this.log(`📋 Found ${frames.length} frames`, 'info');
+                    
+                    for (const frame of frames) {
+                        try {
+                            const frameUrl = frame.url();
+                            
+                            // Check if this is hCaptcha iframe
+                            if (frameUrl.includes('hcaptcha') || frameUrl.includes('newassets.hcaptcha')) {
+                                this.log(`🎯 Found hCaptcha iframe: ${frameUrl.substring(0, 50)}...`, 'info');
+                                
+                                // Wait for checkbox to be present in iframe
+                                await page.waitForTimeout(1000);
+                                
+                                // Find checkbox inside iframe
+                                const checkbox = await frame.$('#checkbox');
+                                if (checkbox) {
+                                    // Check current state
+                                    const isChecked = await frame.evaluate(() => {
+                                        const cb = document.querySelector('#checkbox');
+                                        return cb ? cb.getAttribute('aria-checked') === 'true' : false;
+                                    });
+                                    
+                                    if (isChecked) {
+                                        this.log('✅ Checkbox already checked!', 'success');
+                                        checkboxClicked = true;
+                                        break;
+                                    }
+                                    
+                                    // Click the checkbox
+                                    this.log('🖱️ Clicking hCaptcha checkbox...', 'info');
+                                    await checkbox.click();
+                                    await page.waitForTimeout(2000);
+                                    
+                                    // Verify if clicked successfully
+                                    const nowChecked = await frame.evaluate(() => {
+                                        const cb = document.querySelector('#checkbox');
+                                        return cb ? cb.getAttribute('aria-checked') === 'true' : false;
+                                    });
+                                    
+                                    if (nowChecked) {
+                                        this.log('✅ Checkbox clicked successfully!', 'success');
+                                        checkboxClicked = true;
+                                        break;
+                                    } else {
+                                        this.log('⚠️ Click may not have registered, will retry...', 'warning');
+                                    }
+                                } else {
+                                    this.log('⚠️ Checkbox element not found in iframe', 'warning');
+                                }
+                            }
+                        } catch (frameErr) {
+                            this.log(`⚠️ Frame error: ${frameErr.message}`, 'warning');
                         }
-                        
-                        // Check for reCAPTCHA checkbox
-                        const recaptchaCheckbox = await frame.$('.recaptcha-checkbox');
-                        if (recaptchaCheckbox) {
-                            this.log('🤖 Found reCAPTCHA in iframe, clicking...', 'info');
-                            await recaptchaCheckbox.click();
-                            checkboxClicked = true;
-                            await page.waitForTimeout(3000);
-                            break;
-                        }
-                    } catch (frameErr) {
-                        // Continue to next frame
+                    }
+                    
+                    // If not clicked yet, wait before retry
+                    if (!checkboxClicked && retryCount < maxRetries) {
+                        this.log('⏳ Waiting 2s before retry...', 'info');
+                        await page.waitForTimeout(2000);
                     }
                 }
-            }
-            
-            // Also try clicking by coordinates if checkbox div exists but click didn't work
-            if (!checkboxClicked) {
-                const checkboxDiv = await page.$('div[role="checkbox"]');
-                if (checkboxDiv) {
-                    this.log('🤖 Trying checkbox by role...', 'info');
-                    await checkboxDiv.click();
-                    await page.waitForTimeout(3000);
+                
+                if (!checkboxClicked) {
+                    this.log('⚠️ Could not click checkbox after all retries', 'warning');
                 }
+                
+                // Wait for hCaptcha to process
+                await page.waitForTimeout(3000);
+            } else {
+                this.log('ℹ️ No hCaptcha detected', 'info');
             }
             
         } catch (e) {
-            this.log(`⚠️ Verification check: ${e.message}`, 'warning');
+            this.log(`⚠️ Verification error: ${e.message}`, 'warning');
         }
 
         // Wait for redirect (success or failure)
