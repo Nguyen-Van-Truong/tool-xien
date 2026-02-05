@@ -367,10 +367,12 @@ body {
 .settings-content {
     background: var(--bg-secondary);
     border-radius: 12px;
-    width: 400px;
-    max-height: 80vh;
+    width: 450px;
+    max-height: 85vh;
     overflow: hidden;
     box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
 }
 
 .settings-header {
@@ -390,6 +392,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .setting-item {
@@ -411,6 +415,26 @@ body {
     border-radius: 6px;
     color: var(--text-primary);
     text-align: center;
+}
+
+.setting-item input[type="text"] {
+    width: 160px;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.setting-item input[type="text"]::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.setting-item input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-purple);
 }
 
 .setting-item input[type="checkbox"] {

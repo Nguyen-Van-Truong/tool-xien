@@ -16,6 +16,12 @@ class GrokPaymentWorker {
         this.headless = options.headless || false;
         this.results = { success: 0, failed: 0, total: 0 };
         this.cards = [];
+        
+        // Autofill options (like Propaganda extension)
+        this.autofillDelay = options.autofillDelay || 7; // seconds
+        this.randomName = options.randomName !== false; // default true
+        this.randomAddress = options.randomAddress !== false; // default true
+        this.billingInfo = options.billingInfo || {};
     }
 
     log(message, type = 'info') {
@@ -62,12 +68,64 @@ class GrokPaymentWorker {
 
     // Generate random cardholder name
     generateRandomName() {
-        const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emma', 'James', 'Emily', 'Robert', 'Olivia', 'William', 'Sophia', 'Benjamin', 'Isabella', 'Daniel', 'Mia', 'Alexander', 'Charlotte', 'Henry', 'Amelia'];
-        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Martinez', 'Lopez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White'];
+        const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emma', 'James', 'Emily', 'Robert', 'Olivia', 'William', 'Sophia', 'Benjamin', 'Isabella', 'Daniel', 'Mia', 'Alexander', 'Charlotte', 'Henry', 'Amelia', 'Ethan', 'Harper', 'Mason', 'Evelyn', 'Logan', 'Abigail', 'Lucas', 'Elizabeth', 'Jackson', 'Sofia'];
+        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Martinez', 'Lopez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White', 'Harris', 'Clark', 'Lewis', 'Robinson', 'Walker', 'Young', 'Hall', 'Allen', 'King', 'Wright'];
         
         const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
         const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
         return `${firstName} ${lastName}`;
+    }
+
+    // Generate random US address (like Propaganda extension)
+    generateRandomAddress() {
+        const streetNumbers = Array.from({length: 9999}, (_, i) => i + 1);
+        const streetNames = ['Main', 'Oak', 'Park', 'Elm', 'Maple', 'Cedar', 'Pine', 'Washington', 'Lake', 'Hill', 'Sunset', 'Spring', 'River', 'Forest', 'Valley', 'Highland', 'Meadow', 'Garden', 'Ridge', 'View'];
+        const streetTypes = ['St', 'Ave', 'Blvd', 'Dr', 'Ln', 'Way', 'Rd', 'Ct', 'Pl', 'Cir'];
+        const aptTypes = ['Apt', 'Suite', 'Unit', '#'];
+        
+        const cities = [
+            { city: 'New York', state: 'NY', zip: '10001' },
+            { city: 'Los Angeles', state: 'CA', zip: '90001' },
+            { city: 'Chicago', state: 'IL', zip: '60601' },
+            { city: 'Houston', state: 'TX', zip: '77001' },
+            { city: 'Phoenix', state: 'AZ', zip: '85001' },
+            { city: 'Philadelphia', state: 'PA', zip: '19101' },
+            { city: 'San Antonio', state: 'TX', zip: '78201' },
+            { city: 'San Diego', state: 'CA', zip: '92101' },
+            { city: 'Dallas', state: 'TX', zip: '75201' },
+            { city: 'San Jose', state: 'CA', zip: '95101' },
+            { city: 'Austin', state: 'TX', zip: '78701' },
+            { city: 'Jacksonville', state: 'FL', zip: '32201' },
+            { city: 'Fort Worth', state: 'TX', zip: '76101' },
+            { city: 'Columbus', state: 'OH', zip: '43201' },
+            { city: 'Charlotte', state: 'NC', zip: '28201' },
+            { city: 'Seattle', state: 'WA', zip: '98101' },
+            { city: 'Denver', state: 'CO', zip: '80201' },
+            { city: 'Boston', state: 'MA', zip: '02101' },
+            { city: 'Portland', state: 'OR', zip: '97201' },
+            { city: 'Miami', state: 'FL', zip: '33101' }
+        ];
+        
+        const streetNum = streetNumbers[Math.floor(Math.random() * 999)] + 1;
+        const streetName = streetNames[Math.floor(Math.random() * streetNames.length)];
+        const streetType = streetTypes[Math.floor(Math.random() * streetTypes.length)];
+        const cityData = cities[Math.floor(Math.random() * cities.length)];
+        
+        // 30% chance of having apt number
+        let address2 = '';
+        if (Math.random() < 0.3) {
+            const aptType = aptTypes[Math.floor(Math.random() * aptTypes.length)];
+            const aptNum = Math.floor(Math.random() * 999) + 1;
+            address2 = `${aptType} ${aptNum}`;
+        }
+        
+        return {
+            address1: `${streetNum} ${streetName} ${streetType}`,
+            address2: address2,
+            city: cityData.city,
+            state: cityData.state,
+            zip: cityData.zip
+        };
     }
 
     async start(accounts, cards) {
@@ -282,6 +340,15 @@ class GrokPaymentWorker {
     }
 
     async tryPayment(page, card) {
+        // Autofill delay (like Propaganda extension)
+        if (this.autofillDelay > 0) {
+            this.log(`⏳ Waiting ${this.autofillDelay}s before autofill...`, 'info');
+            for (let i = this.autofillDelay; i > 0; i--) {
+                this.log(`⏳ Autofill in ${i}s...`, 'info');
+                await page.waitForTimeout(1000);
+            }
+        }
+
         // Click Card payment method if not selected
         this.log('💳 12/19: Selecting card payment...', 'info');
         try {
@@ -321,10 +388,84 @@ class GrokPaymentWorker {
 
         // Fill cardholder name
         this.log('👤 16/19: Entering cardholder name...', 'info');
-        const cardholderName = this.generateRandomName();
+        let cardholderName;
+        if (this.randomName) {
+            cardholderName = this.generateRandomName();
+            this.log(`🎲 Using random name: ${cardholderName}`, 'info');
+        } else if (this.billingInfo.name) {
+            cardholderName = this.billingInfo.name;
+            this.log(`📝 Using default name: ${cardholderName}`, 'info');
+        } else {
+            cardholderName = this.generateRandomName();
+            this.log(`🎲 No default, using random: ${cardholderName}`, 'info');
+        }
         await page.click('#billingName', { clickCount: 3 });
         await page.type('#billingName', cardholderName, { delay: 30 });
         await page.waitForTimeout(500);
+
+        // Fill billing address if fields exist (like Propaganda extension)
+        let addressInfo;
+        if (this.randomAddress) {
+            addressInfo = this.generateRandomAddress();
+            this.log(`🎲 Using random address: ${addressInfo.address1}, ${addressInfo.city}`, 'info');
+        } else if (this.billingInfo.address1) {
+            addressInfo = {
+                address1: this.billingInfo.address1,
+                address2: this.billingInfo.address2 || '',
+                city: this.billingInfo.city || '',
+                state: this.billingInfo.state || '',
+                zip: this.billingInfo.zip || ''
+            };
+            this.log(`📝 Using default address: ${addressInfo.address1}`, 'info');
+        } else {
+            addressInfo = this.generateRandomAddress();
+            this.log(`🎲 No default, using random address`, 'info');
+        }
+
+        // Try to fill address fields if they exist
+        try {
+            const addressLine1 = await page.$('#billingAddressLine1, #billingAddress, input[name="billingAddressLine1"]');
+            if (addressLine1) {
+                this.log('🏠 Filling billing address...', 'info');
+                await addressLine1.click({ clickCount: 3 });
+                await addressLine1.type(addressInfo.address1, { delay: 30 });
+                await page.waitForTimeout(300);
+                
+                // Address line 2
+                const addressLine2 = await page.$('#billingAddressLine2, input[name="billingAddressLine2"]');
+                if (addressLine2 && addressInfo.address2) {
+                    await addressLine2.click({ clickCount: 3 });
+                    await addressLine2.type(addressInfo.address2, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+                
+                // City
+                const cityField = await page.$('#billingLocality, #billingCity, input[name="billingLocality"]');
+                if (cityField && addressInfo.city) {
+                    await cityField.click({ clickCount: 3 });
+                    await cityField.type(addressInfo.city, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+                
+                // State
+                const stateField = await page.$('#billingAdministrativeArea, #billingState, input[name="billingAdministrativeArea"]');
+                if (stateField && addressInfo.state) {
+                    await stateField.click({ clickCount: 3 });
+                    await stateField.type(addressInfo.state, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+                
+                // ZIP
+                const zipField = await page.$('#billingPostalCode, #billingZip, input[name="billingPostalCode"]');
+                if (zipField && addressInfo.zip) {
+                    await zipField.click({ clickCount: 3 });
+                    await zipField.type(addressInfo.zip, { delay: 30 });
+                    await page.waitForTimeout(300);
+                }
+            }
+        } catch (e) {
+            this.log(`⚠️ Address fields not found or not required`, 'warning');
+        }
 
         // Click submit button
         this.log('🚀 17/19: Submitting payment...', 'info');

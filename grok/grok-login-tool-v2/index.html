@@ -125,7 +125,52 @@
                     </div>
                     
                     <div class="setting-section">
-                        <h4>🗑️ Browser Data</h4>
+                        <h4>� Autofill Settings</h4>
+                        <div class="setting-item">
+                            <label for="autofill-delay">Autofill Delay (seconds):</label>
+                            <input type="number" id="autofill-delay" value="7" min="1" max="30" step="0.5">
+                        </div>
+                        <div class="setting-item">
+                            <label for="random-name">Random Names:</label>
+                            <input type="checkbox" id="random-name" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label for="random-address">Random Addresses:</label>
+                            <input type="checkbox" id="random-address" checked>
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <h4>🏠 Default Billing Info</h4>
+                        <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">Used when random options are OFF</p>
+                        <div class="setting-item">
+                            <label for="billing-name">Full Name:</label>
+                            <input type="text" id="billing-name" placeholder="John Doe">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-address1">Address Line 1:</label>
+                            <input type="text" id="billing-address1" placeholder="123 Main St">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-address2">Address Line 2:</label>
+                            <input type="text" id="billing-address2" placeholder="Apt 4B">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-city">City:</label>
+                            <input type="text" id="billing-city" placeholder="New York">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-state">State:</label>
+                            <input type="text" id="billing-state" placeholder="NY">
+                        </div>
+                        <div class="setting-item">
+                            <label for="billing-zip">ZIP Code:</label>
+                            <input type="text" id="billing-zip" placeholder="10001">
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <h4>�🗑️ Browser Data</h4>
                         <div class="setting-item">
                             <span id="temp-size-display">Loading...</span>
                             <button id="btn-refresh-temp" class="btn btn-sm">🔄</button>

@@ -39,7 +39,18 @@ let currentTab = 'success';
 const settings = {
     maxConcurrent: 3,
     headless: false,
-    keepBrowsers: true
+    keepBrowsers: true,
+    // Autofill settings (like Propaganda extension)
+    autofillDelay: 7,
+    randomName: true,
+    randomAddress: true,
+    // Default billing info (used when random is OFF)
+    billingName: '',
+    billingAddress1: '',
+    billingAddress2: '',
+    billingCity: '',
+    billingState: '',
+    billingZip: ''
 };
 
 // Log functions
@@ -177,7 +188,19 @@ btnRun.addEventListener('click', async () => {
         await window.api.startProcess(accounts, cards, {
             headless: settings.headless,
             maxConcurrent: settings.maxConcurrent,
-            keepBrowserOpen: settings.keepBrowsers
+            keepBrowserOpen: settings.keepBrowsers,
+            // Autofill options (like Propaganda extension)
+            autofillDelay: settings.autofillDelay,
+            randomName: settings.randomName,
+            randomAddress: settings.randomAddress,
+            billingInfo: {
+                name: settings.billingName,
+                address1: settings.billingAddress1,
+                address2: settings.billingAddress2,
+                city: settings.billingCity,
+                state: settings.billingState,
+                zip: settings.billingZip
+            }
         });
     } catch (error) {
         addLog(`Lỗi: ${error.message}`, 'error');
@@ -275,6 +298,17 @@ btnSettings?.addEventListener('click', () => {
     document.getElementById('max-concurrent').value = settings.maxConcurrent;
     document.getElementById('headless-mode').checked = settings.headless;
     document.getElementById('keep-browsers').checked = settings.keepBrowsers;
+    // Autofill settings
+    document.getElementById('autofill-delay').value = settings.autofillDelay;
+    document.getElementById('random-name').checked = settings.randomName;
+    document.getElementById('random-address').checked = settings.randomAddress;
+    // Billing info
+    document.getElementById('billing-name').value = settings.billingName;
+    document.getElementById('billing-address1').value = settings.billingAddress1;
+    document.getElementById('billing-address2').value = settings.billingAddress2;
+    document.getElementById('billing-city').value = settings.billingCity;
+    document.getElementById('billing-state').value = settings.billingState;
+    document.getElementById('billing-zip').value = settings.billingZip;
 });
 
 btnCloseSettings?.addEventListener('click', () => {
@@ -285,8 +319,19 @@ btnSaveSettings?.addEventListener('click', () => {
     settings.maxConcurrent = parseInt(document.getElementById('max-concurrent').value);
     settings.headless = document.getElementById('headless-mode').checked;
     settings.keepBrowsers = document.getElementById('keep-browsers').checked;
+    // Autofill settings
+    settings.autofillDelay = parseFloat(document.getElementById('autofill-delay').value) || 7;
+    settings.randomName = document.getElementById('random-name').checked;
+    settings.randomAddress = document.getElementById('random-address').checked;
+    // Billing info
+    settings.billingName = document.getElementById('billing-name').value.trim();
+    settings.billingAddress1 = document.getElementById('billing-address1').value.trim();
+    settings.billingAddress2 = document.getElementById('billing-address2').value.trim();
+    settings.billingCity = document.getElementById('billing-city').value.trim();
+    settings.billingState = document.getElementById('billing-state').value.trim();
+    settings.billingZip = document.getElementById('billing-zip').value.trim();
     settingsPanel.classList.add('hidden');
-    addLog(`⚙️ Settings saved: ${settings.maxConcurrent} concurrent, headless=${settings.headless}`, 'success');
+    addLog(`⚙️ Settings saved: ${settings.maxConcurrent} concurrent, delay=${settings.autofillDelay}s, randomName=${settings.randomName}`, 'success');
 });
 
 // Delete browser data button
