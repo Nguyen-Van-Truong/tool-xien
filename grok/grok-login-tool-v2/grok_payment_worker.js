@@ -21,6 +21,7 @@ class GrokPaymentWorker {
         this.autofillDelay = options.autofillDelay || 7; // seconds
         this.randomName = options.randomName !== false; // default true
         this.randomAddress = options.randomAddress !== false; // default true
+        this.autoSubmitPayment = options.autoSubmitPayment !== false; // default true
         this.billingInfo = options.billingInfo || {};
     }
 
@@ -467,7 +468,52 @@ class GrokPaymentWorker {
             this.log(`⚠️ Address fields not found or not required`, 'warning');
         }
 
-        // Click submit button
+        // Check if auto-submit is enabled
+        if (!this.autoSubmitPayment) {
+            this.log('⏸️ 17/19: Form đã điền xong! AUTO-SUBMIT TẮT - Hãy tự bấm Submit...', 'warning');
+            this.log('✅ Đã điền đầy đủ thông tin thẻ và địa chỉ', 'success');
+            this.log('👆 Bạn có thể kiểm tra và bấm nút Subscribe/Submit thủ công', 'info');
+            
+            // Đợi người dùng tự bấm submit và redirect
+            this.log('⏳ Đang đợi redirect sau khi bạn bấm Submit (max 5 phút)...', 'info');
+            
+            // Wait up to 5 minutes for manual submit and redirect
+            let success = false;
+            let lastUrl = '';
+            
+            for (let i = 0; i < 300 && !success; i++) {
+                await page.waitForTimeout(1000);
+                const url = page.url();
+                
+                // Log URL change
+                if (url !== lastUrl) {
+                    this.log(`🔗 URL: ${url.substring(0, 60)}...`, 'info');
+                    lastUrl = url;
+                }
+                
+                // Check for success conditions
+                if (url.includes('grok.com') && !url.includes('checkout.stripe.com')) {
+                    this.log('✅ Redirected to grok.com - Payment success!', 'success');
+                    success = true;
+                } else if (url.includes('checkout=success')) {
+                    this.log('✅ Checkout success detected!', 'success');
+                    success = true;
+                }
+                
+                // Progress indicator every 30s
+                if (i > 0 && i % 30 === 0) {
+                    this.log(`⏳ Vẫn đang đợi... (${Math.floor(i/60)}m ${i%60}s)`, 'info');
+                }
+            }
+            
+            if (!success) {
+                throw new Error('Timeout - không có redirect sau 5 phút');
+            }
+            
+            return true;
+        }
+        
+        // Click submit button (auto mode)
         this.log('🚀 17/19: Submitting payment...', 'info');
         await page.click('.SubmitButton');
         await page.waitForTimeout(3000);

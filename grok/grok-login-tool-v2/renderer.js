@@ -44,6 +44,7 @@ const settings = {
     autofillDelay: 7,
     randomName: true,
     randomAddress: true,
+    autoSubmitPayment: true, // Tự động bấm Submit sau khi điền form
     // Default billing info (used when random is OFF)
     billingName: '',
     billingAddress1: '',
@@ -193,6 +194,7 @@ btnRun.addEventListener('click', async () => {
             autofillDelay: settings.autofillDelay,
             randomName: settings.randomName,
             randomAddress: settings.randomAddress,
+            autoSubmitPayment: settings.autoSubmitPayment,
             billingInfo: {
                 name: settings.billingName,
                 address1: settings.billingAddress1,
@@ -302,6 +304,7 @@ btnSettings?.addEventListener('click', () => {
     document.getElementById('autofill-delay').value = settings.autofillDelay;
     document.getElementById('random-name').checked = settings.randomName;
     document.getElementById('random-address').checked = settings.randomAddress;
+    document.getElementById('auto-submit-payment').checked = settings.autoSubmitPayment;
     // Billing info
     document.getElementById('billing-name').value = settings.billingName;
     document.getElementById('billing-address1').value = settings.billingAddress1;
@@ -323,6 +326,7 @@ btnSaveSettings?.addEventListener('click', () => {
     settings.autofillDelay = parseFloat(document.getElementById('autofill-delay').value) || 7;
     settings.randomName = document.getElementById('random-name').checked;
     settings.randomAddress = document.getElementById('random-address').checked;
+    settings.autoSubmitPayment = document.getElementById('auto-submit-payment').checked;
     // Billing info
     settings.billingName = document.getElementById('billing-name').value.trim();
     settings.billingAddress1 = document.getElementById('billing-address1').value.trim();
@@ -331,7 +335,7 @@ btnSaveSettings?.addEventListener('click', () => {
     settings.billingState = document.getElementById('billing-state').value.trim();
     settings.billingZip = document.getElementById('billing-zip').value.trim();
     settingsPanel.classList.add('hidden');
-    addLog(`⚙️ Settings saved: ${settings.maxConcurrent} concurrent, delay=${settings.autofillDelay}s, randomName=${settings.randomName}`, 'success');
+    addLog(`⚙️ Settings saved: ${settings.maxConcurrent} concurrent, delay=${settings.autofillDelay}s, autoSubmit=${settings.autoSubmitPayment}`, 'success');
 });
 
 // Delete browser data button
