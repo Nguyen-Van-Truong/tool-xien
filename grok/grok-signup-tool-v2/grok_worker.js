@@ -159,22 +159,94 @@ class GrokWorker {
 
             browser = await puppeteer.launch({
                 executablePath,
-                headless: this.headless,
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'],
+                headless: this.headless ? 'new' : false,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-web-security',
+                    '--disable-features=IsolateOrigins,site-per-process'
+                ],
                 defaultViewport: { width: 1280, height: 720 }
             });
             this.browsers.push({ browser, email: tempEmailData.email });
             this.updateBrowserCount();
             const page = await browser.newPage();
 
+            // Stealth: set realistic User-Agent to avoid bot detection
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+
             // Navigate
             this.log('🔗 3/12: Navigating...', 'info');
             await page.goto('https://accounts.x.ai/sign-up', { waitUntil: 'networkidle2', timeout: 30000 });
 
-            // Click "Sign up with email"
+            // Click "Sign up with email" - with multiple selector fallbacks
             this.log('🖱️ 4/12: Clicking email button...', 'info');
-            await page.waitForSelector('button svg.lucide-mail', { timeout: 10000 });
-            await page.evaluate(() => document.querySelector('button svg.lucide-mail').closest('button').click());
+            let emailBtnClicked = false;
+            
+            // Strategy 1: Try lucide-mail SVG icon
+            try {
+                await page.waitForSelector('button svg.lucide-mail', { timeout: 8000, visible: true });
+                await page.evaluate(() => document.querySelector('button svg.lucide-mail').closest('button').click());
+                emailBtnClicked = true;
+            } catch (e) {
+                this.log('⚠️ SVG selector failed, trying fallback...', 'warning');
+            }
+
+            // Strategy 2: Find button containing "email" text
+            if (!emailBtnClicked) {
+                try {
+                    await page.waitForTimeout(2000);
+                    emailBtnClicked = await page.evaluate(() => {
+                        const buttons = Array.from(document.querySelectorAll('button'));
+                        const emailBtn = buttons.find(b => {
+                            const text = b.textContent.toLowerCase();
+                            return text.includes('email') || text.includes('mail');
+                        });
+                        if (emailBtn) { emailBtn.click(); return true; }
+                        return false;
+                    });
+                } catch (e) {
+                    this.log('⚠️ Text fallback failed...', 'warning');
+                }
+            }
+
+            // Strategy 3: Try any mail-related SVG or icon
+            if (!emailBtnClicked) {
+                try {
+                    emailBtnClicked = await page.evaluate(() => {
+                        // Look for any button with an SVG that has a mail-like path
+                        const svgs = document.querySelectorAll('button svg');
+                        for (const svg of svgs) {
+                            const paths = svg.querySelectorAll('path');
+                            const classList = Array.from(svg.classList);
+                            if (classList.some(c => c.includes('mail') || c.includes('email')) || paths.length > 0) {
+                                const btn = svg.closest('button');
+                                if (btn && btn.offsetParent !== null) {
+                                    btn.click();
+                                    return true;
+                                }
+                            }
+                        }
+                        // Last resort: 3rd button on page (often the email option)
+                        const allBtns = document.querySelectorAll('button');
+                        if (allBtns.length >= 3) {
+                            allBtns[allBtns.length - 1].click();
+                            return true;
+                        }
+                        return false;
+                    });
+                } catch (e) {
+                    this.log('⚠️ SVG path fallback failed...', 'warning');
+                }
+            }
+
+            if (!emailBtnClicked) {
+                throw new Error('Could not find email signup button');
+            }
+            
+            this.log('✅ Email button clicked!', 'success');
             await page.waitForTimeout(2000);
 
             // Fill email

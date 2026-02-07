@@ -1,1 +1,3 @@
-kitoabanc141@gddp2018.edu.vn|Gacon12345.|Waiting for selector `button[aria-label="Upgrade to SuperGrok"]` failed: Waiting failed: 15000ms exceeded|2026-02-05T04:23:38.051Z
+grok17702751088047lbfw3@schapira.org|2M$W1yGwoDTe|Login failed - still on auth page|2026-02-07T00:50:02.788Z
+grok17702751754196cev73@trendstex.com|wst8ChXXuy%O|Login failed - still on auth page|2026-02-07T00:51:43.645Z
+grok177027517733014dqwt@w24magazine.net|Y%6o@C%XD275|Waiting for selector `button[aria-label="Upgrade to SuperGrok"]` failed: Waiting failed: 15000ms exceeded|2026-02-07T00:53:11.901Z

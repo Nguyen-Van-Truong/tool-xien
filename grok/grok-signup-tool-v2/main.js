@@ -109,38 +109,25 @@ ipcMain.handle('generate-accounts', async (event, count) => {
     return formatForInput(accounts);
 });
 
-// Get Puppeteer temp folder size
+// Get ALL browser data size (Temp + Puppeteer cache + Chromium data)
 ipcMain.handle('get-temp-size', async () => {
     const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
+    const puppeteerCache = path.join(process.env.USERPROFILE || '', '.cache', 'puppeteer');
+    const chromiumData = path.join(process.env.LOCALAPPDATA || '', 'Chromium');
+
     let totalSize = 0;
     let folderCount = 0;
 
+    // 1. Count puppeteer* and chromium* temp folders
     try {
         const items = fs.readdirSync(tempPath);
         for (const item of items) {
-            if (item.startsWith('puppeteer')) {
+            if (item.startsWith('puppeteer') || item.startsWith('chromium')) {
                 folderCount++;
                 const itemPath = path.join(tempPath, item);
                 try {
                     const stats = fs.statSync(itemPath);
                     if (stats.isDirectory()) {
-                        // Calculate folder size recursively
-                        const getFolderSize = (dirPath) => {
-                            let size = 0;
-                            try {
-                                const files = fs.readdirSync(dirPath);
-                                for (const file of files) {
-                                    const filePath = path.join(dirPath, file);
-                                    const stat = fs.statSync(filePath);
-                                    if (stat.isDirectory()) {
-                                        size += getFolderSize(filePath);
-                                    } else {
-                                        size += stat.size;
-                                    }
-                                }
-                            } catch (e) { }
-                            return size;
-                        };
                         totalSize += getFolderSize(itemPath);
                     } else {
                         totalSize += stats.size;
@@ -152,6 +139,18 @@ ipcMain.handle('get-temp-size', async () => {
         console.log('Error getting temp size:', e.message);
     }
 
+    // 2. Count puppeteer cache
+    if (fs.existsSync(puppeteerCache)) {
+        folderCount++;
+        totalSize += getFolderSize(puppeteerCache);
+    }
+
+    // 3. Count Chromium data
+    if (fs.existsSync(chromiumData)) {
+        folderCount++;
+        totalSize += getFolderSize(chromiumData);
+    }
+
     return {
         sizeBytes: totalSize,
         sizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,
@@ -159,23 +158,69 @@ ipcMain.handle('get-temp-size', async () => {
     };
 });
 
-// Delete Puppeteer browser data
+// Helper function to calculate folder size
+function getFolderSize(folderPath) {
+    let totalSize = 0;
+    try {
+        if (!fs.existsSync(folderPath)) return 0;
+        const files = fs.readdirSync(folderPath);
+        for (const file of files) {
+            const filePath = path.join(folderPath, file);
+            try {
+                const stats = fs.statSync(filePath);
+                if (stats.isDirectory()) {
+                    totalSize += getFolderSize(filePath);
+                } else {
+                    totalSize += stats.size;
+                }
+            } catch (e) { }
+        }
+    } catch (e) { }
+    return totalSize;
+}
+
+// Delete ALL browser data (Puppeteer cache + Chromium data + Temp folders)
 ipcMain.handle('delete-browser-data', async () => {
     const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
-    let deletedCount = 0;
+    const puppeteerCache = path.join(process.env.USERPROFILE || '', '.cache', 'puppeteer');
+    const chromiumData = path.join(process.env.LOCALAPPDATA || '', 'Chromium');
 
+    let deletedCount = 0;
+    let freedSize = 0;
+
+    // 1. Delete puppeteer cache (~/.cache/puppeteer)
+    try {
+        if (fs.existsSync(puppeteerCache)) {
+            freedSize += getFolderSize(puppeteerCache);
+            fs.rmSync(puppeteerCache, { recursive: true, force: true });
+            deletedCount++;
+            console.log('✅ Deleted puppeteer cache');
+        }
+    } catch (e) {
+        console.log('Cannot delete puppeteer cache:', e.message);
+    }
+
+    // 2. Delete Chromium user data (LocalAppData\Chromium)
+    try {
+        if (fs.existsSync(chromiumData)) {
+            freedSize += getFolderSize(chromiumData);
+            fs.rmSync(chromiumData, { recursive: true, force: true });
+            deletedCount++;
+            console.log('✅ Deleted Chromium data');
+        }
+    } catch (e) {
+        console.log('Cannot delete Chromium data:', e.message);
+    }
+
+    // 3. Delete puppeteer* and chromium* temp folders
     try {
         const items = fs.readdirSync(tempPath);
         for (const item of items) {
-            if (item.startsWith('puppeteer')) {
+            if (item.startsWith('puppeteer') || item.startsWith('chromium')) {
                 const itemPath = path.join(tempPath, item);
                 try {
-                    const stats = fs.statSync(itemPath);
-                    if (stats.isDirectory()) {
-                        fs.rmSync(itemPath, { recursive: true, force: true });
-                    } else {
-                        fs.unlinkSync(itemPath);
-                    }
+                    freedSize += getFolderSize(itemPath);
+                    fs.rmSync(itemPath, { recursive: true, force: true });
                     deletedCount++;
                 } catch (e) {
                     console.log('Cannot delete:', item, e.message);
@@ -186,5 +231,7 @@ ipcMain.handle('delete-browser-data', async () => {
         console.log('Error clearing temp:', e.message);
     }
 
-    return { deletedCount };
+    const freedMB = Math.round(freedSize / 1024 / 1024 * 100) / 100;
+    console.log(`🗑️ Cleared ${deletedCount} items, freed ${freedMB} MB`);
+    return { deletedCount, freedMB };
 });
