@@ -9,6 +9,53 @@ const EMAIL_API_BASE = 'https://tinyhost.shop/api';
 const MAX_RETRIES = 12; // 12 attempts x 5s = 60s max wait
 const RETRY_DELAY = 5000; // 5 seconds between retries
 
+// Random English name lists for natural-looking emails
+const FIRST_NAMES = [
+    'james', 'john', 'robert', 'michael', 'david', 'william', 'richard', 'joseph', 'thomas', 'charles',
+    'daniel', 'matthew', 'anthony', 'mark', 'steven', 'paul', 'andrew', 'brian', 'kevin', 'jason',
+    'mary', 'patricia', 'jennifer', 'linda', 'barbara', 'elizabeth', 'susan', 'jessica', 'sarah', 'karen',
+    'emily', 'emma', 'olivia', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn',
+    'nathan', 'ryan', 'jacob', 'ethan', 'logan', 'lucas', 'mason', 'alexander', 'henry', 'benjamin',
+    'hannah', 'madison', 'chloe', 'grace', 'zoey', 'lily', 'ella', 'riley', 'aria', 'scarlett'
+];
+
+const LAST_NAMES = [
+    'smith', 'johnson', 'williams', 'brown', 'jones', 'garcia', 'miller', 'davis', 'rodriguez', 'martinez',
+    'hernandez', 'lopez', 'gonzalez', 'wilson', 'anderson', 'thomas', 'taylor', 'moore', 'jackson', 'martin',
+    'lee', 'perez', 'thompson', 'white', 'harris', 'sanchez', 'clark', 'ramirez', 'lewis', 'robinson',
+    'walker', 'young', 'allen', 'king', 'wright', 'scott', 'torres', 'nguyen', 'hill', 'flores',
+    'green', 'adams', 'nelson', 'baker', 'hall', 'rivera', 'campbell', 'mitchell', 'carter', 'roberts'
+];
+
+/**
+ * Generate a random natural-looking username from English names
+ * Patterns: firstname.lastname23, firstnamelastname99, f.lastname42, firstname_l56, etc.
+ */
+function generateNaturalUsername() {
+    const first = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+    const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+    const num = Math.floor(Math.random() * 999) + 1; // 1-999
+    const year = Math.floor(Math.random() * 26) + 85; // 85-10 (birth year style)
+
+    // Randomly pick a pattern
+    const patterns = [
+        `${first}.${last}${num}`,                          // john.smith42
+        `${first}${last}${num}`,                            // johnsmith42
+        `${first}_${last}${num}`,                           // john_smith42
+        `${first}.${last[0]}${num}`,                        // john.s42
+        `${first[0]}${last}${num}`,                         // jsmith42
+        `${first}${last}${year}`,                           // johnsmith95
+        `${first}.${last}`,                                  // john.smith
+        `${first}${num}`,                                    // john42
+        `${first}_${last[0]}${num}`,                        // john_s42
+        `${first[0]}.${last}${num}`,                        // j.smith42
+        `${first}${last.substring(0, 3)}${num}`,            // johnsmi42
+        `${first}.${last}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}`, // john.smith73
+    ];
+
+    return patterns[Math.floor(Math.random() * patterns.length)];
+}
+
 /**
  * Generate a temporary email address
  * @returns {Promise<{email: string, domain: string, user: string}>}
@@ -30,8 +77,8 @@ async function generateEmail() {
         const domains = response.data.domains;
         const domain = domains[Math.floor(Math.random() * domains.length)];
 
-        // Generate random username
-        const username = `grok${Date.now()}${Math.random().toString(36).substring(2, 8)}`;
+        // Generate natural-looking username (English names)
+        const username = generateNaturalUsername();
         const email = `${username}@${domain}`;
 
         console.log(`✅ Generated email: ${email}`);
