@@ -1,198 +1,30 @@
 [
   {
-    "email": "elijahjacksonadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "17.0"
-  },
-  {
-    "email": "EmilyRobinsonadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "15.7"
-  },
-  {
-    "email": "charlotteperezadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "16.7"
-  },
-  {
-    "email": "emmajohnsonadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "14.5"
-  },
-  {
-    "email": "evelynmooreadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "14.9"
-  },
-  {
-    "email": "chloescottadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "23.2"
-  },
-  {
-    "email": "ellawhiteadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "20.1"
-  },
-  {
-    "email": "loganleeadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "18.0"
-  },
-  {
-    "email": "gracekingadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "25.3"
-  },
-  {
-    "email": "LucasHernandezadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "22.7"
-  },
-  {
-    "email": "isabellarodriguezadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "23.5"
-  },
-  {
-    "email": "harperthomasadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "22.1"
-  },
-  {
-    "email": "scarlettyoungadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "24.6"
-  },
-  {
-    "email": "michaelclarkadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "26.2"
-  },
-  {
-    "email": "lilynguyenadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "29.4"
-  },
-  {
-    "email": "oliverandersonadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "31.7"
-  },
-  {
-    "email": "masonmartinezadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "37.0"
-  },
-  {
-    "email": "josephhilladmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "35.3"
-  },
-  {
-    "email": "laylabakeradmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "34.6"
-  },
-  {
-    "email": "liamwilliamsadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "HAS_FLOW",
-    "flowState": "AVAILABLE",
-    "time": "41.3"
-  },
-  {
-    "email": "SamuelGreenadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "32.5"
-  },
-  {
-    "email": "sophiamilleradmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "NO_LOGIN_PAGE",
-    "time": "31.5"
-  },
-  {
-    "email": "oliviabrownadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "33.9"
-  },
-  {
-    "email": "matthewwrightadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "36.1"
-  },
-  {
-    "email": "owencampbelladmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "38.6"
-  },
-  {
-    "email": "zoeyfloresadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "37.2"
-  },
-  {
-    "email": "victoriamitchelladmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
+    "email": "gyu@ato.luckytoto2.io.vn",
+    "password": "chanlamraeha",
     "status": "NO_FLOW",
     "flowState": "UNAVAILABLE_LOW_REPUTATION",
-    "time": "46.0"
+    "time": "26.3"
   },
   {
-    "email": "jamessmithadmin@w.shophpultra.io.vn",
-    "password": "Cmlz!veo3",
-    "status": "LOGIN_FAILED",
-    "flowState": "ACCOUNT_DELETED",
-    "time": "47.8"
+    "email": "beayta@ato.luckytoto2.io.vn",
+    "password": "thatchanlamrae",
+    "status": "NO_FLOW",
+    "flowState": "UNAVAILABLE_LOW_REPUTATION",
+    "time": "27.1"
+  },
+  {
+    "email": "ebac@ato.luckytoto2.io.vn",
+    "password": "thatchanlamrae",
+    "status": "NO_FLOW",
+    "flowState": "UNAVAILABLE_LOW_REPUTATION",
+    "time": "26.4"
+  },
+  {
+    "email": "htty@rot.holisedpro.io.vn",
+    "password": "thatchanlamrae",
+    "status": "NO_FLOW",
+    "flowState": "UNAVAILABLE_LOW_REPUTATION",
+    "time": "26.3"
   }
 ]
