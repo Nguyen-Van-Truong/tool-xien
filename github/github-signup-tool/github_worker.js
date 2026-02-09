@@ -1,18 +1,24 @@
 /**
  * GitHub Signup Worker - Puppeteer Automation
- * Fills signup form and waits for manual completion
+ * Fills signup form and waits for manual captcha/verify
  *
- * GitHub signup is a multi-step wizard:
- *   Step 1: Enter email → Continue
- *   Step 2: Enter password → Continue
- *   Step 3: Enter username → Continue
- *   Step 4: Email preferences → Continue
- *   Step 5: Captcha verification → "Create account" (manual)
- *   Step 6: STOP - keep browser open for user
+ * GitHub signup is a SINGLE-PAGE form (as of 2025+):
+ *   - "Continue with Google" button (DO NOT CLICK!)
+ *   - "Continue with Apple" button (DO NOT CLICK!)
+ *   - Email input
+ *   - Password input
+ *   - Username input
+ *   - Country/Region select
+ *   - Email preferences checkbox
+ *   - "Create account" button
+ *   - Then Captcha/Verify step
+ *
+ * Flow: Fill all fields → STOP → user solves captcha → Done/Failed
  */
 
 const puppeteer = require('puppeteer-core');
 const fs = require('fs');
+const path = require('path');
 
 class GitHubWorker {
     constructor(mainWindow, options = {}) {
@@ -20,62 +26,63 @@ class GitHubWorker {
         this.browsers = [];
         this.isRunning = false;
         this.headless = options.headless || false;
-        this.keepBrowserOpen = (options.keepBrowser !== undefined) ? options.keepBrowser : (options.keepBrowserOpen !== false);
-        this.autofillDelay = options.autofillDelay || 1;
+        this.keepBrowserOpen = (options.keepBrowser !== undefined) ? options.keepBrowser : true;
+        this.autofillDelay = (options.autofillDelay || 1) * 1000; // convert to ms
+        this.typingDelay = options.typingDelay || 50; // ms per keystroke
+        this.autoClickCreate = options.autoClickCreate !== false; // auto click "Create account"
         this.results = { success: 0, failed: 0, total: 0 };
+        this.currentAccountIndex = -1;
 
         // Manual wait signal mechanism
         this._manualResolve = null;
     }
 
-    log(message, type = 'info') {
-        console.log(message);
+    log(msg) {
+        console.log(msg);
         if (this.mainWindow && this.mainWindow.webContents) {
-            this.mainWindow.webContents.send('log', message);
+            this.mainWindow.webContents.send('log', msg);
+        }
+    }
+
+    sendEvent(channel, data) {
+        if (this.mainWindow && this.mainWindow.webContents) {
+            this.mainWindow.webContents.send(channel, data);
         }
     }
 
     updateProgress(current, total, text) {
-        if (this.mainWindow && this.mainWindow.webContents) {
-            this.mainWindow.webContents.send('progress', { current, total, text });
-        }
+        this.sendEvent('progress', { current, total, text });
     }
 
     updateBrowserCount() {
-        if (this.mainWindow && this.mainWindow.webContents) {
-            this.mainWindow.webContents.send('browser-count', {
-                active: this.browsers.length,
-                max: 1
-            });
-        }
+        this.sendEvent('browser-count', { active: this.browsers.length });
     }
 
     saveResult(account, status, extraData = {}) {
         const timestamp = new Date().toISOString();
+        const resultDir = __dirname;
+
         if (status === 'success') {
-            const line = `${account.email}|${account.password}\n`;
-            fs.appendFileSync('success.txt', line);
+            const line = `${account.email}|${account.password}|${account.username}\n`;
+            fs.appendFileSync(path.join(resultDir, 'success.txt'), line);
             this.results.success++;
         } else {
             const line = `${account.email}|${account.password}|${extraData.error || 'unknown'}|${timestamp}\n`;
-            fs.appendFileSync('failed.txt', line);
+            fs.appendFileSync(path.join(resultDir, 'failed.txt'), line);
             this.results.failed++;
         }
-        if (this.mainWindow && this.mainWindow.webContents) {
-            // Send individual result for UI text update
-            this.mainWindow.webContents.send('result', {
-                email: account.email,
-                password: account.password,
-                username: account.username,
-                status,
-                error: extraData.error || '',
-                timestamp,
-                totals: { ...this.results }
-            });
-        }
+
+        this.sendEvent('result', {
+            email: account.email,
+            password: account.password,
+            username: account.username,
+            status,
+            error: extraData.error || '',
+            timestamp
+        });
     }
 
-    // Called from main process when user clicks "Next Account"
+    // Called from main process when user clicks "Done" or "Failed"
     resolveManualWait(status) {
         if (this._manualResolve) {
             this._manualResolve(status);
@@ -95,41 +102,54 @@ class GitHubWorker {
         this.results = { success: 0, failed: 0, total: accounts.length };
         const startTime = Date.now();
 
-        this.log(`🚀 Bắt đầu đăng ký ${accounts.length} GitHub accounts...`, 'info');
+        this.log(`🚀 Bắt đầu đăng ký ${accounts.length} GitHub account(s)...`);
 
-        // Process accounts one by one (sequential)
-        for (let i = 0; i < accounts.length && this.isRunning; i++) {
+        for (let i = 0; i < accounts.length; i++) {
+            if (!this.isRunning) {
+                this.log('⏸️ Đã dừng bởi người dùng.');
+                break;
+            }
+
             const account = accounts[i];
-            const accountNum = i + 1;
+            this.currentAccountIndex = i;
+            const num = i + 1;
 
-            this.log(`\n━━ [${accountNum}/${accounts.length}] ${account.email} ━━`, 'info');
-            this.updateProgress(accountNum, accounts.length, `Account ${accountNum}/${accounts.length}`);
+            this.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            this.log(`📌 [${num}/${accounts.length}] ${account.email}`);
+            this.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            this.updateProgress(num, accounts.length, `[${num}/${accounts.length}] ${account.email}`);
 
-            await this.processAccount(account, accountNum, accounts.length);
+            await this.processAccount(account, num, accounts.length);
         }
 
         const totalTime = Math.round((Date.now() - startTime) / 1000);
-        this.log(`\n🎉 Hoàn thành! Success: ${this.results.success}, Failed: ${this.results.failed} (${totalTime}s)`, 'success');
+        this.log(`\n🎉 Hoàn thành! ✅ ${this.results.success} | ❌ ${this.results.failed} | ⏱ ${totalTime}s`);
 
-        if (this.mainWindow && this.mainWindow.webContents) {
-            this.mainWindow.webContents.send('complete', { ...this.results, totalTime });
-        }
+        this.sendEvent('complete', {
+            total: this.results.total,
+            success: this.results.success,
+            failed: this.results.failed,
+            totalTime
+        });
     }
 
     async processAccount(account, accountNum, total) {
         const { email, password, username } = account;
         let browser = null;
+        let page = null;
 
         try {
-            // Step 1: Launch browser
-            this.log('🌐 1/7: Launching browser...', 'info');
+            // ===== Step 1: Launch browser =====
+            this.log('🌐 Đang mở trình duyệt...');
             const chromePaths = [
                 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
                 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-                process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
+                (process.env.LOCALAPPDATA || '') + '\\Google\\Chrome\\Application\\chrome.exe'
             ];
-            const executablePath = chromePaths.find(p => fs.existsSync(p));
-            if (!executablePath) throw new Error('Chrome not found');
+            const executablePath = chromePaths.find(p => {
+                try { return fs.existsSync(p); } catch { return false; }
+            });
+            if (!executablePath) throw new Error('Không tìm thấy Chrome! Cài Chrome trước.');
 
             browser = await puppeteer.launch({
                 executablePath,
@@ -137,223 +157,422 @@ class GitHubWorker {
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
-                    '--disable-blink-features=AutomationControlled'
+                    '--disable-blink-features=AutomationControlled',
+                    '--window-size=1280,850'
                 ],
-                defaultViewport: { width: 1280, height: 800 }
+                defaultViewport: { width: 1280, height: 850 }
             });
-            this.browsers.push({ browser, email });
+            this.browsers.push({ browser, email, page: null });
             this.updateBrowserCount();
 
-            const page = await browser.newPage();
+            page = await browser.newPage();
+            this.browsers[this.browsers.length - 1].page = page;
 
-            // Stealth: hide webdriver flag
+            // Stealth: hide automation flag
             await page.evaluateOnNewDocument(() => {
                 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
             });
 
-            // Step 2: Navigate to GitHub signup
-            this.log('🔗 2/7: Navigating to GitHub signup...', 'info');
-            await page.goto('https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home', {
+            // ===== Step 2: Navigate to GitHub signup =====
+            this.log('🔗 Đang truy cập github.com/signup...');
+            await page.goto('https://github.com/signup', {
                 waitUntil: 'networkidle2',
                 timeout: 30000
             });
 
-            // Small delay to let page fully render
-            await this.sleep(this.autofillDelay * 1000);
+            // Wait for page to fully load
+            await this.sleep(this.autofillDelay);
 
-            // Step 3: Enter email
-            this.log(`📧 3/7: Entering email: ${email}`, 'info');
-            await page.waitForSelector('#email', { timeout: 15000, visible: true });
-            await this.sleep(500);
-            await page.click('#email');
-            await page.type('#email', email, { delay: 60 });
-            await this.sleep(1000);
+            // ===== Step 3: Detect page layout - multi-step or single-page =====
+            this.log('🔍 Đang phân tích form signup...');
+            const formType = await this.detectFormType(page);
+            this.log(`   📋 Form type: ${formType}`);
 
-            // Click Continue button after email
-            this.log('➡️ Clicking Continue...', 'info');
-            await this.clickContinueButton(page);
-            await this.sleep(2000);
-
-            // Step 4: Enter password
-            this.log('🔑 4/7: Entering password...', 'info');
-            await page.waitForSelector('#password', { timeout: 15000, visible: true });
-            await this.sleep(500);
-            await page.click('#password');
-            await page.type('#password', password, { delay: 40 });
-            await this.sleep(1000);
-
-            // Click Continue button after password
-            this.log('➡️ Clicking Continue...', 'info');
-            await this.clickContinueButton(page);
-            await this.sleep(2000);
-
-            // Step 5: Enter username
-            this.log(`👤 5/7: Entering username: ${username}`, 'info');
-            await page.waitForSelector('#login', { timeout: 15000, visible: true });
-            await this.sleep(500);
-            await page.click('#login');
-            await page.type('#login', username, { delay: 60 });
-            await this.sleep(1500);
-
-            // Click Continue button after username
-            this.log('➡️ Clicking Continue...', 'info');
-            await this.clickContinueButton(page);
-            await this.sleep(2000);
-
-            // Step 6: Email preferences (opt out) → Continue
-            this.log('📩 6/7: Handling email preferences...', 'info');
-            try {
-                // Look for the opt-in field and enter 'n'
-                const optField = await page.$('#opt_in');
-                if (optField) {
-                    await optField.click();
-                    await optField.type('n', { delay: 50 });
-                    await this.sleep(500);
-                }
-            } catch (e) {
-                this.log('⚠️ Email preferences field not found, skipping...', 'warning');
+            if (formType === 'multi-step') {
+                await this.fillMultiStepForm(page, email, password, username);
+            } else {
+                await this.fillSinglePageForm(page, email, password, username);
             }
 
-            // Click Continue
-            await this.clickContinueButton(page);
-            await this.sleep(2000);
+            // ===== FORM FILLED - Notify user =====
+            this.log('');
+            this.log('✅ ═════════════════════════════════════════');
+            this.log('✅ ĐÃ ĐIỀN XONG TẤT CẢ CÁC FIELD!');
 
-            // Step 7: We're now at captcha/verification step
-            // Try to click "Create account" button
-            this.log('🖱️ 7/7: Looking for Create account button...', 'info');
-            try {
-                const createBtn = await page.$('button[data-target="signup-form.SignupButton"]');
-                if (createBtn) {
-                    await createBtn.click();
-                    this.log('✅ Clicked "Create account" button!', 'success');
+            if (this.autoClickCreate) {
+                this.log('🖱️ Đang tìm nút "Create account"...');
+                const clicked = await this.clickCreateAccount(page);
+                if (clicked) {
+                    this.log('✅ Đã bấm "Create account"!');
                 } else {
-                    this.log('⚠️ Create account button not found (may need manual captcha first)', 'warning');
+                    this.log('⚠️ Không thấy nút, bạn tự bấm nhé');
                 }
-            } catch (e) {
-                this.log('⚠️ Could not click Create account: ' + e.message, 'warning');
+            } else {
+                this.log('ℹ️ Auto-click Create Account: TẮT');
+                this.log('   Bạn hãy tự bấm "Create account"');
             }
 
-            // ========== STOP HERE - WAIT FOR USER ==========
-            this.log('', 'info');
-            this.log('⏸️ ═══════════════════════════════════════', 'warning');
-            this.log('⏸️ FORM ĐÃ ĐIỀN XONG! Đang chờ bạn...', 'warning');
-            this.log('⏸️ Hãy hoàn thành captcha/verify thủ công', 'warning');
-            this.log('⏸️ Rồi bấm "✅ Done" hoặc "❌ Failed" trên UI', 'warning');
-            this.log('⏸️ ═══════════════════════════════════════', 'warning');
+            this.log('');
+            this.log('⏸️ Hãy hoàn thành CAPTCHA + VERIFY thủ công');
+            this.log('⏸️ Rồi bấm "✅ Done" hoặc "❌ Failed" trên UI');
+            this.log('═════════════════════════════════════════');
 
-            // Notify renderer that we're waiting
-            if (this.mainWindow && this.mainWindow.webContents) {
-                this.mainWindow.webContents.send('waiting-manual', {
-                    email,
-                    accountNum,
-                    total
-                });
-            }
+            // Send waiting signal to UI
+            this.sendEvent('waiting-manual', { email, username, accountNum, total });
 
-            // Wait for user signal
+            // ===== WAIT FOR USER =====
             const userStatus = await this.waitForManualCompletion();
 
             if (userStatus === 'done' || userStatus === 'success') {
-                this.log(`🎉 SUCCESS: ${email}`, 'success');
+                this.log(`🎉 THÀNH CÔNG: ${email} | ${username}`);
                 this.saveResult(account, 'success');
+            } else if (userStatus === 'stopped') {
+                this.log(`⏸️ Đã dừng: ${email}`);
             } else {
-                this.log(`❌ FAILED (user marked): ${email}`, 'error');
+                this.log(`❌ THẤT BẠI (user): ${email}`);
                 this.saveResult(account, 'failed', { error: 'User marked as failed' });
             }
 
-            // Close browser for this account (unless keepBrowserOpen)
+            // Close browser if not keeping it
             if (!this.keepBrowserOpen) {
-                await browser.close();
+                try { await browser.close(); } catch (e) { }
                 this.browsers = this.browsers.filter(b => b.browser !== browser);
                 this.updateBrowserCount();
             }
 
         } catch (error) {
-            this.log(`❌ ERROR: ${email} - ${error.message}`, 'error');
+            this.log(`❌ LỖI: ${email} - ${error.message}`);
             this.saveResult(account, 'failed', { error: error.message });
 
-            // Still wait for user if browser is open and visible
+            // If browser is open, still wait for user input
             if (browser && !this.headless) {
-                this.log('⏸️ Browser vẫn mở. Bấm "Done" hoặc "Failed" để tiếp tục...', 'warning');
-                if (this.mainWindow && this.mainWindow.webContents) {
-                    this.mainWindow.webContents.send('waiting-manual', {
-                        email,
-                        accountNum,
-                        total,
-                        hasError: true
-                    });
+                this.log('⏸️ Browser vẫn mở, bạn có thể sửa thủ công');
+                this.log('   Bấm "Done" hoặc "Failed" để tiếp tục...');
+
+                this.sendEvent('waiting-manual', {
+                    email, username, accountNum, total, hasError: true
+                });
+
+                const userStatus = await this.waitForManualCompletion();
+                if (userStatus === 'done' || userStatus === 'success') {
+                    this.log(`🎉 Đã sửa thành công: ${email}`);
+                    this.results.failed--;
+                    this.saveResult(account, 'success');
                 }
-                // Wait but don't override the saved result
-                await this.waitForManualCompletion();
+
+                if (!this.keepBrowserOpen) {
+                    try { await browser.close(); } catch (e) { }
+                    this.browsers = this.browsers.filter(b => b.browser !== browser);
+                    this.updateBrowserCount();
+                }
             }
         }
     }
 
-    // Click the Continue/Submit button in GitHub's multi-step form
-    async clickContinueButton(page) {
-        // Try multiple selectors for the Continue button
-        const selectors = [
-            'button[data-continue-to]',                    // GitHub's data attribute
-            'button.js-continue-btn',                       // Class-based
-            'button[type="submit"]',                        // Submit button
-            'button.signup-continue-button',                // Signup specific
-        ];
+    /**
+     * Detect if the signup form is multi-step (old) or single-page (new)
+     */
+    async detectFormType(page) {
+        return await page.evaluate(() => {
+            const emailInput = document.querySelector('#email, input[name="user[email]"]');
+            const passInput = document.querySelector('#password, input[name="user[password]"]');
+            const loginInput = document.querySelector('#login, input[name="user[login]"]');
 
-        for (const selector of selectors) {
-            try {
-                const btn = await page.$(selector);
-                if (btn) {
-                    const isVisible = await page.evaluate(el => {
-                        const style = window.getComputedStyle(el);
-                        return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
-                    }, btn);
+            // If all 3 fields are visible at once → single page
+            const isVisible = (el) => {
+                if (!el) return false;
+                const style = window.getComputedStyle(el);
+                return style.display !== 'none' && style.visibility !== 'hidden'
+                    && el.offsetWidth > 0 && el.offsetHeight > 0;
+            };
 
-                    if (isVisible) {
-                        await btn.click();
-                        return;
+            const emailVis = isVisible(emailInput);
+            const passVis = isVisible(passInput);
+            const loginVis = isVisible(loginInput);
+
+            if (emailVis && passVis && loginVis) return 'single-page';
+            if (emailVis && !passVis && !loginVis) return 'multi-step';
+            return 'single-page'; // default to single-page (current GitHub)
+        });
+    }
+
+    /**
+     * Fill single-page form (current GitHub layout)
+     * ALL fields visible at once, just fill them and click Create
+     */
+    async fillSinglePageForm(page, email, password, username) {
+        // Fill Email
+        this.log(`📧 Nhập email: ${email}`);
+        await this.fillField(page, '#email', email)
+            || await this.fillField(page, 'input[name="user[email]"]', email)
+            || await this.fillField(page, 'input[type="email"]', email);
+        await this.sleep(600);
+
+        // Fill Password
+        this.log('🔑 Nhập password...');
+        await this.fillField(page, '#password', password)
+            || await this.fillField(page, 'input[name="user[password]"]', password)
+            || await this.fillField(page, 'input[type="password"]', password);
+        await this.sleep(600);
+
+        // Fill Username
+        this.log(`👤 Nhập username: ${username}`);
+        await this.fillField(page, '#login', username)
+            || await this.fillField(page, 'input[name="user[login]"]', username)
+            || await this.fillField(page, 'input[name="login"]', username);
+        await this.sleep(600);
+
+        // Handle Email Preferences
+        await this.handleEmailPreferences(page);
+        await this.sleep(500);
+    }
+
+    /**
+     * Fill multi-step form (old GitHub layout, just in case they revert)
+     * Only email visible first → Continue → password → Continue → etc.
+     */
+    async fillMultiStepForm(page, email, password, username) {
+        // Step: Email
+        this.log(`📧 Nhập email: ${email}`);
+        await this.fillField(page, '#email', email)
+            || await this.fillField(page, 'input[type="email"]', email);
+        await this.sleep(800);
+        await this.clickStepContinue(page);
+        await this.sleep(2000);
+
+        // Step: Password
+        this.log('🔑 Nhập password...');
+        await page.waitForSelector('#password', { visible: true, timeout: 10000 }).catch(() => {});
+        await this.fillField(page, '#password', password)
+            || await this.fillField(page, 'input[type="password"]', password);
+        await this.sleep(800);
+        await this.clickStepContinue(page);
+        await this.sleep(2000);
+
+        // Step: Username
+        this.log(`👤 Nhập username: ${username}`);
+        await page.waitForSelector('#login', { visible: true, timeout: 10000 }).catch(() => {});
+        await this.fillField(page, '#login', username)
+            || await this.fillField(page, 'input[name="login"]', username);
+        await this.sleep(800);
+        await this.clickStepContinue(page);
+        await this.sleep(2000);
+
+        // Step: Email preferences
+        await this.handleEmailPreferences(page);
+        await this.sleep(500);
+        await this.clickStepContinue(page);
+        await this.sleep(2000);
+    }
+
+    /**
+     * Click Continue in multi-step form
+     * CAREFULLY avoids "Continue with Google" / "Continue with Apple"
+     */
+    async clickStepContinue(page) {
+        this.log('   ➡️ Clicking Continue...');
+        try {
+            const clicked = await page.evaluate(() => {
+                // Find buttons with data-continue-to attribute (GitHub's step buttons)
+                const stepBtns = document.querySelectorAll('button[data-continue-to]');
+                for (const btn of stepBtns) {
+                    if (btn.offsetParent !== null && btn.offsetWidth > 0) {
+                        btn.click();
+                        return 'data-continue-to';
                     }
                 }
-            } catch (e) { }
-        }
 
-        // Fallback: find any visible button with Continue-like text
-        try {
-            await page.evaluate(() => {
+                // Find submit buttons, but SKIP social login ones
                 const buttons = Array.from(document.querySelectorAll('button'));
-                const continueBtn = buttons.find(b => {
-                    const text = b.textContent.trim().toLowerCase();
-                    const isVisible = b.offsetParent !== null;
-                    return isVisible && (text.includes('continue') || text.includes('next'));
-                });
-                if (continueBtn) continueBtn.click();
+                for (const btn of buttons) {
+                    const text = btn.textContent.trim().toLowerCase();
+                    // SKIP: "Continue with Google", "Continue with Apple"
+                    if (text.includes('google') || text.includes('apple')) continue;
+                    // SKIP: "Create account" (that's the final button)
+                    if (text.includes('create')) continue;
+
+                    // Match: "Continue" standalone
+                    if (text === 'continue' || text === 'next') {
+                        if (btn.offsetParent !== null && btn.offsetWidth > 0) {
+                            btn.click();
+                            return 'text-continue';
+                        }
+                    }
+                }
+
+                return false;
             });
-        } catch (e) { }
+
+            if (clicked) {
+                this.log(`   ✅ Continue clicked (${clicked})`);
+            } else {
+                this.log('   ⚠️ Continue button not found');
+            }
+        } catch (e) {
+            this.log('   ⚠️ Error clicking Continue: ' + e.message);
+        }
+    }
+
+    /**
+     * Handle email preferences checkbox/input
+     */
+    async handleEmailPreferences(page) {
+        this.log('📩 Xử lý email preferences...');
+        try {
+            const pref = await page.$('#opt_in');
+            if (pref) {
+                const inputType = await page.evaluate(el => (el.type || '').toLowerCase(), pref);
+                if (inputType === 'checkbox') {
+                    const isChecked = await page.evaluate(el => el.checked, pref);
+                    if (isChecked) {
+                        await pref.click();
+                        this.log('   ☑️ Đã bỏ chọn email preferences');
+                    }
+                } else {
+                    await pref.click();
+                    await pref.type('n', { delay: 30 });
+                }
+            } else {
+                this.log('   ℹ️ Không thấy email preferences, bỏ qua');
+            }
+        } catch (e) {
+            this.log('   ⚠️ Lỗi email preferences, bỏ qua');
+        }
+    }
+
+    /**
+     * Fill a form field safely - click, clear, then type
+     */
+    async fillField(page, selector, value) {
+        try {
+            const el = await page.$(selector);
+            if (!el) return false;
+
+            const isVisible = await page.evaluate(el => {
+                const style = window.getComputedStyle(el);
+                return style.display !== 'none' && style.visibility !== 'hidden'
+                    && el.offsetWidth > 0 && el.offsetHeight > 0;
+            }, el);
+            if (!isVisible) return false;
+
+            // Scroll into view
+            await page.evaluate(el => el.scrollIntoView({ block: 'center' }), el);
+            await this.sleep(200);
+
+            // Click to focus
+            await el.click();
+            await this.sleep(150);
+
+            // Clear existing value
+            await page.evaluate(el => { el.value = ''; }, el);
+            await el.click({ clickCount: 3 });
+            await page.keyboard.press('Backspace');
+            await this.sleep(100);
+
+            // Type with human-like delay
+            await el.type(value, { delay: this.typingDelay });
+
+            // Trigger events for form validation
+            await page.evaluate(el => {
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                el.dispatchEvent(new Event('blur', { bubbles: true }));
+            }, el);
+
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Click "Create account" button
+     * CAREFULLY avoids "Continue with Google/Apple" buttons
+     */
+    async clickCreateAccount(page) {
+        try {
+            // Strategy 1: Find button with exact text "Create account"
+            const clicked = await page.evaluate(() => {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                for (const btn of buttons) {
+                    const text = btn.textContent.trim().toLowerCase();
+                    if (text === 'create account' || text === 'create your account') {
+                        if (btn.offsetParent !== null && btn.offsetWidth > 0) {
+                            btn.click();
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
+            if (clicked) return true;
+
+            // Strategy 2: Submit button that is NOT social login
+            const clicked2 = await page.evaluate(() => {
+                const buttons = Array.from(document.querySelectorAll('button[type="submit"]'));
+                for (const btn of buttons) {
+                    const text = btn.textContent.trim().toLowerCase();
+                    if (text.includes('google') || text.includes('apple') || text.includes('continue with'))
+                        continue;
+                    if (btn.offsetParent !== null && btn.offsetWidth > 0) {
+                        btn.click();
+                        return true;
+                    }
+                }
+                return false;
+            });
+            if (clicked2) return true;
+
+            // Strategy 3: data-attribute based
+            const selectors = [
+                'button.js-octocaptcha-form-submit',
+                'button[data-target="signup-form.SignupButton"]',
+                'input[type="submit"][value*="Create"]',
+            ];
+            for (const sel of selectors) {
+                try {
+                    const btn = await page.$(sel);
+                    if (btn) { await btn.click(); return true; }
+                } catch (e) { }
+            }
+
+            return false;
+        } catch (e) {
+            return false;
+        }
     }
 
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    /**
+     * Stop processing - but DO NOT close browsers
+     */
     async stop() {
         this.isRunning = false;
-        this.log('⏸️ Stopping...', 'warning');
-        // Resolve any pending manual wait
+        this.log('⏸️ Đã dừng xử lý. Browsers vẫn mở.');
         if (this._manualResolve) {
             this._manualResolve('stopped');
         }
-        await this.closeAllBrowsers();
     }
 
+    /**
+     * Close ALL open browsers
+     */
     async closeAllBrowsers() {
-        this.log(`🗑️ Closing ${this.browsers.length} browser(s)...`, 'warning');
+        const count = this.browsers.length;
+        if (count === 0) {
+            this.log('ℹ️ Không có browser nào đang mở.');
+            return;
+        }
+        this.log(`🗑️ Đang đóng ${count} browser(s)...`);
         for (const b of this.browsers) {
-            try {
-                await b.browser.close();
-                this.log(`✅ Closed: ${b.email}`, 'success');
-            } catch (e) { }
+            try { await b.browser.close(); } catch (e) { }
         }
         this.browsers = [];
         this.updateBrowserCount();
+        this.log(`✅ Đã đóng tất cả ${count} browser(s).`);
     }
 }
 

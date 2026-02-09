@@ -23,7 +23,8 @@ function createWindow() {
             nodeIntegration: false
         },
         title: 'GitHub Signup Tool',
-        backgroundColor: '#0d1117'
+        backgroundColor: '#0d1117',
+        icon: path.join(__dirname, 'icon.ico')
     });
 
     mainWindow.loadFile('index.html');
@@ -33,15 +34,11 @@ function createWindow() {
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
 // ========== IPC Handlers ==========
@@ -52,7 +49,7 @@ ipcMain.handle('start-signup', async (event, accounts, options) => {
     return await githubWorker.start(accounts);
 });
 
-// Stop signup process
+// Stop signup - keeps browsers open!
 ipcMain.handle('stop-signup', async () => {
     if (githubWorker) {
         await githubWorker.stop();
@@ -76,16 +73,23 @@ ipcMain.handle('close-all-browsers', async () => {
     return true;
 });
 
+// Get browser count
+ipcMain.handle('get-browser-count', async () => {
+    if (githubWorker) {
+        return githubWorker.browsers.length;
+    }
+    return 0;
+});
+
 // Read result files
 ipcMain.handle('read-results', async () => {
     const readFile = (filename) => {
         const filePath = path.join(__dirname, filename);
-        if (fs.existsSync(filePath)) {
-            return fs.readFileSync(filePath, 'utf8').trim();
-        }
+        try {
+            if (fs.existsSync(filePath)) return fs.readFileSync(filePath, 'utf8').trim();
+        } catch (e) { }
         return '';
     };
-
     return {
         success: readFile('success.txt'),
         failed: readFile('failed.txt')
@@ -96,33 +100,29 @@ ipcMain.handle('read-results', async () => {
 ipcMain.handle('clear-results', async () => {
     ['success.txt', 'failed.txt'].forEach(filename => {
         const filePath = path.join(__dirname, filename);
-        fs.writeFileSync(filePath, '');
+        try { fs.writeFileSync(filePath, ''); } catch (e) { }
     });
     return true;
 });
 
-// Helper: calculate folder size
+// ========== Browser Data Management ==========
+
 function getFolderSize(folderPath) {
     let totalSize = 0;
     try {
         if (!fs.existsSync(folderPath)) return 0;
         const files = fs.readdirSync(folderPath);
         for (const file of files) {
-            const filePath = path.join(folderPath, file);
+            const fp = path.join(folderPath, file);
             try {
-                const stats = fs.statSync(filePath);
-                if (stats.isDirectory()) {
-                    totalSize += getFolderSize(filePath);
-                } else {
-                    totalSize += stats.size;
-                }
+                const stats = fs.statSync(fp);
+                totalSize += stats.isDirectory() ? getFolderSize(fp) : stats.size;
             } catch (e) { }
         }
     } catch (e) { }
     return totalSize;
 }
 
-// Get browser data size
 ipcMain.handle('get-temp-size', async () => {
     const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
     const puppeteerCache = path.join(process.env.USERPROFILE || '', '.cache', 'puppeteer');
@@ -131,39 +131,22 @@ ipcMain.handle('get-temp-size', async () => {
     let totalSize = 0;
     let folderCount = 0;
 
-    // Temp folders
     try {
         const items = fs.readdirSync(tempPath);
         for (const item of items) {
             if (item.startsWith('puppeteer') || item.startsWith('chromium')) {
                 folderCount++;
-                const itemPath = path.join(tempPath, item);
-                try {
-                    totalSize += getFolderSize(itemPath);
-                } catch (e) { }
+                try { totalSize += getFolderSize(path.join(tempPath, item)); } catch (e) { }
             }
         }
     } catch (e) { }
 
-    // Puppeteer cache
-    if (fs.existsSync(puppeteerCache)) {
-        folderCount++;
-        totalSize += getFolderSize(puppeteerCache);
-    }
+    if (fs.existsSync(puppeteerCache)) { folderCount++; totalSize += getFolderSize(puppeteerCache); }
+    if (fs.existsSync(chromiumData)) { folderCount++; totalSize += getFolderSize(chromiumData); }
 
-    // Chromium data
-    if (fs.existsSync(chromiumData)) {
-        folderCount++;
-        totalSize += getFolderSize(chromiumData);
-    }
-
-    return {
-        folderCount,
-        sizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100
-    };
+    return { folderCount, sizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100 };
 });
 
-// Delete ALL browser data
 ipcMain.handle('delete-browser-data', async () => {
     const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
     const puppeteerCache = path.join(process.env.USERPROFILE || '', '.cache', 'puppeteer');
@@ -172,41 +155,27 @@ ipcMain.handle('delete-browser-data', async () => {
     let deletedCount = 0;
     let freedSize = 0;
 
-    // Puppeteer cache
-    try {
-        if (fs.existsSync(puppeteerCache)) {
-            freedSize += getFolderSize(puppeteerCache);
-            fs.rmSync(puppeteerCache, { recursive: true, force: true });
-            deletedCount++;
-        }
-    } catch (e) { }
+    const remove = (p) => {
+        try {
+            if (fs.existsSync(p)) {
+                freedSize += getFolderSize(p);
+                fs.rmSync(p, { recursive: true, force: true });
+                deletedCount++;
+            }
+        } catch (e) { }
+    };
 
-    // Chromium data
-    try {
-        if (fs.existsSync(chromiumData)) {
-            freedSize += getFolderSize(chromiumData);
-            fs.rmSync(chromiumData, { recursive: true, force: true });
-            deletedCount++;
-        }
-    } catch (e) { }
+    remove(puppeteerCache);
+    remove(chromiumData);
 
-    // Temp folders
     try {
         const items = fs.readdirSync(tempPath);
         for (const item of items) {
             if (item.startsWith('puppeteer') || item.startsWith('chromium')) {
-                const itemPath = path.join(tempPath, item);
-                try {
-                    freedSize += getFolderSize(itemPath);
-                    fs.rmSync(itemPath, { recursive: true, force: true });
-                    deletedCount++;
-                } catch (e) { }
+                remove(path.join(tempPath, item));
             }
         }
     } catch (e) { }
 
-    return {
-        deletedCount,
-        freedMB: Math.round(freedSize / 1024 / 1024 * 100) / 100
-    };
+    return { deletedCount, freedMB: Math.round(freedSize / 1024 / 1024 * 100) / 100 };
 });

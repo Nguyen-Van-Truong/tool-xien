@@ -1,6 +1,6 @@
 /**
  * GitHub Signup Tool - Renderer
- * Frontend logic: parse accounts, handle IPC events, manage UI state
+ * Frontend logic, IPC events, UI state management
  */
 
 // ==================== State ====================
@@ -8,19 +8,24 @@ let accounts = [];
 let successList = [];
 let failedList = [];
 let isRunning = false;
+let isPaused = false;
 let isWaitingManual = false;
 
-// ==================== DOM Elements ====================
+// ==================== DOM ====================
 const $ = (sel) => document.querySelector(sel);
 const inputAccounts = $('#input-accounts');
 const accountCount = $('#account-count');
 const btnRun = $('#btn-run');
 const btnStop = $('#btn-stop');
 const btnCloseAll = $('#btn-close-all');
+const browserCountBtn = $('#browser-count-btn');
 const btnDone = $('#btn-done');
 const btnFail = $('#btn-fail');
 const manualControls = $('#manual-controls');
 const manualStatusText = $('#manual-status-text');
+const statusBar = $('#status-bar');
+const statusDot = statusBar.querySelector('.status-dot');
+const statusText = $('#status-text');
 const progressBar = $('#progress-bar');
 const progressText = $('#progress-text');
 const resultSuccess = $('#result-success');
@@ -35,6 +40,7 @@ const settingsPanel = $('#settings-panel');
 const btnSettings = $('#btn-settings');
 const btnCloseSettings = $('#btn-close-settings');
 const btnSaveSettings = $('#btn-save-settings');
+const btnClearResults = $('#btn-clear-results');
 const btnCopy = $('#btn-copy');
 const btnSave = $('#btn-save');
 const btnRefresh = $('#btn-refresh');
@@ -45,24 +51,31 @@ const tempSizeDisplay = $('#temp-size-display');
 
 // ==================== Logging ====================
 function log(msg, type = 'info') {
+    if (!msg && !msg.trim) return;
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
     const ts = new Date().toLocaleTimeString('vi-VN');
     entry.textContent = `[${ts}] ${msg}`;
     logContainer.appendChild(entry);
     logContainer.scrollTop = logContainer.scrollHeight;
+
+    // Keep log manageable
+    while (logContainer.children.length > 500) {
+        logContainer.removeChild(logContainer.firstChild);
+    }
 }
 
 // ==================== Account Parsing ====================
 function parseAccounts(text) {
+    if (!text || !text.trim()) return [];
     const lines = text.trim().split('\n').filter(l => l.trim());
     return lines.map(line => {
         const parts = line.trim().split('|');
         if (parts.length < 2) return null;
         const email = parts[0].trim();
         const password = parts[1].trim();
-        // Username = phần trước @ trong email
-        const username = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '');
+        if (!email || !password) return null;
+        const username = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 39);
         return { email, password, username };
     }).filter(Boolean);
 }
@@ -72,12 +85,20 @@ inputAccounts.addEventListener('input', () => {
     accountCount.textContent = parsed.length;
 });
 
+// ==================== Status ====================
+function setStatus(state, text) {
+    statusDot.className = `status-dot status-${state}`;
+    statusText.textContent = text;
+}
+
 // ==================== Settings ====================
 function getSettings() {
     return {
         headless: $('#headless-mode').checked,
         keepBrowser: $('#keep-browsers').checked,
-        autofillDelay: parseFloat($('#autofill-delay').value) || 1
+        autoClickCreate: $('#auto-click-create').checked,
+        autofillDelay: parseFloat($('#autofill-delay').value) || 1.5,
+        typingDelay: parseInt($('#typing-delay').value) || 50
     };
 }
 
@@ -88,7 +109,9 @@ function loadSettings() {
             const s = JSON.parse(saved);
             $('#headless-mode').checked = !!s.headless;
             $('#keep-browsers').checked = s.keepBrowser !== false;
-            $('#autofill-delay').value = s.autofillDelay || 1;
+            $('#auto-click-create').checked = s.autoClickCreate !== false;
+            $('#autofill-delay').value = s.autofillDelay || 1.5;
+            $('#typing-delay').value = s.typingDelay || 50;
         }
     } catch (e) { }
 }
@@ -96,7 +119,7 @@ function loadSettings() {
 function saveSettings() {
     const settings = getSettings();
     localStorage.setItem('github_signup_settings', JSON.stringify(settings));
-    log('Settings saved', 'success');
+    log('✅ Settings đã lưu!', 'success');
     settingsPanel.classList.add('hidden');
 }
 
@@ -110,12 +133,17 @@ document.querySelectorAll('.tab').forEach(tab => {
     });
 });
 
-// ==================== Update UI State ====================
+// ==================== Update UI ====================
 function updateStats() {
     statSuccess.textContent = successList.length;
     statFailed.textContent = failedList.length;
     tabCountSuccess.textContent = successList.length;
     tabCountFailed.textContent = failedList.length;
+}
+
+function updateBrowserCountUI(count) {
+    statBrowsers.textContent = count;
+    browserCountBtn.textContent = count;
 }
 
 function setProgress(current, total, text) {
@@ -129,20 +157,30 @@ function setProgress(current, total, text) {
     progressText.textContent = text || `${current}/${total} (${pct}%)`;
 }
 
-function setRunning(running) {
+function setRunningState(running) {
     isRunning = running;
+    isPaused = false;
     btnRun.disabled = running;
     btnStop.disabled = !running;
     inputAccounts.disabled = running;
-    if (!running) {
+
+    if (running) {
+        setStatus('running', 'Đang chạy...');
+    } else {
         hideManualControls();
+        if (successList.length + failedList.length > 0) {
+            setStatus('done', `Xong! ✅${successList.length} ❌${failedList.length}`);
+        } else {
+            setStatus('ready', 'Ready');
+        }
     }
 }
 
-function showManualControls(email) {
+function showManualControls(email, username) {
     isWaitingManual = true;
     manualControls.classList.remove('hidden');
-    manualStatusText.textContent = `Chờ hoàn thành captcha cho: ${email}`;
+    manualStatusText.textContent = `Chờ captcha: ${email} (${username})`;
+    setStatus('waiting', `Chờ: ${email}`);
 }
 
 function hideManualControls() {
@@ -154,7 +192,7 @@ function hideManualControls() {
 btnRun.addEventListener('click', async () => {
     const parsed = parseAccounts(inputAccounts.value);
     if (parsed.length === 0) {
-        log('No valid accounts found! Format: email|password', 'error');
+        log('❌ Không có account hợp lệ! Format: email|password', 'error');
         return;
     }
 
@@ -165,72 +203,77 @@ btnRun.addEventListener('click', async () => {
     resultFailed.value = '';
     updateStats();
     setProgress(0, accounts.length);
-    setRunning(true);
+    setRunningState(true);
 
-    log(`Starting signup for ${accounts.length} accounts...`, 'info');
+    log(`▶️ Bắt đầu signup ${accounts.length} account(s)...`, 'highlight');
 
     const settings = getSettings();
     try {
         await window.api.startSignup(accounts, settings);
     } catch (err) {
-        log(`Error: ${err.message}`, 'error');
-        setRunning(false);
+        log(`❌ Error: ${err.message}`, 'error');
     }
+    setRunningState(false);
 });
 
-// ==================== Stop ====================
+// ==================== Stop/Pause ====================
 btnStop.addEventListener('click', async () => {
-    log('Stopping...', 'warning');
+    log('⏸️ Đang dừng... (browsers vẫn mở)', 'warning');
     try {
         await window.api.stopSignup();
     } catch (e) { }
-    setRunning(false);
+    isPaused = true;
+    btnStop.disabled = true;
+    btnRun.disabled = false;
+    inputAccounts.disabled = false;
+    setStatus('paused', 'Đã dừng (browsers vẫn mở)');
 });
 
 // ==================== Manual Done / Failed ====================
 btnDone.addEventListener('click', async () => {
-    log('User marked as DONE ✅', 'success');
+    log('✅ User đánh dấu DONE', 'success');
     hideManualControls();
-    try {
-        await window.api.nextAccount('done');
-    } catch (e) { }
+    setStatus('running', 'Đang tiếp tục...');
+    try { await window.api.nextAccount('done'); } catch (e) { }
 });
 
 btnFail.addEventListener('click', async () => {
-    log('User marked as FAILED ❌', 'error');
+    log('❌ User đánh dấu FAILED', 'error');
     hideManualControls();
-    try {
-        await window.api.nextAccount('failed');
-    } catch (e) { }
+    setStatus('running', 'Đang tiếp tục...');
+    try { await window.api.nextAccount('failed'); } catch (e) { }
 });
 
-// ==================== Close Browsers ====================
+// ==================== Close All Browsers ====================
 btnCloseAll.addEventListener('click', async () => {
-    log('Closing all browsers...', 'warning');
+    log('🗑️ Đang đóng tất cả browsers...', 'warning');
     try {
         await window.api.closeAllBrowsers();
-        log('All browsers closed', 'info');
+        updateBrowserCountUI(0);
+        log('✅ Đã đóng tất cả browsers.', 'info');
     } catch (e) { }
 });
 
-// ==================== IPC Event Handlers ====================
+// ==================== IPC Listeners ====================
 
-// Log messages
+// Log messages from worker
 window.api.onLog((data) => {
-    const msg = typeof data === 'string' ? data : (data.message || '');
-    let type = (typeof data === 'object' && data.type) ? data.type : 'info';
-    if (type === 'info') {
-        const lmsg = msg.toLowerCase();
-        if (lmsg.includes('success') || lmsg.includes('✅') || lmsg.includes('done')) type = 'success';
-        else if (lmsg.includes('error') || lmsg.includes('fail') || lmsg.includes('❌')) type = 'error';
-        else if (lmsg.includes('warn') || lmsg.includes('⚠') || lmsg.includes('waiting') || lmsg.includes('chờ')) type = 'warning';
-    }
+    const msg = typeof data === 'string' ? data : (data.message || data || '');
+    if (!msg.toString().trim()) return;
+
+    let type = 'info';
+    const lmsg = msg.toString().toLowerCase();
+    if (lmsg.includes('thành công') || lmsg.includes('success') || lmsg.includes('✅')) type = 'success';
+    else if (lmsg.includes('lỗi') || lmsg.includes('error') || lmsg.includes('fail') || lmsg.includes('❌') || lmsg.includes('thất bại')) type = 'error';
+    else if (lmsg.includes('warn') || lmsg.includes('⚠') || lmsg.includes('chờ') || lmsg.includes('dừng') || lmsg.includes('⏸')) type = 'warning';
+    else if (lmsg.includes('━━') || lmsg.includes('═══') || lmsg.includes('📌') || lmsg.includes('🚀')) type = 'highlight';
+
     log(msg, type);
 });
 
-// Result (individual account result from worker)
+// Individual result
 window.api.onResult((result) => {
-    const { email, password, username, status, error, timestamp, totals } = result;
+    const { email, password, username, status, error, timestamp } = result;
     if (status === 'success') {
         successList.push(result);
         resultSuccess.value += `${email}|${password}|${username}\n`;
@@ -241,51 +284,58 @@ window.api.onResult((result) => {
     updateStats();
 });
 
-// Progress update
+// Progress
 window.api.onProgress((data) => {
     const { current, total, text } = data;
     setProgress(current, total, text || `${current}/${total}`);
 });
 
-// Waiting for manual completion
+// Waiting for manual
 window.api.onWaitingManual((data) => {
-    const { email } = data;
-    showManualControls(email);
+    showManualControls(data.email, data.username || '');
 });
 
-// Browser count update
+// Browser count
 window.api.onBrowserCount((data) => {
-    statBrowsers.textContent = `${data.active || 0}/${data.max || 1}`;
+    updateBrowserCountUI(data.active || 0);
 });
 
-// Process complete
+// Complete
 window.api.onComplete((data) => {
-    const { total, success, failed } = data;
-    setRunning(false);
-    setProgress(total, total, `Done! ✅${success} ❌${failed}`);
-    log(`\n===== COMPLETED =====`, 'success');
-    log(`Total: ${total} | Success: ${success} | Failed: ${failed}`, 'success');
+    const { total, success, failed, totalTime } = data;
+    setRunningState(false);
+    setProgress(total, total, `Done! ✅${success} ❌${failed} ⏱${totalTime}s`);
+    log('', 'info');
+    log(`🎉 ═══════ HOÀN THÀNH ═══════`, 'success');
+    log(`📊 Total: ${total} | Success: ${success} | Failed: ${failed} | Time: ${totalTime}s`, 'success');
 });
 
 // ==================== Results Buttons ====================
 btnCopy.addEventListener('click', () => {
     const activeTab = document.querySelector('.tab.active').dataset.tab;
     const text = activeTab === 'success' ? resultSuccess.value : resultFailed.value;
+    if (!text.trim()) {
+        log('ℹ️ Không có dữ liệu để copy', 'warning');
+        return;
+    }
     navigator.clipboard.writeText(text).then(() => {
-        log('Copied to clipboard!', 'success');
+        log(`📋 Đã copy ${activeTab} results!`, 'success');
     });
 });
 
-btnSave.addEventListener('click', async () => {
+btnSave.addEventListener('click', () => {
     const activeTab = document.querySelector('.tab.active').dataset.tab;
     const text = activeTab === 'success' ? resultSuccess.value : resultFailed.value;
+    if (!text.trim()) {
+        log('ℹ️ Không có dữ liệu để lưu', 'warning');
+        return;
+    }
     const blob = new Blob([text], { type: 'text/plain' });
-    // Simple approach: download via data URI
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `github_${activeTab}_${Date.now()}.txt`;
     a.click();
-    log(`Saved ${activeTab} results`, 'success');
+    log(`💾 Đã lưu ${activeTab} results!`, 'success');
 });
 
 btnRefresh.addEventListener('click', async () => {
@@ -294,21 +344,39 @@ btnRefresh.addEventListener('click', async () => {
         if (results) {
             if (results.success) {
                 resultSuccess.value = results.success;
-                successList = results.success.trim().split('\n').filter(l => l);
+                successList = results.success.split('\n').filter(l => l.trim());
+            } else {
+                resultSuccess.value = '';
+                successList = [];
             }
             if (results.failed) {
                 resultFailed.value = results.failed;
-                failedList = results.failed.trim().split('\n').filter(l => l);
+                failedList = results.failed.split('\n').filter(l => l.trim());
+            } else {
+                resultFailed.value = '';
+                failedList = [];
             }
             updateStats();
-            log('Results refreshed from files', 'info');
+            log('🔄 Đã refresh kết quả từ file.', 'info');
         }
     } catch (e) {
-        log('No saved results found', 'warning');
+        log('⚠️ Không tìm thấy file kết quả', 'warning');
     }
 });
 
-// ==================== Log Clear ====================
+btnClearResults.addEventListener('click', async () => {
+    try {
+        await window.api.clearResults();
+        resultSuccess.value = '';
+        resultFailed.value = '';
+        successList = [];
+        failedList = [];
+        updateStats();
+        log('🗑️ Đã xóa kết quả.', 'info');
+    } catch (e) { }
+});
+
+// ==================== Log ====================
 btnClearLog.addEventListener('click', () => {
     logContainer.innerHTML = '';
 });
@@ -323,25 +391,30 @@ btnCloseSettings.addEventListener('click', () => {
     settingsPanel.classList.add('hidden');
 });
 
+// Close settings when clicking outside
+settingsPanel.addEventListener('click', (e) => {
+    if (e.target === settingsPanel) settingsPanel.classList.add('hidden');
+});
+
 btnSaveSettings.addEventListener('click', saveSettings);
 
 btnDeleteData.addEventListener('click', async () => {
-    log('Deleting browser data...', 'warning');
+    log('🗑️ Đang xóa browser data...', 'warning');
     try {
         const result = await window.api.deleteBrowserData();
-        log(`Deleted ${result.deletedCount} folder(s), freed ${result.freedMB} MB`, 'success');
+        log(`✅ Đã xóa ${result.deletedCount} folder(s), giải phóng ${result.freedMB} MB`, 'success');
         refreshTempSize();
     } catch (e) {
-        log(`Error deleting browser data`, 'error');
+        log('❌ Lỗi khi xóa browser data', 'error');
     }
 });
 
 async function refreshTempSize() {
     try {
         const size = await window.api.getTempSize();
-        tempSizeDisplay.textContent = `Cache: ${size.sizeMB} MB (${size.folderCount} folders)`;
+        tempSizeDisplay.textContent = `📦 ${size.sizeMB} MB (${size.folderCount} folders)`;
     } catch (e) {
-        tempSizeDisplay.textContent = 'Unable to read';
+        tempSizeDisplay.textContent = '❓ Không đọc được';
     }
 }
 
@@ -349,5 +422,7 @@ btnRefreshTemp.addEventListener('click', refreshTempSize);
 
 // ==================== Init ====================
 loadSettings();
-log('GitHub Signup Tool ready!', 'success');
-log('Paste accounts (email|password) and click Start', 'info');
+setStatus('ready', 'Ready');
+log('🐙 GitHub Signup Tool ready!', 'success');
+log('📝 Paste accounts (email|password) rồi bấm Start', 'info');
+log('ℹ️ Username tự động = phần trước @ của email', 'info');

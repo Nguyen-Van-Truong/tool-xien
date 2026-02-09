@@ -12,13 +12,13 @@
         <header class="header">
             <div class="header-left">
                 <h1 class="logo">🐙 GitHub Signup Tool</h1>
-                <span class="version">v1.0</span>
+                <span class="version">v1.1</span>
             </div>
             <div class="header-right">
                 <div class="stats-bar">
-                    <span class="stat stat-success">✅ <strong id="stat-success">0</strong></span>
-                    <span class="stat stat-failed">❌ <strong id="stat-failed">0</strong></span>
-                    <span class="stat stat-browsers">🌐 <strong id="stat-browsers">0/1</strong></span>
+                    <span class="stat stat-success" title="Success">✅ <strong id="stat-success">0</strong></span>
+                    <span class="stat stat-failed" title="Failed">❌ <strong id="stat-failed">0</strong></span>
+                    <span class="stat stat-browsers" title="Open browsers">🌐 <strong id="stat-browsers">0</strong></span>
                 </div>
                 <button id="btn-settings" class="btn btn-icon" title="Settings">⚙️</button>
             </div>
@@ -26,7 +26,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Left Panel - Input -->
+            <!-- Left Panel - Input & Controls -->
             <section class="panel input-panel">
                 <div class="panel-header">
                     <h2>📥 Accounts</h2>
@@ -35,19 +35,26 @@
 
                 <div class="input-section">
                     <label for="input-accounts">Paste accounts (email|password per line):</label>
-                    <textarea id="input-accounts" placeholder="valedodesbatss@outlook.com|Jcbgfnou3267&#10;user2@outlook.com|password456&#10;...&#10;&#10;Username = phần trước @ (tự động)&#10;Bỏ qua field thứ 3,4 nếu có"></textarea>
+                    <textarea id="input-accounts" placeholder="email1@outlook.com|Password123&#10;email2@gmail.com|MyPass456&#10;...&#10;&#10;Username = phần trước @ (tự động)&#10;Bỏ qua field thứ 3+ nếu có"></textarea>
                 </div>
 
+                <!-- Main Action Buttons -->
                 <div class="action-buttons">
                     <button id="btn-run" class="btn btn-primary btn-large">
                         ▶️ Start Signup
                     </button>
-                    <button id="btn-stop" class="btn btn-danger" disabled>
-                        ⏹️ Stop
+                    <button id="btn-stop" class="btn btn-warning" disabled title="Dừng xử lý nhưng vẫn giữ browser">
+                        ⏸️ Pause
                     </button>
                 </div>
 
-                <!-- Manual control buttons (shown when waiting) -->
+                <!-- Status indicator -->
+                <div id="status-bar" class="status-bar">
+                    <span class="status-dot status-ready"></span>
+                    <span id="status-text">Ready</span>
+                </div>
+
+                <!-- Manual control buttons (shown when waiting for captcha) -->
                 <div id="manual-controls" class="manual-controls hidden">
                     <div class="manual-header">
                         <span class="pulse-dot"></span>
@@ -55,18 +62,30 @@
                     </div>
                     <div class="manual-buttons">
                         <button id="btn-done" class="btn btn-success btn-large">
-                            ✅ Done - Next Account
+                            ✅ Done - Next
                         </button>
                         <button id="btn-fail" class="btn btn-danger btn-large">
-                            ❌ Failed - Next Account
+                            ❌ Failed - Next
                         </button>
                     </div>
                 </div>
 
-                <div class="extra-buttons">
-                    <button id="btn-close-all" class="btn btn-secondary">
-                        ✖️ Close Browsers
+                <!-- Browser Control Buttons -->
+                <div class="browser-controls">
+                    <button id="btn-close-all" class="btn btn-danger-outline btn-full" title="Đóng tất cả browsers đang mở">
+                        🗑️ Đóng tất cả browsers (<span id="browser-count-btn">0</span>)
                     </button>
+                </div>
+
+                <!-- Quick Info -->
+                <div class="info-box">
+                    <div class="info-title">ℹ️ Cách hoạt động:</div>
+                    <ul>
+                        <li>Điền form tự động (email, pass, username)</li>
+                        <li>Dừng lại chờ bạn giải CAPTCHA</li>
+                        <li>Bấm Done/Failed để tiếp account kế</li>
+                        <li>⏸️ Pause = dừng nhưng giữ browser</li>
+                    </ul>
                 </div>
             </section>
 
@@ -74,6 +93,7 @@
             <section class="panel results-panel">
                 <div class="panel-header">
                     <h2>📊 Results</h2>
+                    <button id="btn-clear-results" class="btn btn-sm" title="Xóa kết quả">🗑️ Clear</button>
                 </div>
 
                 <div class="progress-container">
@@ -83,15 +103,15 @@
 
                 <div class="tabs">
                     <button class="tab active" data-tab="success">
-                        ✅ Success <span id="tab-count-success">0</span>
+                        ✅ Success <span id="tab-count-success" class="tab-badge">0</span>
                     </button>
                     <button class="tab" data-tab="failed">
-                        ❌ Failed <span id="tab-count-failed">0</span>
+                        ❌ Failed <span id="tab-count-failed" class="tab-badge">0</span>
                     </button>
                 </div>
 
                 <div class="tab-content active" id="tab-success">
-                    <textarea id="result-success" readonly placeholder="Success: email|password"></textarea>
+                    <textarea id="result-success" readonly placeholder="Success: email|password|username"></textarea>
                 </div>
                 <div class="tab-content" id="tab-failed">
                     <textarea id="result-failed" readonly placeholder="Failed: email|password|error|timestamp"></textarea>
@@ -114,7 +134,7 @@
             </section>
         </main>
 
-        <!-- Settings Panel -->
+        <!-- Settings Modal -->
         <div id="settings-panel" class="settings-panel hidden">
             <div class="settings-content">
                 <div class="settings-header">
@@ -122,32 +142,65 @@
                     <button id="btn-close-settings" class="btn btn-icon">✖️</button>
                 </div>
                 <div class="settings-body">
-                    <div class="setting-item">
-                        <label for="headless-mode">Headless Mode:</label>
-                        <input type="checkbox" id="headless-mode">
-                    </div>
-                    <div class="setting-item">
-                        <label for="keep-browsers">Keep Browsers Open:</label>
-                        <input type="checkbox" id="keep-browsers" checked>
-                    </div>
-                    <div class="setting-item">
-                        <label for="autofill-delay">Autofill Delay (seconds):</label>
-                        <input type="number" id="autofill-delay" value="1" min="0.5" max="10" step="0.5">
+                    <!-- Automation -->
+                    <div class="setting-group">
+                        <h4>🤖 Automation</h4>
+                        <div class="setting-item">
+                            <label for="headless-mode">
+                                Headless Mode
+                                <small>Chạy ẩn không hiện browser</small>
+                            </label>
+                            <input type="checkbox" id="headless-mode">
+                        </div>
+                        <div class="setting-item">
+                            <label for="keep-browsers">
+                                Keep Browsers Open
+                                <small>Giữ browser sau mỗi account</small>
+                            </label>
+                            <input type="checkbox" id="keep-browsers" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label for="auto-click-create">
+                                Auto Click "Create Account"
+                                <small>Tự bấm nút tạo tài khoản</small>
+                            </label>
+                            <input type="checkbox" id="auto-click-create" checked>
+                        </div>
                     </div>
 
-                    <div class="setting-section">
+                    <!-- Timing -->
+                    <div class="setting-group">
+                        <h4>⏱️ Timing</h4>
+                        <div class="setting-item">
+                            <label for="autofill-delay">
+                                Page Load Delay (s)
+                                <small>Chờ sau khi tải trang</small>
+                            </label>
+                            <input type="number" id="autofill-delay" value="1.5" min="0.5" max="10" step="0.5">
+                        </div>
+                        <div class="setting-item">
+                            <label for="typing-delay">
+                                Typing Delay (ms)
+                                <small>Tốc độ gõ mỗi ký tự</small>
+                            </label>
+                            <input type="number" id="typing-delay" value="50" min="10" max="200" step="10">
+                        </div>
+                    </div>
+
+                    <!-- Browser Data -->
+                    <div class="setting-group">
                         <h4>🗑️ Browser Data</h4>
                         <div class="setting-item">
-                            <span id="temp-size-display">Loading...</span>
+                            <span id="temp-size-display">Đang tải...</span>
                             <button id="btn-refresh-temp" class="btn btn-sm">🔄</button>
                         </div>
                         <button id="btn-delete-browser-data" class="btn btn-danger btn-full">
-                            🗑️ Clear Browser Data
+                            🗑️ Xóa Browser Data
                         </button>
                     </div>
                 </div>
                 <div class="settings-footer">
-                    <button id="btn-save-settings" class="btn btn-primary">💾 Save Settings</button>
+                    <button id="btn-save-settings" class="btn btn-primary btn-full">💾 Lưu Settings</button>
                 </div>
             </div>
         </div>
