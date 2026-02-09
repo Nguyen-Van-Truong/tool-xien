@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Signup Tool</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="logo">🐙 GitHub Signup Tool</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <div class="header-right">
+                <div class="stats-bar">
+                    <span class="stat stat-success">✅ <strong id="stat-success">0</strong></span>
+                    <span class="stat stat-failed">❌ <strong id="stat-failed">0</strong></span>
+                    <span class="stat stat-browsers">🌐 <strong id="stat-browsers">0/1</strong></span>
+                </div>
+                <button id="btn-settings" class="btn btn-icon" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel - Input -->
+            <section class="panel input-panel">
+                <div class="panel-header">
+                    <h2>📥 Accounts</h2>
+                    <span class="account-badge">Count: <strong id="account-count">0</strong></span>
+                </div>
+
+                <div class="input-section">
+                    <label for="input-accounts">Paste accounts (email|password per line):</label>
+                    <textarea id="input-accounts" placeholder="valedodesbatss@outlook.com|Jcbgfnou3267&#10;user2@outlook.com|password456&#10;...&#10;&#10;Username = phần trước @ (tự động)&#10;Bỏ qua field thứ 3,4 nếu có"></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-run" class="btn btn-primary btn-large">
+                        ▶️ Start Signup
+                    </button>
+                    <button id="btn-stop" class="btn btn-danger" disabled>
+                        ⏹️ Stop
+                    </button>
+                </div>
+
+                <!-- Manual control buttons (shown when waiting) -->
+                <div id="manual-controls" class="manual-controls hidden">
+                    <div class="manual-header">
+                        <span class="pulse-dot"></span>
+                        <span id="manual-status-text">Đang chờ bạn hoàn thành thủ công...</span>
+                    </div>
+                    <div class="manual-buttons">
+                        <button id="btn-done" class="btn btn-success btn-large">
+                            ✅ Done - Next Account
+                        </button>
+                        <button id="btn-fail" class="btn btn-danger btn-large">
+                            ❌ Failed - Next Account
+                        </button>
+                    </div>
+                </div>
+
+                <div class="extra-buttons">
+                    <button id="btn-close-all" class="btn btn-secondary">
+                        ✖️ Close Browsers
+                    </button>
+                </div>
+            </section>
+
+            <!-- Center Panel - Results -->
+            <section class="panel results-panel">
+                <div class="panel-header">
+                    <h2>📊 Results</h2>
+                </div>
+
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                    <span id="progress-text" class="progress-text">Ready</span>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab active" data-tab="success">
+                        ✅ Success <span id="tab-count-success">0</span>
+                    </button>
+                    <button class="tab" data-tab="failed">
+                        ❌ Failed <span id="tab-count-failed">0</span>
+                    </button>
+                </div>
+
+                <div class="tab-content active" id="tab-success">
+                    <textarea id="result-success" readonly placeholder="Success: email|password"></textarea>
+                </div>
+                <div class="tab-content" id="tab-failed">
+                    <textarea id="result-failed" readonly placeholder="Failed: email|password|error|timestamp"></textarea>
+                </div>
+
+                <div class="result-buttons">
+                    <button id="btn-copy" class="btn btn-secondary">📋 Copy</button>
+                    <button id="btn-save" class="btn btn-secondary">💾 Save</button>
+                    <button id="btn-refresh" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+            </section>
+
+            <!-- Right Panel - Logs -->
+            <section class="panel log-panel">
+                <div class="panel-header">
+                    <h2>📝 Logs</h2>
+                    <button id="btn-clear-log" class="btn btn-sm">🗑️ Clear</button>
+                </div>
+                <div id="log-container" class="log-container"></div>
+            </section>
+        </main>
+
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="settings-panel hidden">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>⚙️ Settings</h3>
+                    <button id="btn-close-settings" class="btn btn-icon">✖️</button>
+                </div>
+                <div class="settings-body">
+                    <div class="setting-item">
+                        <label for="headless-mode">Headless Mode:</label>
+                        <input type="checkbox" id="headless-mode">
+                    </div>
+                    <div class="setting-item">
+                        <label for="keep-browsers">Keep Browsers Open:</label>
+                        <input type="checkbox" id="keep-browsers" checked>
+                    </div>
+                    <div class="setting-item">
+                        <label for="autofill-delay">Autofill Delay (seconds):</label>
+                        <input type="number" id="autofill-delay" value="1" min="0.5" max="10" step="0.5">
+                    </div>
+
+                    <div class="setting-section">
+                        <h4>🗑️ Browser Data</h4>
+                        <div class="setting-item">
+                            <span id="temp-size-display">Loading...</span>
+                            <button id="btn-refresh-temp" class="btn btn-sm">🔄</button>
+                        </div>
+                        <button id="btn-delete-browser-data" class="btn btn-danger btn-full">
+                            🗑️ Clear Browser Data
+                        </button>
+                    </div>
+                </div>
+                <div class="settings-footer">
+                    <button id="btn-save-settings" class="btn btn-primary">💾 Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

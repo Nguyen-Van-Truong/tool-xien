@@ -1,0 +1,4 @@
+cd "E:\tool xien\github\github-signup-tool"
+npm start
+
+npm install

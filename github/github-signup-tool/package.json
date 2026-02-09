@@ -1,0 +1,17 @@
+{
+    "name": "github-signup-tool",
+    "version": "1.0.0",
+    "description": "GitHub Account Signup Automation Tool - Fill form and wait for manual completion",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron ."
+    },
+    "dependencies": {
+        "puppeteer-core": "^21.6.0"
+    },
+    "devDependencies": {
+        "electron": "^28.0.0"
+    },
+    "author": "",
+    "license": "MIT"
+}

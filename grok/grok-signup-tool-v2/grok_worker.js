@@ -50,9 +50,9 @@ class GrokWorker {
             fs.appendFileSync('success.txt', line);
             this.results.success++;
         } else {
-            // Failed format: email|error|timestamp (for debugging)
+            // Failed format: email|password|error|timestamp
             const failedEmail = extraData.grokEmail || 'unknown';
-            const line = `${failedEmail}|${extraData.error}|${timestamp}\n`;
+            const line = `${failedEmail}|${account.password}|${extraData.error}|${timestamp}\n`;
             fs.appendFileSync('failed.txt', line);
             this.results.failed++;
         }
@@ -420,37 +420,87 @@ class GrokWorker {
                 this.log('✅ ToS accepted', 'success');
             }
 
-            // Verify success
+            // Verify success - check TWICE with 2s delay to be sure
             this.log('✅ 12/12: Verifying account...', 'info');
             await page.waitForTimeout(2000);
 
-            // Try to navigate to profile endpoint
-            const response = await page.goto('https://grok.com/rest/suggestions/profile');
-            const contentType = response.headers()['content-type'] || '';
-
             let success = false;
-
-            // Check if JSON response
-            if (contentType.includes('application/json')) {
-                const data = await response.json();
-                // If auth required, signup failed
-                if (data.code === 16 && data.message === "User authentication required") {
-                    throw new Error('Not authenticated');
+            
+            for (let checkNum = 1; checkNum <= 2; checkNum++) {
+                if (checkNum === 2) {
+                    this.log('🔄 Double-checking authentication...', 'info');
+                    await page.waitForTimeout(2000);
                 }
-                success = true;
-            } else {
-                // HTML response - check current URL to confirm we're logged in
-                const finalUrl = page.url();
-                if (finalUrl.includes('grok.com') && !finalUrl.includes('sign-up') && !finalUrl.includes('login')) {
-                    // Logged in to Grok
+                
+                const response = await page.goto('https://grok.com/rest/suggestions/profile', { 
+                    waitUntil: 'networkidle2', 
+                    timeout: 15000 
+                });
+                const contentType = response.headers()['content-type'] || '';
+                const statusCode = response.status();
+                
+                this.log(`📡 Check ${checkNum}/2: HTTP ${statusCode}, Content-Type: ${contentType}`, 'info');
+
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    const dataStr = JSON.stringify(data);
+                    this.log(`📡 Response: ${dataStr.substring(0, 200)}`, 'info');
+                    
+                    // FAIL: has error code or error message (e.g. code:16, "No credentials", "unauthenticated")
+                    if (data.code || (data.message && data.message.length > 0)) {
+                        this.log(`❌ Check ${checkNum}: Auth failed - ${data.message || dataStr}`, 'error');
+                        success = false;
+                        if (checkNum === 2) {
+                            throw new Error(`Not authenticated: ${data.message || 'error code ' + data.code}`);
+                        }
+                        continue;
+                    }
+                    
+                    // SUCCESS: {} empty object = authenticated, new account has no profile data yet
+                    // SUCCESS: any object without error code/message = has profile data
+                    this.log(`✅ Check ${checkNum}: Authenticated! (HTTP ${statusCode})`, 'success');
                     success = true;
                 } else {
-                    throw new Error('Verification failed - not logged in');
+                    // Non-JSON: HTML response (could be Cloudflare challenge page)
+                    if (statusCode === 403) {
+                        // 403 + HTML = Cloudflare challenge, NOT a real auth check
+                        this.log(`⚠️ Check ${checkNum}: Got Cloudflare challenge (403 HTML), retrying...`, 'warning');
+                        success = false;
+                        if (checkNum === 2) {
+                            // On 2nd attempt still 403, try URL-based check instead
+                            this.log('🔄 Cloudflare blocking API, checking URL instead...', 'info');
+                            await page.goto('https://grok.com/', { waitUntil: 'networkidle2', timeout: 15000 });
+                            await page.waitForTimeout(3000);
+                            const finalUrl = page.url();
+                            if (finalUrl.includes('grok.com') && !finalUrl.includes('sign-up') && !finalUrl.includes('sign-in') && !finalUrl.includes('login')) {
+                                this.log('✅ Logged into grok.com!', 'success');
+                                success = true;
+                            } else {
+                                throw new Error('Verification failed - redirected to login page');
+                            }
+                        }
+                        continue;
+                    }
+                    
+                    // Other non-JSON response
+                    const finalUrl = page.url();
+                    if (finalUrl.includes('grok.com') && !finalUrl.includes('sign-up') && !finalUrl.includes('sign-in') && !finalUrl.includes('login')) {
+                        success = true;
+                    } else {
+                        success = false;
+                        if (checkNum === 2) {
+                            throw new Error('Verification failed - not logged in');
+                        }
+                    }
+                }
+                
+                if (success && checkNum === 1) {
+                    this.log('✅ First check passed, confirming...', 'info');
                 }
             }
 
             if (success) {
-                this.log(`🎉 SUCCESS: ${tempEmailData.email}`, 'success');
+                this.log(`🎉 SUCCESS (verified): ${tempEmailData.email}`, 'success');
                 this.saveResult(account, 'success', { grokEmail: tempEmailData.email });
             }
 

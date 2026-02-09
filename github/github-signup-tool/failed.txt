@@ -1,0 +1,2 @@
+avneryame0@outlook.com|Ocfcftl6784#|User marked as failed|2026-02-09T02:59:31.966Z
+avneryame0@outlook.com|Ocfcftl6784#|Waiting for selector `#login` failed: Protocol error (Runtime.callFunctionOn): Target closed|2026-02-09T02:59:53.476Z

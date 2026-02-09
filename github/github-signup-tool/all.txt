@@ -1,0 +1,23 @@
+https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home
+
+email toi se cung cap tao:
+valedodesbatss@outlook.com|Jcbgfnou3267|M.C512_SN1.0.U.-CmFRYeJm!HW7v7kZasUQuzWKhiQRnirTDSjQHhat!CR5NetpsPFCo12BZC3ETra7vdT4UhaBharm5yEVg7yK8C581FGcEtBXq9wy*v!yMwWynqZa9Ah8Ju9x4DVjVnIOcX9kCrhaxuLIPNuqXJskxE5*tTgWbVKlK1swvWek2kIpnZ8jKpK1nXbG!4Etsj!N8IcAshlgBXo36hPiEu4wEG8OCcvD3TrTkHbLmoxEcKYZNULHzSHJ8xSnUBr6GSG0PqzpjouZ72z2F1z6hU4wSbaA*3gG!Y*plR0EXTyXNlOD0vYpHcBmH7aFKuwWtsDnWJfal!VM052k!iOfDe64OWQZKQyAoC96!Kge2nbXPnxx5JJddzcKcewvLys2h3*7gw$$|9e5f94bc-e8a4-4e73-b8be-63364c29d753
+
+acc github hay tao giong y chang valedodesbatss@outlook.com|Jcbgfnou3267
+username thi giong valedodesbatss
+
+moi vo trang se co https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home
+
+hay nhap vo email <input id="email" class="width-full js-octocaptcha-data-field js-auto-check-input js-nux-input signup-form-fields__input" required="" placeholder="Email" autocomplete="off" dir="auto" data-target="text-suggester.input" data-octocaptcha-field-name="email_address" aria-describedby="email-err" type="email" name="user[email]" spellcheck="false">
+
+nhap vo pass: <input id="password" placeholder="Password" class="form-control width-full js-auto-check-input js-nux-input signup-form-fields__input" required="" passwordrules="minlength: 15; allowed: unicode;" autocapitalize="off" autocomplete="off" aria-describedby="password-helper" autocorrect="off" data-target="visible-password.input" dir="auto" type="password" name="user[password]" spellcheck="false">
+
+username: <input id="password" placeholder="Password" class="form-control width-full js-auto-check-input js-nux-input signup-form-fields__input" required="" passwordrules="minlength: 15; allowed: unicode;" autocapitalize="off" autocomplete="off" aria-describedby="password-helper" autocorrect="off" data-target="visible-password.input" dir="auto" type="password" name="user[password]" spellcheck="false">
+
+roi bam nut: <button aria-describedby="terms-of-service" data-target="signup-form.SignupButton" type="button" data-view-component="true" class="js-octocaptcha-load-captcha signup-form-fields__button Button--primary Button--medium Button Button--fullWidth">  <span class="Button-content">
+    <span class="Button-label">Create account
+                <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-chevron-right">
+    <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path>
+</svg></span>
+  </span>
+</button>
