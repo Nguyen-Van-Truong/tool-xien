@@ -76,7 +76,10 @@ function parseAccounts(text) {
         const password = parts[1].trim();
         if (!email || !password) return null;
         const username = email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 39);
-        return { email, password, username };
+        // Optional: refresh_token (field 3) and client_id (field 4) for auto-OTP
+        const refreshToken = parts.length >= 3 ? parts[2].trim() : '';
+        const clientId = parts.length >= 4 ? parts[3].trim() : '';
+        return { email, password, username, refreshToken, clientId };
     }).filter(Boolean);
 }
 
@@ -176,11 +179,16 @@ function setRunningState(running) {
     }
 }
 
-function showManualControls(email, username) {
+function showManualControls(email, username, autoOTP = false) {
     isWaitingManual = true;
     manualControls.classList.remove('hidden');
-    manualStatusText.textContent = `Chờ captcha: ${email} (${username})`;
-    setStatus('waiting', `Chờ: ${email}`);
+    if (autoOTP) {
+        manualStatusText.textContent = `🔄 Giải CAPTCHA → Auto OTP: ${email}`;
+        setStatus('waiting', `🔄 Auto-OTP: ${email}`);
+    } else {
+        manualStatusText.textContent = `Chờ captcha: ${email} (${username})`;
+        setStatus('waiting', `Chờ: ${email}`);
+    }
 }
 
 function hideManualControls() {
@@ -292,7 +300,33 @@ window.api.onProgress((data) => {
 
 // Waiting for manual
 window.api.onWaitingManual((data) => {
-    showManualControls(data.email, data.username || '');
+    showManualControls(data.email, data.username || '', data.autoOTP || false);
+});
+
+// OTP auto-fetch status
+window.api.onOTPStatus((data) => {
+    const { status, code, email } = data;
+    switch (status) {
+        case 'fetching':
+            log(`📧 Đang lấy OTP từ email ${email || ''}...`, 'highlight');
+            manualStatusText.textContent = `📧 Đang lấy OTP từ email...`;
+            break;
+        case 'filling':
+            log(`🔑 OTP: ${code} - Đang nhập...`, 'success');
+            manualStatusText.textContent = `🔑 OTP: ${code} - Đang nhập...`;
+            break;
+        case 'success':
+            log('✅ Auto-OTP thành công!', 'success');
+            break;
+        case 'filled':
+            log(`✅ Đã nhập OTP: ${code} - Chờ xác minh...`, 'success');
+            manualStatusText.textContent = `✅ Đã nhập OTP: ${code}`;
+            break;
+        case 'failed':
+            log('⚠️ Auto-OTP thất bại - Nhập thủ công', 'warning');
+            manualStatusText.textContent = `⚠️ Auto-OTP thất bại - Nhập OTP thủ công`;
+            break;
+    }
 });
 
 // Browser count
@@ -424,5 +458,6 @@ btnRefreshTemp.addEventListener('click', refreshTempSize);
 loadSettings();
 setStatus('ready', 'Ready');
 log('🐙 GitHub Signup Tool ready!', 'success');
-log('📝 Paste accounts (email|password) rồi bấm Start', 'info');
-log('ℹ️ Username tự động = phần trước @ của email', 'info');
+log('📝 Format: email|password|refresh_token|client_id', 'info');
+log('ℹ️ Có refresh_token + client_id → tự động lấy OTP', 'info');
+log('ℹ️ Không có → chế độ thủ công (Done/Failed)', 'info');

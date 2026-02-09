@@ -12,7 +12,7 @@
         <header class="header">
             <div class="header-left">
                 <h1 class="logo">🐙 GitHub Signup Tool</h1>
-                <span class="version">v1.1</span>
+                <span class="version">v1.2</span>
             </div>
             <div class="header-right">
                 <div class="stats-bar">
@@ -35,7 +35,7 @@
 
                 <div class="input-section">
                     <label for="input-accounts">Paste accounts (email|password per line):</label>
-                    <textarea id="input-accounts" placeholder="email1@outlook.com|Password123&#10;email2@gmail.com|MyPass456&#10;...&#10;&#10;Username = phần trước @ (tự động)&#10;Bỏ qua field thứ 3+ nếu có"></textarea>
+                    <textarea id="input-accounts" placeholder="email@outlook.com|Password123|refresh_token|client_id&#10;email2@gmail.com|Pass456&#10;...&#10;&#10;Format: email|pass|refresh_token|client_id&#10;Có token → Auto lấy OTP | Không → Thủ công"></textarea>
                 </div>
 
                 <!-- Main Action Buttons -->
@@ -83,7 +83,8 @@
                     <ul>
                         <li>Điền form tự động (email, pass, username)</li>
                         <li>Dừng lại chờ bạn giải CAPTCHA</li>
-                        <li>Bấm Done/Failed để tiếp account kế</li>
+                        <li>🔄 Có token: Tự poll URL → lấy OTP → nhập</li>
+                        <li>🔧 Không token: Bấm Done/Failed thủ công</li>
                         <li>⏸️ Pause = dừng nhưng giữ browser</li>
                     </ul>
                 </div>

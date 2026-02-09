@@ -19,6 +19,7 @@
 const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 class GitHubWorker {
     constructor(mainWindow, options = {}) {
@@ -35,6 +36,7 @@ class GitHubWorker {
 
         // Manual wait signal mechanism
         this._manualResolve = null;
+        this._stopPolling = false;
     }
 
     log(msg) {
@@ -213,15 +215,32 @@ class GitHubWorker {
             }
 
             this.log('');
-            this.log('⏸️ Hãy hoàn thành CAPTCHA + VERIFY thủ công');
-            this.log('⏸️ Rồi bấm "✅ Done" hoặc "❌ Failed" trên UI');
+            const hasAPICreds = account.refreshToken && account.clientId;
+
+            if (hasAPICreds) {
+                this.log('🔄 AUTO-OTP ENABLED - Sẽ tự lấy OTP từ email');
+                this.log('⏸️ Hãy giải CAPTCHA, tool sẽ tự detect verification page...');
+                this.log('   (Poll URL mỗi 10 giây)');
+            } else {
+                this.log('⏸️ Hãy hoàn thành CAPTCHA + VERIFY thủ công');
+                this.log('⏸️ Rồi bấm "✅ Done" hoặc "❌ Failed" trên UI');
+            }
             this.log('═════════════════════════════════════════');
 
             // Send waiting signal to UI
-            this.sendEvent('waiting-manual', { email, username, accountNum, total });
+            this.sendEvent('waiting-manual', {
+                email, username, accountNum, total,
+                autoOTP: hasAPICreds
+            });
 
-            // ===== WAIT FOR USER =====
+            // Start background OTP polling if API credentials available
+            if (hasAPICreds) {
+                this.pollOTPInBackground(page, account);
+            }
+
+            // ===== WAIT FOR USER (or auto-OTP resolution) =====
             const userStatus = await this.waitForManualCompletion();
+            this._stopPolling = true; // Stop any background polling
 
             if (userStatus === 'done' || userStatus === 'success') {
                 this.log(`🎉 THÀNH CÔNG: ${email} | ${username}`);
@@ -540,6 +559,334 @@ class GitHubWorker {
         } catch (e) {
             return false;
         }
+    }
+
+    // ==================== OTP AUTO-FETCH METHODS ====================
+
+    /**
+     * POST JSON to a URL and return parsed response
+     */
+    postJSON(url, data, timeout = 20000) {
+        return new Promise((resolve, reject) => {
+            const urlObj = new URL(url);
+            const postData = JSON.stringify(data);
+            const options = {
+                hostname: urlObj.hostname,
+                port: urlObj.port || 443,
+                path: urlObj.pathname + urlObj.search,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(postData)
+                }
+            };
+            const req = https.request(options, (res) => {
+                let body = '';
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => {
+                    try { resolve(JSON.parse(body)); }
+                    catch (e) { reject(new Error(`Invalid JSON: ${body.substring(0, 200)}`)); }
+                });
+            });
+            req.on('error', reject);
+            req.setTimeout(timeout, () => { req.destroy(); reject(new Error('Request timeout')); });
+            req.write(postData);
+            req.end();
+        });
+    }
+
+    /**
+     * Fetch OTP code from email via dongvanfb API
+     * Strategy 1: get_code_oauth2 (type: all)
+     * Strategy 2: get_messages_oauth2 + parse GitHub message
+     */
+    async fetchOTPFromEmail(email, refreshToken, clientId) {
+        // Strategy 1: get_code_oauth2 with type "all"
+        try {
+            this.log('   📧 Gọi API get_code_oauth2 (type: all)...');
+            const codeResp = await this.postJSON('https://tools.dongvanfb.net/api/get_code_oauth2', {
+                email, refresh_token: refreshToken, client_id: clientId, type: 'all'
+            });
+            if (codeResp && codeResp.status && codeResp.code && codeResp.code.toString().trim()) {
+                const code = codeResp.code.toString().trim();
+                this.log(`   ✅ get_code_oauth2 trả về code: ${code}`);
+                // Verify it looks like a GitHub code (usually 6-8 digits)
+                if (/^\d{5,8}$/.test(code)) return code;
+                this.log(`   ⚠️ Code không hợp lệ (${code}), thử cách 2...`);
+            } else {
+                this.log(`   ⚠️ get_code_oauth2: không có code (status: ${codeResp?.status})`);
+            }
+        } catch (e) {
+            this.log(`   ⚠️ get_code_oauth2 error: ${e.message}`);
+        }
+
+        // Strategy 2: get_messages_oauth2 + parse from GitHub email
+        try {
+            this.log('   📧 Gọi API get_messages_oauth2...');
+            const msgResp = await this.postJSON('https://tools.dongvanfb.net/api/get_messages_oauth2', {
+                email, refresh_token: refreshToken, client_id: clientId
+            });
+
+            if (!msgResp || !msgResp.status) {
+                this.log(`   ❌ API trả về status: ${msgResp?.status}`);
+                return null;
+            }
+            if (!msgResp.messages || msgResp.messages.length === 0) {
+                this.log('   ⚠️ Không có message nào');
+                return null;
+            }
+
+            this.log(`   📬 Có ${msgResp.messages.length} message(s)`);
+
+            // Sort by date desc (newest first)
+            const sorted = [...msgResp.messages].sort((a, b) =>
+                new Date(b.date || 0) - new Date(a.date || 0)
+            );
+
+            for (const msg of sorted) {
+                const fromAddrs = (msg.from || []).map(f => (f.address || '').toLowerCase());
+                const subject = (msg.subject || '').toLowerCase();
+                const isGithub = fromAddrs.some(a => a.includes('github')) || subject.includes('github');
+                if (!isGithub) continue;
+
+                this.log(`   📨 GitHub email: "${msg.subject}"`);
+
+                // Check API-extracted code first
+                if (msg.code && msg.code.toString().trim()) {
+                    const code = msg.code.toString().trim();
+                    if (/^\d{5,8}$/.test(code)) {
+                        this.log(`   🔑 Code from message: ${code}`);
+                        return code;
+                    }
+                }
+
+                // Parse from subject + content
+                const fullText = `${msg.subject || ''} ${msg.message || ''}`;
+                const patterns = [
+                    /code\s*(?:below|is)?[:\s]+?(\d{5,8})/i,
+                    /launch\s*code[:\s]*?(\d{5,8})/i,
+                    /verification\s*code[:\s]*?(\d{5,8})/i,
+                    /\b(\d{7})\b/,   // GitHub uses 7-digit codes
+                    /\b(\d{6})\b/,   // fallback 6-digit
+                ];
+                for (const pattern of patterns) {
+                    const match = fullText.match(pattern);
+                    if (match) {
+                        this.log(`   🔑 Extracted code: ${match[1]}`);
+                        return match[1];
+                    }
+                }
+                this.log('   ⚠️ GitHub email found nhưng không extract được code');
+            }
+
+            this.log('   ⚠️ Không tìm thấy email từ GitHub');
+        } catch (e) {
+            this.log(`   ❌ get_messages_oauth2 error: ${e.message}`);
+        }
+
+        return null;
+    }
+
+    /**
+     * Fill OTP code on the GitHub verification page
+     */
+    async fillOTPCode(page, code) {
+        try {
+            await this.sleep(1500);
+
+            // Strategy 1: Known selectors for OTP input
+            const otpSelectors = [
+                'input#otp', 'input[name="otp"]',
+                'input[autocomplete="one-time-code"]',
+                'input.js-verification-code',
+                'input[data-target*="verification"]',
+                'input[placeholder*="XXXXXX"]',
+                'input[aria-label*="code" i]',
+                'input[aria-label*="verification" i]',
+                'input[aria-label*="launch" i]',
+            ];
+            for (const sel of otpSelectors) {
+                const filled = await this.fillField(page, sel, code);
+                if (filled) {
+                    this.log(`   ✅ Nhập OTP qua: ${sel}`);
+                    return true;
+                }
+            }
+
+            // Strategy 2: Any visible text/number/tel input
+            const fallback = await page.evaluate((code) => {
+                const inputs = document.querySelectorAll(
+                    'input[type="text"], input[type="number"], input[type="tel"], input:not([type])'
+                );
+                for (const inp of inputs) {
+                    if (inp.offsetWidth > 0 && inp.offsetHeight > 0
+                        && !inp.readOnly && !inp.disabled && inp.type !== 'hidden') {
+                        inp.focus();
+                        inp.value = '';
+                        inp.value = code;
+                        inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        inp.dispatchEvent(new Event('change', { bubbles: true }));
+                        return true;
+                    }
+                }
+                return false;
+            }, code);
+            if (fallback) {
+                this.log('   ✅ Nhập OTP (fallback selector)');
+                return true;
+            }
+
+            // Strategy 3: Multiple single-digit inputs
+            const multiDigit = await page.evaluate((code) => {
+                const digitInputs = document.querySelectorAll('input[maxlength="1"]');
+                if (digitInputs.length >= 6 && digitInputs.length <= 8) {
+                    const digits = code.toString().split('');
+                    for (let i = 0; i < Math.min(digits.length, digitInputs.length); i++) {
+                        digitInputs[i].focus();
+                        digitInputs[i].value = digits[i];
+                        digitInputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    return true;
+                }
+                return false;
+            }, code);
+            if (multiDigit) {
+                this.log('   ✅ Nhập OTP (multi-digit inputs)');
+                return true;
+            }
+
+            this.log('   ⚠️ Không tìm thấy input OTP trên trang');
+            return false;
+        } catch (e) {
+            this.log(`   ❌ Lỗi nhập OTP: ${e.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Try to click Verify/Submit button after OTP entry
+     */
+    async clickVerifyButton(page) {
+        try {
+            const clicked = await page.evaluate(() => {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                for (const btn of buttons) {
+                    const text = btn.textContent.trim().toLowerCase();
+                    if (text.includes('verify') || text.includes('submit')
+                        || text.includes('continue') || text.includes('xác minh')
+                        || text.includes('xác nhận')) {
+                        if (btn.offsetParent !== null && btn.offsetWidth > 0) {
+                            btn.click();
+                            return true;
+                        }
+                    }
+                }
+                const inputs = Array.from(document.querySelectorAll('input[type="submit"]'));
+                for (const inp of inputs) {
+                    if (inp.offsetWidth > 0) { inp.click(); return true; }
+                }
+                return false;
+            });
+            if (clicked) this.log('   🖱️ Đã bấm nút Verify/Submit');
+            return clicked;
+        } catch (e) { return false; }
+    }
+
+    /**
+     * Background polling for verification page + auto-fill OTP
+     * Runs concurrently with manual wait - resolves when OTP entered
+     */
+    async pollOTPInBackground(page, account) {
+        this._stopPolling = false;
+        const pollInterval = 10000; // 10s
+        const maxAttempts = 60;     // 10 minutes max
+        const maxOTPRetries = 6;    // retry OTP fetch 6 times (1 min)
+
+        this.log('🔄 Bắt đầu poll URL mỗi 10s...');
+
+        for (let i = 0; i < maxAttempts; i++) {
+            await this.sleep(pollInterval);
+            if (this._stopPolling || !this.isRunning) {
+                this.log('   ⏹️ Dừng polling');
+                return;
+            }
+
+            try {
+                const url = page.url();
+
+                // Log every 3rd poll (every 30s)
+                if (i % 3 === 0) {
+                    this.log(`   🔍 Poll #${i + 1} (${(i + 1) * 10}s): ${url.substring(0, 60)}...`);
+                }
+
+                // Detect verification page
+                if (url.includes('account_verifications') || url.includes('account/verifications')) {
+                    this.log('🎯 ĐÃ PHÁT HIỆN TRANG VERIFICATION!');
+                    this.sendEvent('otp-status', { status: 'fetching', email: account.email });
+
+                    // Retry fetching OTP (email might be delayed)
+                    for (let retry = 0; retry < maxOTPRetries; retry++) {
+                        if (this._stopPolling) return;
+
+                        if (retry > 0) {
+                            this.log(`   🔄 Thử lại lấy OTP (${retry + 1}/${maxOTPRetries})...`);
+                            await this.sleep(10000);
+                        }
+
+                        const code = await this.fetchOTPFromEmail(
+                            account.email, account.refreshToken, account.clientId
+                        );
+
+                        if (code) {
+                            this.log(`🔑 OTP CODE: ${code}`);
+                            this.sendEvent('otp-status', { status: 'filling', code });
+
+                            const filled = await this.fillOTPCode(page, code);
+                            if (filled) {
+                                this.log('✅ Đã nhập OTP thành công!');
+
+                                // Try clicking verify button
+                                await this.sleep(500);
+                                await this.clickVerifyButton(page);
+                                await this.sleep(3000);
+
+                                // Check if moved past verification
+                                const newUrl = page.url();
+                                if (!newUrl.includes('account_verifications')) {
+                                    this.log('🎉 Verification OK! Đã qua trang verification.');
+                                    this.sendEvent('otp-status', { status: 'success' });
+                                    this.resolveManualWait('done');
+                                } else {
+                                    this.log('ℹ️ Vẫn ở trang verification - có thể cần thêm thao tác');
+                                    this.sendEvent('otp-status', { status: 'filled', code });
+                                    // Don't auto-resolve, let user handle
+                                }
+                                return;
+                            }
+                        }
+                    }
+
+                    this.log('⚠️ Không lấy được OTP sau nhiều lần thử. Hãy nhập thủ công.');
+                    this.sendEvent('otp-status', { status: 'failed' });
+                    return;
+                }
+
+                // Check if somehow already completed (not on signup/verify pages)
+                if (!url.includes('signup') && !url.includes('account_verifications')
+                    && !url.includes('captcha') && url.includes('github.com')) {
+                    // Could be dashboard - user completed manually
+                    if (url === 'https://github.com/' || url.includes('/dashboard')) {
+                        this.log('🎯 Phát hiện dashboard - signup đã hoàn thành!');
+                        return;
+                    }
+                }
+
+            } catch (e) {
+                // Page might be navigating, ignore
+            }
+        }
+
+        this.log('⏰ Timeout polling (10 phút). Hãy xử lý thủ công.');
     }
 
     sleep(ms) {
