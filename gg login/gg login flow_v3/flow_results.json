@@ -1,30 +1,9 @@
 [
   {
-    "email": "gyu@ato.luckytoto2.io.vn",
-    "password": "chanlamraeha",
-    "status": "NO_FLOW",
-    "flowState": "UNAVAILABLE_LOW_REPUTATION",
-    "time": "26.3"
-  },
-  {
-    "email": "beayta@ato.luckytoto2.io.vn",
-    "password": "thatchanlamrae",
-    "status": "NO_FLOW",
-    "flowState": "UNAVAILABLE_LOW_REPUTATION",
-    "time": "27.1"
-  },
-  {
     "email": "ebac@ato.luckytoto2.io.vn",
     "password": "thatchanlamrae",
     "status": "NO_FLOW",
     "flowState": "UNAVAILABLE_LOW_REPUTATION",
-    "time": "26.4"
-  },
-  {
-    "email": "htty@rot.holisedpro.io.vn",
-    "password": "thatchanlamrae",
-    "status": "NO_FLOW",
-    "flowState": "UNAVAILABLE_LOW_REPUTATION",
-    "time": "26.3"
+    "time": "28.0"
   }
 ]

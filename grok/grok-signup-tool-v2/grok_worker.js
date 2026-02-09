@@ -163,9 +163,7 @@ class GrokWorker {
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
-                    '--disable-blink-features=AutomationControlled',
-                    '--disable-web-security',
-                    '--disable-features=IsolateOrigins,site-per-process'
+                    '--disable-blink-features=AutomationControlled'
                 ],
                 defaultViewport: { width: 1280, height: 720 }
             });
@@ -173,9 +171,11 @@ class GrokWorker {
             this.updateBrowserCount();
             const page = await browser.newPage();
 
-            // Stealth: set realistic User-Agent to avoid bot detection
-            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-            await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+            // Stealth: Only hide webdriver flag (keep everything else real)
+            // DO NOT override window.chrome - we use real Chrome, fake object makes it worse
+            await page.evaluateOnNewDocument(() => {
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            });
 
             // Navigate
             this.log('🔗 3/12: Navigating...', 'info');
@@ -252,12 +252,69 @@ class GrokWorker {
             // Fill email
             this.log('📝 5/12: Filling email...', 'info');
             await page.waitForSelector('[data-testid="email"]', { timeout: 10000 });
-            await page.type('[data-testid="email"]', tempEmailData.email, { delay: 50 });
+            await page.type('[data-testid="email"]', tempEmailData.email, { delay: 80 });
+            
+            // Wait for Cloudflare Turnstile to pass BEFORE submitting email
+            this.log('🔄 5.5/12: Waiting for Cloudflare Turnstile...', 'info');
+            let turnstilePassed = false;
+            for (let i = 0; i < 30 && !turnstilePassed; i++) {
+                turnstilePassed = await page.evaluate(() => {
+                    // Check if Turnstile response token exists (means challenge solved)
+                    const cfInput = document.querySelector('input[name="cf-turnstile-response"]');
+                    if (cfInput && cfInput.value && cfInput.value.length > 10) return true;
+                    
+                    // Also check for Turnstile solved state
+                    const wrapper = document.querySelector('[data-status="solved"]');
+                    if (wrapper) return true;
+                    
+                    // Check if NO Turnstile at all (page doesn't use it)
+                    const cfIframe = document.querySelector('iframe[src*="challenges.cloudflare.com"]');
+                    const cfWidget = document.querySelector('.cf-turnstile');
+                    if (!cfIframe && !cfWidget) return true;
+                    
+                    return false;
+                });
+                
+                if (!turnstilePassed) {
+                    if (i === 0) this.log('⏳ Cloudflare Turnstile detected, waiting for it to solve...', 'info');
+                    if (i > 0 && i % 10 === 0) this.log(`⏳ Still waiting for Turnstile... (${i}s)`, 'info');
+                    await page.waitForTimeout(1000);
+                }
+            }
+            
+            if (turnstilePassed) {
+                this.log('✅ Cloudflare Turnstile passed!', 'success');
+            } else {
+                this.log('⚠️ Turnstile may not have passed, trying submit anyway...', 'warning');
+            }
+            
+            // Now submit email
             await page.keyboard.press('Enter');
 
             // Get OTP
-            this.log('⏳ 6/12: Waiting for OTP...', 'info');
-            await page.waitForSelector('[name="code"]', { timeout: 15000 });
+            this.log('⏳ 6/12: Waiting for OTP page...', 'info');
+            
+            // Check if we got past the email step (no 403 error)
+            await page.waitForTimeout(3000);
+            
+            // Check for error on page 
+            const hasError = await page.evaluate(() => {
+                const text = document.body.innerText || '';
+                return text.includes('403') || text.includes('permission_denied') || text.includes('Error');
+            });
+            
+            if (hasError) {
+                // Check if it's actually a Cloudflare error vs Turnstile widget showing "Error"
+                const isReal403 = await page.evaluate(() => {
+                    const text = document.body.innerText || '';
+                    return text.includes('403') || text.includes('permission_denied');
+                });
+                if (isReal403) {
+                    throw new Error('403 Permission Denied - Cloudflare blocked the request');
+                }
+            }
+            
+            await page.waitForSelector('[name="code"]', { timeout: 20000 });
             const otp = await checkEmailForCode(tempEmailData.domain, tempEmailData.user);
             if (!otp) throw new Error('Failed to get OTP');
             this.log(`✅ OTP: ${otp}`, 'success');
@@ -284,8 +341,43 @@ class GrokWorker {
             await page.type('[data-testid="password"]', password, { delay: 50 });
             await page.waitForTimeout(1000);
 
-            // Complete signup
-            this.log('✔️ 10/12: Submitting signup...', 'info');
+            // Complete signup - wait for Cloudflare Turnstile to pass first
+            this.log('✔️ 10/12: Waiting for Cloudflare verification...', 'info');
+            
+            // Wait for Cloudflare Turnstile to complete (check for success state)
+            let cfPassed = false;
+            for (let i = 0; i < 30 && !cfPassed; i++) {
+                cfPassed = await page.evaluate(() => {
+                    // Check if Turnstile iframe exists and has resolved
+                    const cfIframe = document.querySelector('iframe[src*="challenges.cloudflare.com"]');
+                    if (!cfIframe) return true; // No Cloudflare = proceed
+                    
+                    // Check for success response token
+                    const cfInput = document.querySelector('input[name="cf-turnstile-response"]');
+                    if (cfInput && cfInput.value && cfInput.value.length > 0) return true;
+                    
+                    // Check checkbox state inside iframe (can't access cross-origin, check wrapper)
+                    const wrapper = document.querySelector('.cf-turnstile');
+                    if (wrapper && wrapper.getAttribute('data-status') === 'solved') return true;
+                    
+                    return false;
+                });
+                
+                if (!cfPassed) {
+                    if (i === 0) this.log('🔄 Cloudflare Turnstile detected, waiting...', 'info');
+                    if (i > 0 && i % 5 === 0) this.log(`⏳ Still waiting for Cloudflare... (${i}s)`, 'info');
+                    await page.waitForTimeout(1000);
+                }
+            }
+            
+            if (cfPassed) {
+                this.log('✅ Cloudflare verification passed!', 'success');
+            } else {
+                this.log('⚠️ Cloudflare might not have passed, attempting submit anyway...', 'warning');
+            }
+            
+            // Now click Complete sign up
+            this.log('🚀 Submitting signup...', 'info');
             await page.evaluate(() => {
                 const btn = Array.from(document.querySelectorAll('button[type="submit"]'))
                     .find(b => b.textContent.includes('Complete sign up'));
