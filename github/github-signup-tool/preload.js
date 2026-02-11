@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld('api', {
     // Core operations
     startSignup: (accounts, options) => ipcRenderer.invoke('start-signup', accounts, options),
     stopSignup: () => ipcRenderer.invoke('stop-signup'),
-    nextAccount: (status) => ipcRenderer.invoke('next-account', status),
+    nextAccount: (status, email) => ipcRenderer.invoke('next-account', status, email),
     closeAllBrowsers: () => ipcRenderer.invoke('close-all-browsers'),
 
     // Results

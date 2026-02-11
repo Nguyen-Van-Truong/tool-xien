@@ -31,12 +31,14 @@ class GitHubWorker {
         this.autofillDelay = (options.autofillDelay || 1) * 1000; // convert to ms
         this.typingDelay = options.typingDelay || 50; // ms per keystroke
         this.autoClickCreate = options.autoClickCreate !== false; // auto click "Create account"
+        this.preOpenMailReader = options.preOpenMailReader || false;
+        this.mailReaderUrl = options.mailReaderUrl || 'https://dongvanfb.net/read_mail_box';
         this.results = { success: 0, failed: 0, total: 0 };
         this.currentAccountIndex = -1;
 
-        // Manual wait signal mechanism
-        this._manualResolve = null;
-        this._stopPolling = false;
+        // Manual wait signal mechanism (per-account for parallel mode)
+        this._manualResolves = new Map();
+        this._stopPollingSet = new Set();
     }
 
     log(msg) {
@@ -85,17 +87,18 @@ class GitHubWorker {
     }
 
     // Called from main process when user clicks "Done" or "Failed"
-    resolveManualWait(status) {
-        if (this._manualResolve) {
-            this._manualResolve(status);
-            this._manualResolve = null;
+    resolveManualWait(email, status) {
+        const resolve = this._manualResolves.get(email);
+        if (resolve) {
+            resolve(status);
+            this._manualResolves.delete(email);
         }
     }
 
     // Wait for user to signal they're done
-    waitForManualCompletion() {
+    waitForManualCompletion(email) {
         return new Promise((resolve) => {
-            this._manualResolve = resolve;
+            this._manualResolves.set(email, resolve);
         });
     }
 
@@ -104,25 +107,16 @@ class GitHubWorker {
         this.results = { success: 0, failed: 0, total: accounts.length };
         const startTime = Date.now();
 
-        this.log(`🚀 Bắt đầu đăng ký ${accounts.length} GitHub account(s)...`);
+        this.log(`🚀 Mở ${accounts.length} browser(s) ĐỒNG THỜI...`);
+        this.updateProgress(0, accounts.length, `0/${accounts.length} hoàn thành`);
 
-        for (let i = 0; i < accounts.length; i++) {
-            if (!this.isRunning) {
-                this.log('⏸️ Đã dừng bởi người dùng.');
-                break;
-            }
-
-            const account = accounts[i];
-            this.currentAccountIndex = i;
+        const promises = accounts.map((account, i) => {
             const num = i + 1;
-
-            this.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
             this.log(`📌 [${num}/${accounts.length}] ${account.email}`);
-            this.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-            this.updateProgress(num, accounts.length, `[${num}/${accounts.length}] ${account.email}`);
+            return this.processAccount(account, num, accounts.length);
+        });
 
-            await this.processAccount(account, num, accounts.length);
-        }
+        await Promise.allSettled(promises);
 
         const totalTime = Math.round((Date.now() - startTime) / 1000);
         this.log(`\n🎉 Hoàn thành! ✅ ${this.results.success} | ❌ ${this.results.failed} | ⏱ ${totalTime}s`);
@@ -137,12 +131,18 @@ class GitHubWorker {
 
     async processAccount(account, accountNum, total) {
         const { email, password, username } = account;
+        const hasAPICreds = account.refreshToken && account.clientId;
         let browser = null;
         let page = null;
 
         try {
+            // Stagger launches to prevent resource contention
+            if (accountNum > 1) {
+                await this.sleep((accountNum - 1) * 1000);
+            }
+
             // ===== Step 1: Launch browser =====
-            this.log('🌐 Đang mở trình duyệt...');
+            this.log(`🌐 [${email}] Đang mở trình duyệt...`);
             const chromePaths = [
                 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
                 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
@@ -164,11 +164,27 @@ class GitHubWorker {
                 ],
                 defaultViewport: { width: 1280, height: 850 }
             });
-            this.browsers.push({ browser, email, page: null });
+            const browserEntry = { browser, email, page: null };
+            this.browsers.push(browserEntry);
             this.updateBrowserCount();
 
+            // ===== Pre-open mail reader tab (for accounts without API creds) =====
+            if (this.preOpenMailReader && !hasAPICreds) {
+                this.log('📬 Đang mở tab đọc mail...');
+                try {
+                    const mailPage = await browser.newPage();
+                    await mailPage.goto(this.mailReaderUrl, {
+                        waitUntil: 'domcontentloaded',
+                        timeout: 15000
+                    });
+                    this.log(`✅ Tab đọc mail đã sẵn sàng: ${this.mailReaderUrl}`);
+                } catch (e) {
+                    this.log(`⚠️ Không mở được tab đọc mail: ${e.message}`);
+                }
+            }
+
             page = await browser.newPage();
-            this.browsers[this.browsers.length - 1].page = page;
+            browserEntry.page = page;
 
             // Stealth: hide automation flag
             await page.evaluateOnNewDocument(() => {
@@ -215,7 +231,6 @@ class GitHubWorker {
             }
 
             this.log('');
-            const hasAPICreds = account.refreshToken && account.clientId;
 
             if (hasAPICreds) {
                 this.log('🔄 AUTO-OTP ENABLED - Sẽ tự lấy OTP từ email');
@@ -239,8 +254,8 @@ class GitHubWorker {
             }
 
             // ===== WAIT FOR USER (or auto-OTP resolution) =====
-            const userStatus = await this.waitForManualCompletion();
-            this._stopPolling = true; // Stop any background polling
+            const userStatus = await this.waitForManualCompletion(email);
+            this._stopPollingSet.add(email); // Stop any background polling
 
             if (userStatus === 'done' || userStatus === 'success') {
                 this.log(`🎉 THÀNH CÔNG: ${email} | ${username}`);
@@ -259,6 +274,10 @@ class GitHubWorker {
                 this.updateBrowserCount();
             }
 
+            // Update progress
+            const done = this.results.success + this.results.failed;
+            this.updateProgress(done, this.results.total, `${done}/${this.results.total} hoàn thành`);
+
         } catch (error) {
             this.log(`❌ LỖI: ${email} - ${error.message}`);
             this.saveResult(account, 'failed', { error: error.message });
@@ -272,7 +291,7 @@ class GitHubWorker {
                     email, username, accountNum, total, hasError: true
                 });
 
-                const userStatus = await this.waitForManualCompletion();
+                const userStatus = await this.waitForManualCompletion(email);
                 if (userStatus === 'done' || userStatus === 'success') {
                     this.log(`🎉 Đã sửa thành công: ${email}`);
                     this.results.failed--;
@@ -285,6 +304,10 @@ class GitHubWorker {
                     this.updateBrowserCount();
                 }
             }
+
+            // Update progress
+            const done = this.results.success + this.results.failed;
+            this.updateProgress(done, this.results.total, `${done}/${this.results.total} hoàn thành`);
         }
     }
 
@@ -597,11 +620,28 @@ class GitHubWorker {
 
     /**
      * Fetch OTP code from email via dongvanfb API
-     * Strategy 1: get_code_oauth2 (type: all)
-     * Strategy 2: get_messages_oauth2 + parse GitHub message
+     * Strategy 1: get_messages_oauth2 → parse GitHub message (most reliable)
+     * Strategy 2: graph_messages → parse GitHub message (fallback)
+     * Strategy 3: get_code_oauth2 (type: all) → direct code
      */
     async fetchOTPFromEmail(email, refreshToken, clientId) {
-        // Strategy 1: get_code_oauth2 with type "all"
+        // Strategy 1: get_messages_oauth2 + parse from GitHub email
+        const code1 = await this._fetchViaMessagesAPI(
+            'https://tools.dongvanfb.net/api/get_messages_oauth2',
+            'get_messages_oauth2',
+            email, refreshToken, clientId
+        );
+        if (code1) return code1;
+
+        // Strategy 2: graph_messages (alternative endpoint)
+        const code2 = await this._fetchViaMessagesAPI(
+            'https://tools.dongvanfb.net/api/graph_messages',
+            'graph_messages',
+            email, refreshToken, clientId
+        );
+        if (code2) return code2;
+
+        // Strategy 3: get_code_oauth2 with type "all"
         try {
             this.log('   📧 Gọi API get_code_oauth2 (type: all)...');
             const codeResp = await this.postJSON('https://tools.dongvanfb.net/api/get_code_oauth2', {
@@ -610,9 +650,8 @@ class GitHubWorker {
             if (codeResp && codeResp.status && codeResp.code && codeResp.code.toString().trim()) {
                 const code = codeResp.code.toString().trim();
                 this.log(`   ✅ get_code_oauth2 trả về code: ${code}`);
-                // Verify it looks like a GitHub code (usually 6-8 digits)
                 if (/^\d{5,8}$/.test(code)) return code;
-                this.log(`   ⚠️ Code không hợp lệ (${code}), thử cách 2...`);
+                this.log(`   ⚠️ Code không hợp lệ format (${code})`);
             } else {
                 this.log(`   ⚠️ get_code_oauth2: không có code (status: ${codeResp?.status})`);
             }
@@ -620,69 +659,153 @@ class GitHubWorker {
             this.log(`   ⚠️ get_code_oauth2 error: ${e.message}`);
         }
 
-        // Strategy 2: get_messages_oauth2 + parse from GitHub email
+        return null;
+    }
+
+    /**
+     * Helper: Fetch messages from API and extract GitHub OTP
+     * Handles msg.from being string, object, or array
+     */
+    async _fetchViaMessagesAPI(apiUrl, apiName, email, refreshToken, clientId) {
         try {
-            this.log('   📧 Gọi API get_messages_oauth2...');
-            const msgResp = await this.postJSON('https://tools.dongvanfb.net/api/get_messages_oauth2', {
+            this.log(`   📧 Gọi API ${apiName}...`);
+            const msgResp = await this.postJSON(apiUrl, {
                 email, refresh_token: refreshToken, client_id: clientId
             });
 
             if (!msgResp || !msgResp.status) {
-                this.log(`   ❌ API trả về status: ${msgResp?.status}`);
-                return null;
-            }
-            if (!msgResp.messages || msgResp.messages.length === 0) {
-                this.log('   ⚠️ Không có message nào');
+                this.log(`   ⚠️ ${apiName}: status=${msgResp?.status}`);
                 return null;
             }
 
-            this.log(`   📬 Có ${msgResp.messages.length} message(s)`);
+            const messages = msgResp.messages;
+            if (!messages || !Array.isArray(messages) || messages.length === 0) {
+                this.log(`   ⚠️ ${apiName}: không có message`);
+                return null;
+            }
+
+            this.log(`   📬 ${apiName}: ${messages.length} message(s)`);
 
             // Sort by date desc (newest first)
-            const sorted = [...msgResp.messages].sort((a, b) =>
+            const sorted = [...messages].sort((a, b) =>
                 new Date(b.date || 0) - new Date(a.date || 0)
             );
 
+            // First pass: find GitHub-specific emails
             for (const msg of sorted) {
-                const fromAddrs = (msg.from || []).map(f => (f.address || '').toLowerCase());
-                const subject = (msg.subject || '').toLowerCase();
-                const isGithub = fromAddrs.some(a => a.includes('github')) || subject.includes('github');
-                if (!isGithub) continue;
-
-                this.log(`   📨 GitHub email: "${msg.subject}"`);
-
-                // Check API-extracted code first
-                if (msg.code && msg.code.toString().trim()) {
-                    const code = msg.code.toString().trim();
-                    if (/^\d{5,8}$/.test(code)) {
-                        this.log(`   🔑 Code from message: ${code}`);
-                        return code;
-                    }
+                if (this._isGitHubEmail(msg)) {
+                    this.log(`   📨 GitHub email: "${msg.subject}"`);
+                    const code = this._extractCodeFromMessage(msg);
+                    if (code) return code;
+                    this.log('   ⚠️ GitHub email found nhưng không extract được code');
                 }
-
-                // Parse from subject + content
-                const fullText = `${msg.subject || ''} ${msg.message || ''}`;
-                const patterns = [
-                    /code\s*(?:below|is)?[:\s]+?(\d{5,8})/i,
-                    /launch\s*code[:\s]*?(\d{5,8})/i,
-                    /verification\s*code[:\s]*?(\d{5,8})/i,
-                    /\b(\d{7})\b/,   // GitHub uses 7-digit codes
-                    /\b(\d{6})\b/,   // fallback 6-digit
-                ];
-                for (const pattern of patterns) {
-                    const match = fullText.match(pattern);
-                    if (match) {
-                        this.log(`   🔑 Extracted code: ${match[1]}`);
-                        return match[1];
-                    }
-                }
-                this.log('   ⚠️ GitHub email found nhưng không extract được code');
             }
 
-            this.log('   ⚠️ Không tìm thấy email từ GitHub');
+            // Second pass: look for code in ALL emails (subject containing "code" or digits)
+            for (const msg of sorted) {
+                const subject = (msg.subject || '');
+                const subjectLower = subject.toLowerCase();
+                if (subjectLower.includes('launch code') || subjectLower.includes('verification code')) {
+                    this.log(`   📨 Code email: "${subject}"`);
+                    const code = this._extractCodeFromMessage(msg);
+                    if (code) return code;
+                }
+            }
+
+            // Last resort: try ALL messages for any 7-digit code
+            for (const msg of sorted) {
+                const fullText = `${msg.subject || ''} ${msg.message || ''} ${msg.html_body || ''}`;
+                const match = fullText.match(/\b(\d{7})\b/);
+                if (match) {
+                    this.log(`   🔑 Found 7-digit code in email: ${match[1]}`);
+                    return match[1];
+                }
+            }
+
+            this.log(`   ⚠️ ${apiName}: không tìm thấy OTP từ GitHub`);
         } catch (e) {
-            this.log(`   ❌ get_messages_oauth2 error: ${e.message}`);
+            this.log(`   ❌ ${apiName} error: ${e.message}`);
         }
+        return null;
+    }
+
+    /**
+     * Check if a message is from GitHub
+     * Handles msg.from being: string, object {address}, array [{address}], or undefined
+     */
+    _isGitHubEmail(msg) {
+        const subject = (msg.subject || '').toLowerCase();
+        if (subject.includes('github')) return true;
+
+        // Handle all possible formats of msg.from
+        const from = msg.from;
+        if (!from) return false;
+
+        let fromStr = '';
+        if (typeof from === 'string') {
+            fromStr = from.toLowerCase();
+        } else if (Array.isArray(from)) {
+            // Array of objects: [{name, address}]
+            fromStr = from.map(f => {
+                if (typeof f === 'string') return f;
+                return (f.address || f.name || '').toString();
+            }).join(' ').toLowerCase();
+        } else if (typeof from === 'object') {
+            // Single object: {name, address}
+            fromStr = (from.address || from.name || JSON.stringify(from)).toLowerCase();
+        }
+
+        return fromStr.includes('github');
+    }
+
+    /**
+     * Extract OTP code from a message object
+     * Checks msg.code, then subject, then body (message + html_body)
+     */
+    _extractCodeFromMessage(msg) {
+        // Check API pre-extracted code
+        if (msg.code && msg.code.toString().trim()) {
+            const code = msg.code.toString().trim();
+            if (/^\d{5,8}$/.test(code)) {
+                this.log(`   🔑 Code from API: ${code}`);
+                return code;
+            }
+        }
+
+        const subject = msg.subject || '';
+        const body = msg.message || msg.html_body || '';
+        const fullText = `${subject} ${body}`;
+
+        // GitHub-specific patterns (most specific first)
+        const patterns = [
+            /launch\s*code[:\s!]*?(\d{5,8})/i,
+            /verification\s*code[:\s!]*?(\d{5,8})/i,
+            /code\s*(?:below|is)?[:\s]+?(\d{5,8})/i,
+            /entering\s*the\s*code\s*(?:below)?[:\s]*(\d{5,8})/i,
+        ];
+
+        // Try subject first (cleaner text)
+        for (const p of patterns) {
+            const m = subject.match(p);
+            if (m) { this.log(`   🔑 Code from subject: ${m[1]}`); return m[1]; }
+        }
+
+        // Try subject: any 7-digit number (GitHub specific)
+        const sub7 = subject.match(/\b(\d{7})\b/);
+        if (sub7) { this.log(`   🔑 7-digit from subject: ${sub7[1]}`); return sub7[1]; }
+
+        // Try body with patterns
+        for (const p of patterns) {
+            const m = body.match(p);
+            if (m) { this.log(`   🔑 Code from body: ${m[1]}`); return m[1]; }
+        }
+
+        // Fallback: any 7-digit in body, then 6-digit
+        const body7 = fullText.match(/\b(\d{7})\b/);
+        if (body7) { this.log(`   🔑 7-digit from body: ${body7[1]}`); return body7[1]; }
+
+        const body6 = fullText.match(/\b(\d{6})\b/);
+        if (body6) { this.log(`   🔑 6-digit from body: ${body6[1]}`); return body6[1]; }
 
         return null;
     }
@@ -797,7 +920,7 @@ class GitHubWorker {
      * Runs concurrently with manual wait - resolves when OTP entered
      */
     async pollOTPInBackground(page, account) {
-        this._stopPolling = false;
+        this._stopPollingSet.delete(account.email);
         const pollInterval = 10000; // 10s
         const maxAttempts = 60;     // 10 minutes max
         const maxOTPRetries = 6;    // retry OTP fetch 6 times (1 min)
@@ -806,7 +929,7 @@ class GitHubWorker {
 
         for (let i = 0; i < maxAttempts; i++) {
             await this.sleep(pollInterval);
-            if (this._stopPolling || !this.isRunning) {
+            if (this._stopPollingSet.has(account.email) || !this.isRunning) {
                 this.log('   ⏹️ Dừng polling');
                 return;
             }
@@ -826,7 +949,7 @@ class GitHubWorker {
 
                     // Retry fetching OTP (email might be delayed)
                     for (let retry = 0; retry < maxOTPRetries; retry++) {
-                        if (this._stopPolling) return;
+                        if (this._stopPollingSet.has(account.email)) return;
 
                         if (retry > 0) {
                             this.log(`   🔄 Thử lại lấy OTP (${retry + 1}/${maxOTPRetries})...`);
@@ -855,7 +978,7 @@ class GitHubWorker {
                                 if (!newUrl.includes('account_verifications')) {
                                     this.log('🎉 Verification OK! Đã qua trang verification.');
                                     this.sendEvent('otp-status', { status: 'success' });
-                                    this.resolveManualWait('done');
+                                    this.resolveManualWait(account.email, 'done');
                                 } else {
                                     this.log('ℹ️ Vẫn ở trang verification - có thể cần thêm thao tác');
                                     this.sendEvent('otp-status', { status: 'filled', code });
@@ -899,9 +1022,10 @@ class GitHubWorker {
     async stop() {
         this.isRunning = false;
         this.log('⏸️ Đã dừng xử lý. Browsers vẫn mở.');
-        if (this._manualResolve) {
-            this._manualResolve('stopped');
+        for (const [email, resolve] of this._manualResolves) {
+            resolve('stopped');
         }
+        this._manualResolves.clear();
     }
 
     /**

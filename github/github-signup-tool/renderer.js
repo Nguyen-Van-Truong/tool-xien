@@ -10,6 +10,7 @@ let failedList = [];
 let isRunning = false;
 let isPaused = false;
 let isWaitingManual = false;
+let waitingAccounts = new Map();
 
 // ==================== DOM ====================
 const $ = (sel) => document.querySelector(sel);
@@ -19,8 +20,9 @@ const btnRun = $('#btn-run');
 const btnStop = $('#btn-stop');
 const btnCloseAll = $('#btn-close-all');
 const browserCountBtn = $('#browser-count-btn');
-const btnDone = $('#btn-done');
-const btnFail = $('#btn-fail');
+const btnDoneAll = $('#btn-done-all');
+const btnFailAll = $('#btn-fail-all');
+const waitingList = $('#waiting-list');
 const manualControls = $('#manual-controls');
 const manualStatusText = $('#manual-status-text');
 const statusBar = $('#status-bar');
@@ -101,7 +103,9 @@ function getSettings() {
         keepBrowser: $('#keep-browsers').checked,
         autoClickCreate: $('#auto-click-create').checked,
         autofillDelay: parseFloat($('#autofill-delay').value) || 1.5,
-        typingDelay: parseInt($('#typing-delay').value) || 50
+        typingDelay: parseInt($('#typing-delay').value) || 50,
+        preOpenMailReader: $('#pre-open-mail-reader').checked,
+        mailReaderUrl: $('#mail-reader-url').value.trim() || 'https://dongvanfb.net/read_mail_box'
     };
 }
 
@@ -115,6 +119,8 @@ function loadSettings() {
             $('#auto-click-create').checked = s.autoClickCreate !== false;
             $('#autofill-delay').value = s.autofillDelay || 1.5;
             $('#typing-delay').value = s.typingDelay || 50;
+            $('#pre-open-mail-reader').checked = s.preOpenMailReader !== false;
+            if (s.mailReaderUrl) $('#mail-reader-url').value = s.mailReaderUrl;
         }
     } catch (e) { }
 }
@@ -170,7 +176,10 @@ function setRunningState(running) {
     if (running) {
         setStatus('running', 'Đang chạy...');
     } else {
-        hideManualControls();
+        waitingAccounts.clear();
+        waitingList.innerHTML = '';
+        isWaitingManual = false;
+        manualControls.classList.add('hidden');
         if (successList.length + failedList.length > 0) {
             setStatus('done', `Xong! ✅${successList.length} ❌${failedList.length}`);
         } else {
@@ -179,21 +188,52 @@ function setRunningState(running) {
     }
 }
 
-function showManualControls(email, username, autoOTP = false) {
+function addWaitingAccount(data) {
+    const { email, username, autoOTP } = data;
+    waitingAccounts.set(email, data);
     isWaitingManual = true;
     manualControls.classList.remove('hidden');
-    if (autoOTP) {
-        manualStatusText.textContent = `🔄 Giải CAPTCHA → Auto OTP: ${email}`;
-        setStatus('waiting', `🔄 Auto-OTP: ${email}`);
-    } else {
-        manualStatusText.textContent = `Chờ captcha: ${email} (${username})`;
-        setStatus('waiting', `Chờ: ${email}`);
-    }
+    manualStatusText.textContent = `Đang chờ ${waitingAccounts.size} account(s)...`;
+    setStatus('waiting', `Chờ ${waitingAccounts.size} acc`);
+
+    const card = document.createElement('div');
+    card.className = 'waiting-card';
+    card.dataset.email = email;
+    const info = document.createElement('span');
+    info.className = 'waiting-info';
+    info.textContent = autoOTP ? `🔄 ${email}` : `📧 ${email} (${username})`;
+    card.appendChild(info);
+    const btns = document.createElement('div');
+    btns.className = 'waiting-btns';
+    const doneBtn = document.createElement('button');
+    doneBtn.className = 'btn btn-success btn-sm';
+    doneBtn.dataset.action = 'done';
+    doneBtn.dataset.email = email;
+    doneBtn.textContent = '✅ Done';
+    const failBtn = document.createElement('button');
+    failBtn.className = 'btn btn-danger btn-sm';
+    failBtn.dataset.action = 'fail';
+    failBtn.dataset.email = email;
+    failBtn.textContent = '❌ Fail';
+    btns.appendChild(doneBtn);
+    btns.appendChild(failBtn);
+    card.appendChild(btns);
+    waitingList.appendChild(card);
 }
 
-function hideManualControls() {
-    isWaitingManual = false;
-    manualControls.classList.add('hidden');
+function removeWaitingAccount(email) {
+    waitingAccounts.delete(email);
+    const cards = waitingList.querySelectorAll('.waiting-card');
+    for (const card of cards) {
+        if (card.dataset.email === email) { card.remove(); break; }
+    }
+    if (waitingAccounts.size === 0) {
+        isWaitingManual = false;
+        manualControls.classList.add('hidden');
+    } else {
+        manualStatusText.textContent = `Đang chờ ${waitingAccounts.size} account(s)...`;
+        setStatus('waiting', `Chờ ${waitingAccounts.size} acc`);
+    }
 }
 
 // ==================== Start Signup ====================
@@ -238,18 +278,38 @@ btnStop.addEventListener('click', async () => {
 });
 
 // ==================== Manual Done / Failed ====================
-btnDone.addEventListener('click', async () => {
-    log('✅ User đánh dấu DONE', 'success');
-    hideManualControls();
-    setStatus('running', 'Đang tiếp tục...');
-    try { await window.api.nextAccount('done'); } catch (e) { }
+waitingList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const email = btn.dataset.email;
+    const action = btn.dataset.action;
+    if (action === 'done') {
+        log(`✅ Done: ${email}`, 'success');
+        removeWaitingAccount(email);
+        try { await window.api.nextAccount('done', email); } catch (e) { }
+    } else if (action === 'fail') {
+        log(`❌ Failed: ${email}`, 'error');
+        removeWaitingAccount(email);
+        try { await window.api.nextAccount('failed', email); } catch (e) { }
+    }
 });
 
-btnFail.addEventListener('click', async () => {
-    log('❌ User đánh dấu FAILED', 'error');
-    hideManualControls();
-    setStatus('running', 'Đang tiếp tục...');
-    try { await window.api.nextAccount('failed'); } catch (e) { }
+btnDoneAll.addEventListener('click', async () => {
+    const emails = [...waitingAccounts.keys()];
+    for (const email of emails) {
+        removeWaitingAccount(email);
+        try { await window.api.nextAccount('done', email); } catch (e) { }
+    }
+    log(`✅ Done All: ${emails.length} account(s)`, 'success');
+});
+
+btnFailAll.addEventListener('click', async () => {
+    const emails = [...waitingAccounts.keys()];
+    for (const email of emails) {
+        removeWaitingAccount(email);
+        try { await window.api.nextAccount('failed', email); } catch (e) { }
+    }
+    log(`❌ Failed All: ${emails.length} account(s)`, 'error');
 });
 
 // ==================== Close All Browsers ====================
@@ -282,6 +342,7 @@ window.api.onLog((data) => {
 // Individual result
 window.api.onResult((result) => {
     const { email, password, username, status, error, timestamp } = result;
+    removeWaitingAccount(email);
     if (status === 'success') {
         successList.push(result);
         resultSuccess.value += `${email}|${password}|${username}\n`;
@@ -300,7 +361,7 @@ window.api.onProgress((data) => {
 
 // Waiting for manual
 window.api.onWaitingManual((data) => {
-    showManualControls(data.email, data.username || '', data.autoOTP || false);
+    addWaitingAccount(data);
 });
 
 // OTP auto-fetch status
@@ -308,23 +369,19 @@ window.api.onOTPStatus((data) => {
     const { status, code, email } = data;
     switch (status) {
         case 'fetching':
-            log(`📧 Đang lấy OTP từ email ${email || ''}...`, 'highlight');
-            manualStatusText.textContent = `📧 Đang lấy OTP từ email...`;
+            log(`📧 [${email}] Đang lấy OTP...`, 'highlight');
             break;
         case 'filling':
-            log(`🔑 OTP: ${code} - Đang nhập...`, 'success');
-            manualStatusText.textContent = `🔑 OTP: ${code} - Đang nhập...`;
+            log(`🔑 [${email}] OTP: ${code} - Đang nhập...`, 'success');
             break;
         case 'success':
-            log('✅ Auto-OTP thành công!', 'success');
+            log(`✅ [${email}] Auto-OTP thành công!`, 'success');
             break;
         case 'filled':
-            log(`✅ Đã nhập OTP: ${code} - Chờ xác minh...`, 'success');
-            manualStatusText.textContent = `✅ Đã nhập OTP: ${code}`;
+            log(`✅ [${email}] Đã nhập OTP: ${code}`, 'success');
             break;
         case 'failed':
-            log('⚠️ Auto-OTP thất bại - Nhập thủ công', 'warning');
-            manualStatusText.textContent = `⚠️ Auto-OTP thất bại - Nhập OTP thủ công`;
+            log(`⚠️ [${email}] Auto-OTP thất bại`, 'warning');
             break;
     }
 });
@@ -459,5 +516,6 @@ loadSettings();
 setStatus('ready', 'Ready');
 log('🐙 GitHub Signup Tool ready!', 'success');
 log('📝 Format: email|password|refresh_token|client_id', 'info');
-log('ℹ️ Có refresh_token + client_id → tự động lấy OTP', 'info');
-log('ℹ️ Không có → chế độ thủ công (Done/Failed)', 'info');
+log('🚀 Mở TẤT CẢ browsers ĐỒNG THỜI (parallel)', 'info');
+log('ℹ️ Có token → auto-OTP | Không → thủ công', 'info');
+log('📬 Pre-open Mail Reader → mở tab đọc mail trước signup', 'info');

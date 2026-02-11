@@ -58,14 +58,15 @@
                 <div id="manual-controls" class="manual-controls hidden">
                     <div class="manual-header">
                         <span class="pulse-dot"></span>
-                        <span id="manual-status-text">Đang chờ bạn hoàn thành thủ công...</span>
+                        <span id="manual-status-text">Đang chờ hoàn thành...</span>
                     </div>
+                    <div id="waiting-list" class="waiting-list"></div>
                     <div class="manual-buttons">
-                        <button id="btn-done" class="btn btn-success btn-large">
-                            ✅ Done - Next
+                        <button id="btn-done-all" class="btn btn-success btn-large">
+                            ✅ Done All
                         </button>
-                        <button id="btn-fail" class="btn btn-danger btn-large">
-                            ❌ Failed - Next
+                        <button id="btn-fail-all" class="btn btn-danger btn-large">
+                            ❌ Failed All
                         </button>
                     </div>
                 </div>
@@ -81,11 +82,11 @@
                 <div class="info-box">
                     <div class="info-title">ℹ️ Cách hoạt động:</div>
                     <ul>
+                        <li>🚀 Mở TẤT CẢ browser cùng lúc</li>
                         <li>Điền form tự động (email, pass, username)</li>
                         <li>Dừng lại chờ bạn giải CAPTCHA</li>
-                        <li>🔄 Có token: Tự poll URL → lấy OTP → nhập</li>
+                        <li>🔄 Có token: Tự lấy OTP → nhập</li>
                         <li>🔧 Không token: Bấm Done/Failed thủ công</li>
-                        <li>⏸️ Pause = dừng nhưng giữ browser</li>
                     </ul>
                 </div>
             </section>
@@ -166,6 +167,20 @@
                                 <small>Tự bấm nút tạo tài khoản</small>
                             </label>
                             <input type="checkbox" id="auto-click-create" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label for="pre-open-mail-reader">
+                                Pre-open Mail Reader
+                                <small>Mở tab đọc mail trước khi signup (cho acc không có token)</small>
+                            </label>
+                            <input type="checkbox" id="pre-open-mail-reader" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label for="mail-reader-url">
+                                Mail Reader URL
+                                <small>URL trang đọc mail OTP</small>
+                            </label>
+                            <input type="text" id="mail-reader-url" value="https://dongvanfb.net/read_mail_box" placeholder="https://dongvanfb.net/read_mail_box">
                         </div>
                     </div>
 

@@ -1,2 +1,7 @@
 avneryame0@outlook.com|Ocfcftl6784#|User marked as failed|2026-02-09T02:59:31.966Z
 avneryame0@outlook.com|Ocfcftl6784#|Waiting for selector `#login` failed: Protocol error (Runtime.callFunctionOn): Target closed|2026-02-09T02:59:53.476Z
+christiferwilieyb@outlook.com|Rlkvdsre6797|User marked as failed|2026-02-09T04:07:54.440Z
+christiferwilieyb@outlook.com|Rlkvdsre6797|User marked as failed|2026-02-09T04:08:07.035Z
+comchienduongchau80@gmail.com|comchienduongchau80!|User marked as failed|2026-02-11T01:39:58.600Z
+suac2944@gmail.com|suac294461!|Navigating frame was detached|2026-02-11T01:40:00.334Z
+lamkaka56789@gmail.com|Gacon1234567!|User marked as failed|2026-02-11T02:27:25.010Z

@@ -58,9 +58,9 @@ ipcMain.handle('stop-signup', async () => {
 });
 
 // Next account signal (user finished manual step)
-ipcMain.handle('next-account', async (event, status) => {
+ipcMain.handle('next-account', async (event, status, email) => {
     if (githubWorker) {
-        githubWorker.resolveManualWait(status);
+        githubWorker.resolveManualWait(email, status);
     }
     return true;
 });
