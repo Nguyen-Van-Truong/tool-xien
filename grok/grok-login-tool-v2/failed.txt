@@ -1,2 +1,2 @@
-d.rodriguez987@burnoutpromotions.com|d9t%ViBbP##B|Login failed - still on auth page|2026-02-11T00:54:09.813Z
-jacob.w422@angelpowerrecruiters.com|Y2JAvYIpDhrQ|Login failed - still on auth page|2026-02-11T00:54:10.506Z
+thomas.torres58@iglesiatransparente.com|km$svd#yug8F|Login failed - still on auth page|2026-02-11T08:03:52.871Z
+m.garcia60@ascentruggedmobile.com|z3F9HcLka8Fa|Waiting for selector `button[aria-label="Upgrade to SuperGrok"]` failed: Protocol error (Runtime.callFunctionOn): Target closed|2026-02-11T08:05:55.364Z
