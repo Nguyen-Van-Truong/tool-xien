@@ -69,6 +69,8 @@ class LoginWorker {
         }
 
         this.PASSED_FILE = path.join(this.basePath, 'passed.txt');
+        this.HAS_PHONE_FILE = path.join(this.basePath, 'has_phone.txt');
+        this.NEED_PHONE_FILE = path.join(this.basePath, 'need_phone.txt');
         this.FAILED_FILE = path.join(this.basePath, 'login_failed.txt');
     }
 
@@ -93,6 +95,8 @@ class LoginWorker {
 
     resetResultsFile() {
         fs.writeFileSync(this.PASSED_FILE, '');
+        fs.writeFileSync(this.HAS_PHONE_FILE, '');
+        fs.writeFileSync(this.NEED_PHONE_FILE, '');
         fs.writeFileSync(this.FAILED_FILE, '');
         this.log('🗑️ Đã xóa kết quả cũ', 'info');
     }
@@ -101,6 +105,10 @@ class LoginWorker {
         const line = `${result.email}|${result.password}\n`;
         if (result.status === 'PASSED') {
             fs.appendFileSync(this.PASSED_FILE, line);
+        } else if (result.status === 'HAS_PHONE') {
+            fs.appendFileSync(this.HAS_PHONE_FILE, line);
+        } else if (result.status === 'NEED_PHONE') {
+            fs.appendFileSync(this.NEED_PHONE_FILE, line);
         } else {
             fs.appendFileSync(this.FAILED_FILE, line);
         }
@@ -253,21 +261,68 @@ class LoginWorker {
             const finalContent = await page.content();
             const finalUrl = page.url();
 
-            if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu')) {
-                result.reason = 'WRONG_PASSWORD';
-                this.log(`   ❌ Sai mật khẩu!`, 'error');
+            // Check sai mật khẩu hoặc password đã đổi
+            if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu') ||
+                finalContent.includes('password was changed') || finalContent.includes('mật khẩu đã được thay đổi') ||
+                finalUrl.includes('challenge/pwd')) {
+                result.reason = finalUrl.includes('challenge/pwd') || finalContent.includes('password was changed') || finalContent.includes('mật khẩu đã được thay đổi')
+                    ? 'PASSWORD_CHANGED' : 'WRONG_PASSWORD';
+                this.log(`   ❌ ${result.reason === 'PASSWORD_CHANGED' ? 'Password đã đổi!' : 'Sai mật khẩu!'}`, 'error');
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
             }
 
-            if (finalUrl.includes('challenge') ||
+            // Check challenge/dp - đã có SĐT (Google gửi notification qua điện thoại)
+            if (finalUrl.includes('challenge/dp') ||
+                finalContent.includes('Open the Gmail app') ||
+                finalContent.includes('Google sent a notification') ||
+                finalContent.includes('Mở ứng dụng Gmail') ||
+                finalContent.includes('Google đã gửi thông báo')) {
+                result.status = 'HAS_PHONE';
+                result.reason = 'HAS_PHONE_VERIFY';
+                this.log(`   📱 Đã có SĐT - cần xác minh qua điện thoại`, 'warning');
+                this.saveResult(result);
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                return result;
+            }
+
+            // Check challenge/iap - chưa có SĐT (cần nhập số điện thoại)
+            if (finalUrl.includes('challenge/iap') ||
                 finalContent.includes('Enter a phone number') ||
                 finalContent.includes('Nhập số điện thoại') ||
+                finalContent.includes('get a text message') ||
+                finalContent.includes('nhận tin nhắn')) {
+                result.status = 'NEED_PHONE';
+                result.reason = 'NEED_PHONE_VERIFY';
+                this.log(`   📵 Chưa có SĐT - cần nhập số điện thoại`, 'warning');
+                this.saveResult(result);
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                return result;
+            }
+
+            // Check các challenge khác
+            if (finalUrl.includes('challenge') ||
+                finalContent.includes('Verify it') || finalContent.includes('Verify your identity') ||
                 finalContent.includes('verification code') ||
-                finalContent.includes('mã xác minh')) {
-                result.reason = 'NEED_VERIFY';
-                this.log(`   📱 Cần xác minh - bỏ qua`, 'warning');
+                finalContent.includes('mã xác minh') ||
+                finalContent.includes('Xác minh danh tính')) {
+                // Kiểm tra nội dung để phân loại chính xác
+                const pageText = await page.evaluate(() => document.body.innerText).catch(() => '');
+                if (pageText.includes('Open the Gmail app') || pageText.includes('notification') ||
+                    pageText.includes('Mở ứng dụng Gmail')) {
+                    result.status = 'HAS_PHONE';
+                    result.reason = 'HAS_PHONE_VERIFY';
+                    this.log(`   📱 Đã có SĐT - xác minh qua thiết bị`, 'warning');
+                } else if (pageText.includes('phone number') || pageText.includes('số điện thoại')) {
+                    result.status = 'NEED_PHONE';
+                    result.reason = 'NEED_PHONE_VERIFY';
+                    this.log(`   📵 Chưa có SĐT - cần nhập SĐT`, 'warning');
+                } else {
+                    result.status = 'HAS_PHONE';
+                    result.reason = 'UNKNOWN_CHALLENGE';
+                    this.log(`   📱 Challenge không xác định - lưu HAS_PHONE`, 'warning');
+                }
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
@@ -399,16 +454,18 @@ class LoginWorker {
 
         const results = await Promise.all(promises);
 
-        let passed = 0, failed = 0;
+        let passed = 0, hasPhone = 0, needPhone = 0, failed = 0;
         results.forEach(r => {
             if (r && r.status === 'PASSED') passed++;
+            else if (r && r.status === 'HAS_PHONE') hasPhone++;
+            else if (r && r.status === 'NEED_PHONE') needPhone++;
             else failed++;
         });
 
         const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-        this.sendComplete({ total: accounts.length, passed, failed, totalTime });
+        this.sendComplete({ total: accounts.length, passed, hasPhone, needPhone, failed, totalTime });
         this.isRunning = false;
-        return { passed, failed, totalTime };
+        return { passed, hasPhone, needPhone, failed, totalTime };
     }
 
     async stop() {

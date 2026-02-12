@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld('api', {
     clearResults: () => ipcRenderer.invoke('clear-results'),
     closeAllBrowsers: () => ipcRenderer.invoke('close-all-browsers'),
 
+    getTempSize: () => ipcRenderer.invoke('get-temp-size'),
+    clearTemp: () => ipcRenderer.invoke('clear-temp'),
+    getCacheSize: () => ipcRenderer.invoke('get-cache-size'),
+    clearAllCache: () => ipcRenderer.invoke('clear-all-cache'),
+
     onLog: (callback) => ipcRenderer.on('log', (event, data) => callback(data)),
     onResult: (callback) => ipcRenderer.on('result', (event, data) => callback(data)),
     onProgress: (callback) => ipcRenderer.on('progress', (event, data) => callback(data)),

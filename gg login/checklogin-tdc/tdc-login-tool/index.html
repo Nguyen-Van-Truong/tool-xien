@@ -21,7 +21,15 @@
             </div>
             <div class="stats">
                 <span class="stat passed">✅ <span id="stat-passed">0</span></span>
+                <span class="stat has-phone">📱 <span id="stat-has-phone">0</span></span>
+                <span class="stat need-phone">📵 <span id="stat-need-phone">0</span></span>
                 <span class="stat failed">❌ <span id="stat-failed">0</span></span>
+            </div>
+            <div class="temp-info">
+                <span>🗂️ Temp: <span id="temp-size">0 MB</span> (<span id="temp-count">0</span> folders)</span>
+                <button id="btn-clear-temp" class="btn btn-small btn-warning">🧹 Clear Temp</button>
+                <span style="margin-left: 10px;">📦 Cache: <span id="cache-size">0 MB</span></span>
+                <button id="btn-clear-all" class="btn btn-small btn-danger" title="Xóa tất cả cache Puppeteer/Chromium">🗑️ Clear All</button>
             </div>
         </header>
 
@@ -61,6 +69,12 @@
                     <button class="tab active" data-tab="passed">
                         ✅ PASSED (<span id="tab-count-passed">0</span>)
                     </button>
+                    <button class="tab" data-tab="has-phone">
+                        📱 HAS PHONE (<span id="tab-count-has-phone">0</span>)
+                    </button>
+                    <button class="tab" data-tab="need-phone">
+                        📵 NEED PHONE (<span id="tab-count-need-phone">0</span>)
+                    </button>
                     <button class="tab" data-tab="failed">
                         ❌ FAILED (<span id="tab-count-failed">0</span>)
                     </button>
@@ -70,6 +84,14 @@
                 <div class="tab-content active" id="tab-passed">
                     <textarea id="result-passed" readonly
                         placeholder="Accounts login thành công (qua speedbump) sẽ hiển thị ở đây..."></textarea>
+                </div>
+                <div class="tab-content" id="tab-has-phone">
+                    <textarea id="result-has-phone" readonly
+                        placeholder="Accounts đã có SĐT - cần xác minh qua điện thoại (challenge/dp)..."></textarea>
+                </div>
+                <div class="tab-content" id="tab-need-phone">
+                    <textarea id="result-need-phone" readonly
+                        placeholder="Accounts chưa có SĐT - cần nhập số điện thoại (challenge/iap)..."></textarea>
                 </div>
                 <div class="tab-content" id="tab-failed">
                     <textarea id="result-failed" readonly

@@ -15,13 +15,25 @@ const progressText = document.getElementById('progress-text');
 const accountCount = document.getElementById('account-count');
 
 const resultPassed = document.getElementById('result-passed');
+const resultHasPhone = document.getElementById('result-has-phone');
+const resultNeedPhone = document.getElementById('result-need-phone');
 const resultFailed = document.getElementById('result-failed');
 
 const statPassed = document.getElementById('stat-passed');
+const statHasPhone = document.getElementById('stat-has-phone');
+const statNeedPhone = document.getElementById('stat-need-phone');
 const statFailed = document.getElementById('stat-failed');
 const tabCountPassed = document.getElementById('tab-count-passed');
+const tabCountHasPhone = document.getElementById('tab-count-has-phone');
+const tabCountNeedPhone = document.getElementById('tab-count-need-phone');
 const tabCountFailed = document.getElementById('tab-count-failed');
 const browserSelect = document.getElementById('browser-select');
+
+const tempSize = document.getElementById('temp-size');
+const tempCount = document.getElementById('temp-count');
+const btnClearTemp = document.getElementById('btn-clear-temp');
+const cacheSize = document.getElementById('cache-size');
+const btnClearAll = document.getElementById('btn-clear-all');
 
 let isRunning = false;
 let currentTab = 'passed';
@@ -110,10 +122,14 @@ function addLog(message, type = 'info') {
 function clearLog() { logContainer.innerHTML = ''; }
 
 // Stats
-function updateStats(passed, failed) {
+function updateStats(passed, hasPhone, needPhone, failed) {
     statPassed.textContent = passed;
+    statHasPhone.textContent = hasPhone;
+    statNeedPhone.textContent = needPhone;
     statFailed.textContent = failed;
     tabCountPassed.textContent = passed;
+    tabCountHasPhone.textContent = hasPhone;
+    tabCountNeedPhone.textContent = needPhone;
     tabCountFailed.textContent = failed;
 }
 
@@ -149,11 +165,15 @@ async function refreshResults() {
     try {
         const results = await window.api.readResults();
         resultPassed.value = results.passed;
+        resultHasPhone.value = results.hasPhone;
+        resultNeedPhone.value = results.needPhone;
         resultFailed.value = results.loginFailed;
 
         const passedCount = results.passed ? results.passed.split('\n').filter(l => l.trim()).length : 0;
+        const hasPhoneCount = results.hasPhone ? results.hasPhone.split('\n').filter(l => l.trim()).length : 0;
+        const needPhoneCount = results.needPhone ? results.needPhone.split('\n').filter(l => l.trim()).length : 0;
         const failedCount = results.loginFailed ? results.loginFailed.split('\n').filter(l => l.trim()).length : 0;
-        updateStats(passedCount, failedCount);
+        updateStats(passedCount, hasPhoneCount, needPhoneCount, failedCount);
     } catch (error) {
         addLog(`Lỗi đọc kết quả: ${error.message}`, 'error');
     }
@@ -173,8 +193,10 @@ btnRun.addEventListener('click', async () => {
 
     await window.api.clearResults();
     resultPassed.value = '';
+    resultHasPhone.value = '';
+    resultNeedPhone.value = '';
     resultFailed.value = '';
-    updateStats(0, 0);
+    updateStats(0, 0, 0, 0);
     clearLog();
 
     addLog(`🚀 Bắt đầu với ${accounts.length} accounts...`, 'info');
@@ -231,15 +253,21 @@ btnImport.addEventListener('click', () => {
 });
 
 btnCopy.addEventListener('click', () => {
-    const content = currentTab === 'passed' ? resultPassed.value : resultFailed.value;
+    let content = resultPassed.value;
+    if (currentTab === 'has-phone') content = resultHasPhone.value;
+    else if (currentTab === 'need-phone') content = resultNeedPhone.value;
+    else if (currentTab === 'failed') content = resultFailed.value;
     navigator.clipboard.writeText(content).then(() => {
         addLog('Đã copy vào clipboard!', 'success');
     });
 });
 
 btnSave.addEventListener('click', () => {
-    const content = currentTab === 'passed' ? resultPassed.value : resultFailed.value;
-    const filename = currentTab === 'passed' ? 'passed_export.txt' : 'failed_export.txt';
+    let content = resultPassed.value;
+    let filename = 'passed_export.txt';
+    if (currentTab === 'has-phone') { content = resultHasPhone.value; filename = 'has_phone_export.txt'; }
+    else if (currentTab === 'need-phone') { content = resultNeedPhone.value; filename = 'need_phone_export.txt'; }
+    else if (currentTab === 'failed') { content = resultFailed.value; filename = 'failed_export.txt'; }
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -262,12 +290,60 @@ window.api.onComplete((data) => {
     btnRun.disabled = false;
     btnStop.disabled = true;
     updateProgress(data.total, data.total, `Hoàn thành! (${data.totalTime}s)`);
-    addLog(`✅ Hoàn thành! PASSED: ${data.passed}, FAILED: ${data.failed} (${data.totalTime}s)`, 'success');
+    addLog(`✅ Hoàn thành! PASSED: ${data.passed}, HAS_PHONE: ${data.hasPhone}, NEED_PHONE: ${data.needPhone}, FAILED: ${data.failed} (${data.totalTime}s)`, 'success');
     refreshResults();
+});
+
+// Temp & Cache management
+async function loadTempSize() {
+    try {
+        const info = await window.api.getTempSize();
+        tempSize.textContent = info.sizeMB + ' MB';
+        tempCount.textContent = info.folderCount;
+        if (info.sizeMB > 100) tempSize.style.color = '#f44336';
+        else if (info.sizeMB > 50) tempSize.style.color = '#ff9800';
+        else tempSize.style.color = '#4caf50';
+    } catch (e) { }
+}
+
+async function loadCacheSize() {
+    try {
+        const result = await window.api.getCacheSize();
+        cacheSize.textContent = result.sizeMB + ' MB';
+    } catch (e) { cacheSize.textContent = '? MB'; }
+}
+
+btnClearTemp.addEventListener('click', async () => {
+    if (!confirm('Xóa tất cả Puppeteer temp folders?')) return;
+    addLog('🧹 Đang xóa Puppeteer temp...', 'info');
+    try {
+        const result = await window.api.clearTemp();
+        addLog(`✅ Đã xóa ${result.deletedCount} folders`, 'success');
+        await loadTempSize();
+    } catch (error) {
+        addLog(`❌ Lỗi xóa temp: ${error.message}`, 'error');
+    }
+});
+
+btnClearAll.addEventListener('click', async () => {
+    if (!confirm('Xóa tất cả cache Puppeteer/Chromium?\n\n(Không ảnh hưởng Chrome/Edge của bạn)')) return;
+    btnClearAll.disabled = true;
+    addLog('🗑️ Đang xóa tất cả cache...', 'info');
+    try {
+        const result = await window.api.clearAllCache();
+        addLog(`✅ Đã xóa ${result.deletedCount} items, giải phóng ${result.freedMB} MB`, 'success');
+        loadTempSize();
+        loadCacheSize();
+    } catch (error) {
+        addLog(`❌ Lỗi: ${error.message}`, 'error');
+    }
+    btnClearAll.disabled = false;
 });
 
 // Init
 loadBrowsers();
+loadTempSize();
+loadCacheSize();
 refreshResults();
 addLog('🎓 TDC Login Checker - Sẵn sàng!', 'success');
 addLog('📋 Format: email|password (mỗi dòng 1 account)', 'info');
