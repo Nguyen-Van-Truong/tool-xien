@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TDC Login Checker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎓 TDC Login Checker</h1>
+            <div class="browser-selector">
+                <span>🌐 Browser:</span>
+                <select id="browser-select">
+                    <option value="">Đang tải...</option>
+                </select>
+            </div>
+            <div class="stats">
+                <span class="stat passed">✅ <span id="stat-passed">0</span></span>
+                <span class="stat failed">❌ <span id="stat-failed">0</span></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Input -->
+            <div class="panel input-panel">
+                <div class="panel-header">
+                    <h2>📥 Input Accounts</h2>
+                    <span class="account-count">Accounts: <span id="account-count">0</span></span>
+                </div>
+                <textarea id="input-accounts"
+                    placeholder="Nhập accounts (format: email|password)&#10;&#10;Ví dụ:&#10;25211dh3948@mail.tdc.edu.vn|25211DH3948@mail.tdc.edu.vn&#10;25211ck1393@mail.tdc.edu.vn|25211CK1393@mail.tdc.edu.vn"></textarea>
+                <div class="button-group">
+                    <button id="btn-run" class="btn btn-primary">▶ Chạy</button>
+                    <button id="btn-stop" class="btn btn-warning" disabled>⏸ Dừng</button>
+                    <button id="btn-close-all" class="btn btn-danger">✖ Tắt Chrome</button>
+                    <button id="btn-clear" class="btn btn-secondary">🗑 Xóa</button>
+                    <button id="btn-import" class="btn btn-secondary">📂 Import</button>
+                </div>
+                <div class="config-section">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="save-ram-headless">
+                        👻 Headless (ẩn browser, tiết kiệm RAM)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Right Panel - Results -->
+            <div class="panel results-panel">
+                <div class="panel-header">
+                    <h2>📊 Kết quả</h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="passed">
+                        ✅ PASSED (<span id="tab-count-passed">0</span>)
+                    </button>
+                    <button class="tab" data-tab="failed">
+                        ❌ FAILED (<span id="tab-count-failed">0</span>)
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content active" id="tab-passed">
+                    <textarea id="result-passed" readonly
+                        placeholder="Accounts login thành công (qua speedbump) sẽ hiển thị ở đây..."></textarea>
+                </div>
+                <div class="tab-content" id="tab-failed">
+                    <textarea id="result-failed" readonly
+                        placeholder="Accounts login thất bại sẽ hiển thị ở đây..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button id="btn-copy" class="btn btn-secondary">📋 Copy</button>
+                    <button id="btn-save" class="btn btn-secondary">💾 Save</button>
+                    <button id="btn-refresh" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Panel -->
+        <div class="panel log-panel">
+            <div class="panel-header">
+                <h2>📝 Log</h2>
+                <button id="btn-clear-log" class="btn btn-small">Xóa log</button>
+            </div>
+            <div id="log-container" class="log-container"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <span class="progress-text" id="progress-text">Sẵn sàng</span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+
+</html>
