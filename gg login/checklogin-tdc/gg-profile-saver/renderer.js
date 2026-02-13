@@ -143,7 +143,8 @@ function getStatusBadge(status) {
     const cls = status.replace(/_/g, '-');
     const icons = {
         'logged_in': '✅', 'wrong_password': '❌', 'email_error': '🗑️',
-        'needs_verification': '📱', 'error': '⚠️'
+        'needs_verification': '📱', 'error': '⚠️',
+        'has_phone': '📱', 'need_phone': '📵'
     };
     return `<span class="status-badge ${cls}">${icons[status] || '❓'} ${status}</span>`;
 }
@@ -192,15 +193,14 @@ function renderProfiles() {
 
 function updateStats() {
     const logged = allProfiles.filter(p => p.status === 'logged_in').length;
-    const failed = allProfiles.filter(p => ['error', 'wrong_password', 'email_error'].includes(p.status)).length;
-    const verify = allProfiles.filter(p => p.status === 'needs_verification').length;
+    const failed = allProfiles.length - logged;
 
     statLogged.textContent = logged;
     statFailed.textContent = failed;
-    statVerify.textContent = verify;
+    statVerify.textContent = 0;
     tabCountAll.textContent = allProfiles.length;
     tabCountLogged.textContent = logged;
-    tabCountFailed.textContent = allProfiles.length - logged;
+    tabCountFailed.textContent = failed;
 }
 
 // Tab switching

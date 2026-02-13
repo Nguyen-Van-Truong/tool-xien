@@ -99,7 +99,7 @@ class ProfileWorker {
     constructor(mainWindow, selectedBrowserId = null, options = {}) {
         this.mainWindow = mainWindow;
         this.isRunning = false;
-        this.openBrowsers = [];
+        this.openBrowsers = new Map();
         this.selectedBrowserId = selectedBrowserId;
         this.headless = options.headless || false;
     }
@@ -180,7 +180,8 @@ class ProfileWorker {
     }
 
     async launchProfileBrowser(profileDir) {
-        if (!fs.existsSync(CONFIG.PROFILES_DIR)) fs.mkdirSync(CONFIG.PROFILES_DIR, { recursive: true });
+        const profilePath = path.join(CONFIG.PROFILES_DIR, profileDir);
+        if (!fs.existsSync(profilePath)) fs.mkdirSync(profilePath, { recursive: true });
 
         const launchArgs = [
             '--no-sandbox',
@@ -188,13 +189,12 @@ class ProfileWorker {
             '--disable-blink-features=AutomationControlled',
             '--disable-infobars',
             '--start-maximized',
-            `--profile-directory=${profileDir}`
         ];
 
         const launchOptions = {
             headless: this.headless ? 'new' : false,
             args: launchArgs,
-            userDataDir: CONFIG.PROFILES_DIR,
+            userDataDir: profilePath,
             defaultViewport: null,
         };
 
@@ -237,7 +237,7 @@ class ProfileWorker {
             return { email, password, profileDir, status: 'error', reason: 'BROWSER_ERROR', time: 0 };
         }
 
-        this.openBrowsers.push(browser);
+        this.openBrowsers.set(profileDir, browser);
         const pages = await browser.pages();
         const page = pages[0] || await browser.newPage();
         await page.setUserAgent(
@@ -358,41 +358,52 @@ class ProfileWorker {
                 return result;
             }
 
-            // Challenge - cần xác minh
+            // Challenge/dp - đã có SĐT (Google gửi notification qua điện thoại)
+            if (finalUrl.includes('challenge/dp') ||
+                finalContent.includes('Open the Gmail app') ||
+                finalContent.includes('Google sent a notification') ||
+                finalContent.includes('Mở ứng dụng Gmail') ||
+                finalContent.includes('Google đã gửi thông báo')) {
+                result.status = 'has_phone'; result.reason = 'HAS_PHONE_VERIFY';
+                this.log(`   📱 Đã có SĐT - cần xác minh qua điện thoại`, 'warning');
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                this.sendResult(result);
+                return result;
+            }
+
+            // Challenge/iap - chưa có SĐT (cần nhập số điện thoại)
+            if (finalUrl.includes('challenge/iap') ||
+                finalContent.includes('Enter a phone number') ||
+                finalContent.includes('Nhập số điện thoại') ||
+                finalContent.includes('get a text message') ||
+                finalContent.includes('nhận tin nhắn')) {
+                result.status = 'need_phone'; result.reason = 'NEED_PHONE_VERIFY';
+                this.log(`   📵 Chưa có SĐT - cần nhập số điện thoại`, 'warning');
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                this.sendResult(result);
+                return result;
+            }
+
+            // Các challenge khác - phân loại bằng nội dung trang
             if (finalUrl.includes('challenge/') || finalUrl.includes('signin/rejected') ||
                 finalContent.includes('Verify it') || finalContent.includes('Verify your identity') ||
+                finalContent.includes('verification code') ||
                 finalContent.includes('mã xác minh') || finalContent.includes('Xác minh danh tính')) {
-
-                this.log(`   📱 Cần xác minh! Chờ ${CONFIG.VERIFY_WAIT / 1000}s...`, 'warning');
-
-                const verifyStart = Date.now();
-                let verified = false;
-
-                while (Date.now() - verifyStart < CONFIG.VERIFY_WAIT && this.isRunning) {
-                    await this.delay(3000);
-                    try {
-                        const currentUrl = page.url();
-                        if (currentUrl.includes('myaccount.google.com') ||
-                            !currentUrl.includes('accounts.google.com') ||
-                            currentUrl.includes('google.com/search')) {
-                            verified = true;
-                            break;
-                        }
-                    } catch (e) { break; }
-                    const remaining = Math.ceil((CONFIG.VERIFY_WAIT - (Date.now() - verifyStart)) / 1000);
-                    this.sendProgress(index, total, `${email} - Chờ xác minh (${remaining}s)...`);
-                }
-
-                if (verified) {
-                    this.log(`   ✅ Xác minh thành công!`, 'success');
-                    result.status = 'logged_in'; result.reason = 'VERIFIED_MANUALLY';
+                const pageText = await page.evaluate(() => document.body.innerText).catch(() => '');
+                if (pageText.includes('Open the Gmail app') || pageText.includes('notification') ||
+                    pageText.includes('Mở ứng dụng Gmail')) {
+                    result.status = 'has_phone'; result.reason = 'HAS_PHONE_VERIFY';
+                    this.log(`   📱 Đã có SĐT - xác minh qua thiết bị`, 'warning');
+                } else if (pageText.includes('phone number') || pageText.includes('số điện thoại')) {
+                    result.status = 'need_phone'; result.reason = 'NEED_PHONE_VERIFY';
+                    this.log(`   📵 Chưa có SĐT - cần nhập SĐT`, 'warning');
                 } else {
-                    this.log(`   ⏰ Hết thời gian chờ xác minh`, 'warning');
-                    result.status = 'needs_verification'; result.reason = 'VERIFY_TIMEOUT';
-                    result.time = ((Date.now() - startTime) / 1000).toFixed(1);
-                    this.sendResult(result);
-                    return result;
+                    result.status = 'has_phone'; result.reason = 'UNKNOWN_CHALLENGE';
+                    this.log(`   📱 Challenge không xác định`, 'warning');
                 }
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                this.sendResult(result);
+                return result;
             }
 
             // Step 5: Check speedbump
@@ -487,8 +498,11 @@ class ProfileWorker {
 
         result.time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-        // Đóng browser sau login để nhường lock cho acc tiếp theo (profile data đã lưu)
-        try { await browser.close(); } catch (e) {}
+        // Giữ browser mở nếu login OK, đóng nếu thất bại
+        if (result.status !== 'logged_in') {
+            try { await browser.close(); } catch (e) {}
+            this.openBrowsers.delete(profileDir);
+        }
 
         this.sendResult(result);
         this.log(`   ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'logged_in' ? 'success' : 'warning');
@@ -511,7 +525,7 @@ class ProfileWorker {
             return { email, profileDir, status: 'error', reason: 'BROWSER_ERROR', time: 0 };
         }
 
-        this.openBrowsers.push(browser);
+        this.openBrowsers.set(profileDir, browser);
         const pages = await browser.pages();
         const page = pages[0] || await browser.newPage();
 
@@ -550,8 +564,10 @@ class ProfileWorker {
 
         result.time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-        // Đóng browser sau check để nhường lock cho acc tiếp theo
-        try { await browser.close(); } catch (e) {}
+        if (result.status !== 'logged_in') {
+            try { await browser.close(); } catch (e) {}
+            this.openBrowsers.delete(profileDir);
+        }
 
         this.sendResult(result);
         this.log(`   ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'logged_in' ? 'success' : 'warning');
@@ -561,8 +577,6 @@ class ProfileWorker {
     // ---- Login All ----
     async startLoginAll(accounts) {
         this.isRunning = true;
-        this.openBrowsers = [];
-
         let db = this.loadDB();
         const startTime = Date.now();
 
@@ -586,6 +600,16 @@ class ProfileWorker {
             if (entry && entry.status === 'logged_in') {
                 alreadyOK.push({ ...acc, profileDir: entry.profileDir });
             } else {
+                // Gán profileDir
+                if (db[acc.email]) {
+                    acc.profileDir = db[acc.email].profileDir;
+                } else {
+                    const num = this.getNextProfileNum(db);
+                    acc.profileDir = `Profile_${num}`;
+                    db[acc.email] = { profileDir: acc.profileDir, status: 'pending', reason: '', lastLogin: '' };
+                    this.saveDB(db);
+                    db = this.loadDB();
+                }
                 needLogin.push(acc);
             }
         }
@@ -593,79 +617,75 @@ class ProfileWorker {
         const totalWork = uniqueAccounts.length;
         this.log(`🚀 Tổng: ${totalWork} accounts (${alreadyOK.length} check session + ${needLogin.length} cần login)`, 'info');
 
-        let loggedIn = 0, failed = 0;
-        let idx = 0;
-
-        // Phase 1: Check session cho accounts đã login trước đó
-        for (const acc of alreadyOK) {
-            if (!this.isRunning) break;
-
-            const result = await this.checkSession(acc.email, acc.profileDir, idx, totalWork);
-            idx++;
-            if (!result) continue;
-
-            db = this.loadDB();
-            db[acc.email] = {
-                profileDir: acc.profileDir,
-                status: result.status,
-                reason: result.reason,
-                lastLogin: new Date().toISOString(),
-            };
-            this.saveDB(db);
-            this.sendProfilesUpdate();
-
-            if (result.status === 'logged_in') loggedIn++;
-            else {
-                // Session hết hạn → thêm vào danh sách cần login lại
-                needLogin.push({ email: acc.email, password: accounts.find(a => a.email === acc.email)?.password || '' });
-                failed++;
+        // Phase 1: Check session song song (mỗi profile userDataDir riêng)
+        if (alreadyOK.length > 0) {
+            this.log(`🔍 Check session ${alreadyOK.length} accounts...`, 'info');
+            const sessionPromises = [];
+            for (let i = 0; i < alreadyOK.length && this.isRunning; i++) {
+                if (i > 0) await this.delay(1500);
+                const acc = alreadyOK[i];
+                sessionPromises.push(
+                    this.checkSession(acc.email, acc.profileDir, i, totalWork)
+                        .then(result => {
+                            if (!result) return null;
+                            const curDb = this.loadDB();
+                            curDb[acc.email] = {
+                                profileDir: acc.profileDir,
+                                status: result.status,
+                                reason: result.reason,
+                                lastLogin: new Date().toISOString(),
+                            };
+                            this.saveDB(curDb);
+                            this.sendProfilesUpdate();
+                            if (result.status !== 'logged_in') {
+                                needLogin.push({ email: acc.email, password: acc.password, profileDir: acc.profileDir });
+                            }
+                            return result;
+                        })
+                );
             }
-
-            if (this.isRunning) await this.delay(1000);
+            await Promise.all(sessionPromises);
         }
 
-        // Phase 2: Login accounts mới / session hết hạn
-        for (const acc of needLogin) {
-            if (!this.isRunning) break;
-            if (!acc.password) { failed++; idx++; continue; }
-
-            let profileDir;
-            db = this.loadDB();
-            if (db[acc.email]) {
-                profileDir = db[acc.email].profileDir;
-            } else {
-                const num = this.getNextProfileNum(db);
-                profileDir = `Profile_${num}`;
+        // Phase 2: Login song song
+        if (needLogin.length > 0 && this.isRunning) {
+            this.log(`🚀 Mở ${needLogin.length} browsers song song...`, 'info');
+            const loginPromises = [];
+            const offset = alreadyOK.length;
+            for (let i = 0; i < needLogin.length && this.isRunning; i++) {
+                if (i > 0) await this.delay(1500);
+                const acc = needLogin[i];
+                if (!acc.password) continue;
+                loginPromises.push(
+                    this.loginAccount(acc.email, acc.password, acc.profileDir, offset + i, totalWork)
+                        .then(result => {
+                            if (!result) return null;
+                            const curDb = this.loadDB();
+                            curDb[acc.email] = {
+                                profileDir: acc.profileDir,
+                                status: result.status,
+                                reason: result.reason,
+                                lastLogin: new Date().toISOString(),
+                            };
+                            this.saveDB(curDb);
+                            this.sendProfilesUpdate();
+                            return result;
+                        })
+                );
             }
+            await Promise.all(loginPromises);
+        }
 
-            const result = await this.loginAccount(acc.email, acc.password, profileDir, idx, totalWork);
-            idx++;
-            if (!result) continue;
-
-            db = this.loadDB();
-            db[acc.email] = {
-                profileDir,
-                status: result.status,
-                reason: result.reason,
-                lastLogin: new Date().toISOString(),
-            };
-            this.saveDB(db);
-            this.sendProfilesUpdate();
-
-            if (result.status === 'logged_in') loggedIn++;
+        // Đếm kết quả
+        db = this.loadDB();
+        let loggedIn = 0, failed = 0;
+        for (const acc of uniqueAccounts) {
+            if (db[acc.email]?.status === 'logged_in') loggedIn++;
             else failed++;
-
-            if (this.isRunning) await this.delay(CONFIG.DELAY_BETWEEN);
         }
 
         const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-        this.sendComplete({
-            total: totalWork,
-            loggedIn,
-            failed,
-            skipped: 0,
-            totalTime
-        });
+        this.sendComplete({ total: totalWork, loggedIn, failed, skipped: 0, totalTime });
         this.isRunning = false;
     }
 
@@ -716,15 +736,23 @@ class ProfileWorker {
         const db = this.loadDB();
         if (!db[email]) return { success: false, reason: 'NOT_FOUND' };
 
-        // Đóng browser cũ trước (shared userDataDir → chỉ 1 browser mở cùng lúc)
-        await this.closeAllBrowsers();
-
         const entry = db[email];
+
+        // Nếu browser cho profile này đã mở
+        if (this.openBrowsers.has(entry.profileDir)) {
+            const existing = this.openBrowsers.get(entry.profileDir);
+            if (existing.isConnected()) {
+                this.log(`📂 Browser cho ${email} đã mở sẵn`, 'info');
+                return { success: true };
+            }
+            this.openBrowsers.delete(entry.profileDir);
+        }
+
         this.log(`📂 Mở profile: ${entry.profileDir} (${email})`, 'info');
 
         try {
             const browser = await this.launchProfileBrowser(entry.profileDir);
-            this.openBrowsers.push(browser);
+            this.openBrowsers.set(entry.profileDir, browser);
             const pages = await browser.pages();
             const page = pages[0] || await browser.newPage();
             await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -743,27 +771,36 @@ class ProfileWorker {
 
         if (loggedIn.length === 0) return { success: false, reason: 'NO_PROFILES', count: 0 };
 
-        // Shared userDataDir → chỉ mở được 1 browser. Mở profile đầu tiên.
-        await this.closeAllBrowsers();
+        this.log(`🚀 Mở ${loggedIn.length} profiles...`, 'info');
+        let opened = 0;
 
-        const [email, entry] = loggedIn[0];
-        this.log(`🚀 Mở profile đầu tiên: ${email} (dùng Open để chuyển profile)`, 'info');
-
-        try {
-            const browser = await this.launchProfileBrowser(entry.profileDir);
-            this.openBrowsers.push(browser);
-            const pages = await browser.pages();
-            const page = pages[0] || await browser.newPage();
-            await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            this.log(`✅ Đã mở ${email}. Dùng nút 📂 Open để chuyển sang profile khác.`, 'success');
-            if (loggedIn.length > 1) {
-                this.log(`💡 Có ${loggedIn.length} profiles. Chỉ mở được 1 browser cùng lúc (shared data).`, 'info');
+        for (const [email, entry] of loggedIn) {
+            if (this.openBrowsers.has(entry.profileDir)) {
+                const existing = this.openBrowsers.get(entry.profileDir);
+                if (existing.isConnected()) {
+                    this.log(`   📂 ${email} đã mở sẵn`, 'info');
+                    opened++;
+                    continue;
+                }
+                this.openBrowsers.delete(entry.profileDir);
             }
-            return { success: true, count: 1 };
-        } catch (e) {
-            this.log(`❌ Lỗi mở: ${e.message}`, 'error');
-            return { success: false, reason: 'BROWSER_ERROR', count: 0 };
+
+            try {
+                const browser = await this.launchProfileBrowser(entry.profileDir);
+                this.openBrowsers.set(entry.profileDir, browser);
+                const pages = await browser.pages();
+                const page = pages[0] || await browser.newPage();
+                await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+                this.log(`   ✅ Đã mở ${email}`, 'success');
+                opened++;
+                await this.delay(1000);
+            } catch (e) {
+                this.log(`   ❌ Lỗi mở ${email}: ${e.message}`, 'error');
+            }
         }
+
+        this.log(`✅ Đã mở ${opened}/${loggedIn.length} profiles`, 'success');
+        return { success: true, count: opened };
     }
 
     cleanProfiles() {
@@ -879,11 +916,11 @@ class ProfileWorker {
     }
 
     async closeAllBrowsers() {
-        const count = this.openBrowsers.length;
-        for (const browser of this.openBrowsers) {
+        const count = this.openBrowsers.size;
+        for (const [_, browser] of this.openBrowsers) {
             try { await browser.close(); } catch (e) {}
         }
-        this.openBrowsers = [];
+        this.openBrowsers = new Map();
         this.log(`✖ Đã đóng ${count} browsers`, 'warning');
         return count;
     }
