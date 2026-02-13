@@ -129,11 +129,24 @@ class LoginWorker {
         await this.delay(100);
     }
 
+    async safeGetContent(page, retries = 3) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                return await page.content();
+            } catch (e) {
+                if (i < retries - 1) await this.delay(1000);
+            }
+        }
+        return '';
+    }
+
     async loginAccount(email, password, index, total) {
         if (!this.isRunning) return null;
 
         const startTime = Date.now();
-        this.log(`[${index + 1}/${total}] 🚀 ${email}`, 'info');
+        const tag = email.split('@')[0];
+        const prefix = `[${index + 1}/${total}] [${tag}]`;
+        this.log(`${prefix} 🚀 ${email}`, 'info');
         this.sendProgress(index, total, `${index + 1}/${total}: ${email}`);
 
         let browserPath = null;
@@ -161,7 +174,7 @@ class LoginWorker {
         try {
             browser = await puppeteer.launch(launchOptions);
         } catch (err) {
-            this.log(`   ❌ Không mở được browser: ${err.message}`, 'error');
+            this.log(`${prefix} ❌ Không mở được browser: ${err.message}`, 'error');
             const result = { email, password, status: 'FAILED', reason: 'BROWSER_ERROR', time: 0 };
             this.saveResult(result);
             return result;
@@ -181,7 +194,7 @@ class LoginWorker {
 
         try {
             // Step 1: Vào Google login
-            this.log(`   📍 Vào trang đăng nhập Google...`, 'info');
+            this.log(`${prefix} 📍 Vào trang đăng nhập Google...`, 'info');
             await page.goto('https://accounts.google.com/signin', {
                 waitUntil: 'domcontentloaded',
                 timeout: 30000
@@ -189,7 +202,7 @@ class LoginWorker {
             await this.delay(2000);
 
             // Step 2: Nhập email
-            this.log(`   📧 Nhập email...`, 'info');
+            this.log(`${prefix} 📧 Nhập email...`, 'info');
             await this.fastType(page, 'input[type="email"]', email);
             await this.delay(300);
 
@@ -207,14 +220,14 @@ class LoginWorker {
             await this.delay(4000);
 
             // Check email errors
-            const afterEmailContent = await page.content();
+            const afterEmailContent = await this.safeGetContent(page);
             const afterEmailUrl = page.url();
 
             if (afterEmailUrl.includes('deletedaccount') ||
                 afterEmailContent.includes('Account deleted') ||
                 afterEmailContent.includes('Tài khoản đã bị xóa')) {
                 result.reason = 'ACCOUNT_DELETED';
-                this.log(`   🗑️ Account đã bị xóa!`, 'error');
+                this.log(`${prefix} 🗑️ Account đã bị xóa!`, 'error');
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
@@ -222,7 +235,7 @@ class LoginWorker {
 
             if (afterEmailContent.includes("Couldn't find") || afterEmailContent.includes('Không tìm thấy')) {
                 result.reason = 'EMAIL_NOT_FOUND';
-                this.log(`   ❌ Email không tồn tại!`, 'error');
+                this.log(`${prefix} ❌ Email không tồn tại!`, 'error');
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
@@ -230,10 +243,10 @@ class LoginWorker {
 
             // Step 3: Nhập password
             try {
-                this.log(`   🔐 Chờ trang password...`, 'info');
+                this.log(`${prefix} 🔐 Chờ trang password...`, 'info');
                 await page.waitForSelector('input[type="password"]', { visible: true, timeout: 10000 });
 
-                this.log(`   🔑 Nhập password...`, 'info');
+                this.log(`${prefix} 🔑 Nhập password...`, 'info');
                 await this.fastType(page, 'input[type="password"]', password);
                 await this.delay(300);
 
@@ -248,17 +261,22 @@ class LoginWorker {
                     return false;
                 });
 
-                await this.delay(5000);
+                // Chờ navigation settle sau khi click Next
+                await Promise.race([
+                    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {}),
+                    this.delay(8000)
+                ]);
+                await this.delay(2000);
             } catch (passError) {
                 result.reason = 'NO_PASSWORD_PAGE';
-                this.log(`   ⚠️ Không thấy trang password (CAPTCHA?)`, 'warning');
+                this.log(`${prefix} ⚠️ Không thấy trang password (CAPTCHA?)`, 'warning');
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
             }
 
             // Step 4: Check kết quả sau login
-            const finalContent = await page.content();
+            const finalContent = await this.safeGetContent(page);
             const finalUrl = page.url();
 
             // Check sai mật khẩu hoặc password đã đổi
@@ -267,7 +285,7 @@ class LoginWorker {
                 finalUrl.includes('challenge/pwd')) {
                 result.reason = finalUrl.includes('challenge/pwd') || finalContent.includes('password was changed') || finalContent.includes('mật khẩu đã được thay đổi')
                     ? 'PASSWORD_CHANGED' : 'WRONG_PASSWORD';
-                this.log(`   ❌ ${result.reason === 'PASSWORD_CHANGED' ? 'Password đã đổi!' : 'Sai mật khẩu!'}`, 'error');
+                this.log(`${prefix} ❌ ${result.reason === 'PASSWORD_CHANGED' ? 'Password đã đổi!' : 'Sai mật khẩu!'}`, 'error');
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
@@ -281,7 +299,7 @@ class LoginWorker {
                 finalContent.includes('Google đã gửi thông báo')) {
                 result.status = 'HAS_PHONE';
                 result.reason = 'HAS_PHONE_VERIFY';
-                this.log(`   📱 Đã có SĐT - cần xác minh qua điện thoại`, 'warning');
+                this.log(`${prefix} 📱 Đã có SĐT - cần xác minh qua điện thoại`, 'warning');
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
@@ -295,7 +313,7 @@ class LoginWorker {
                 finalContent.includes('nhận tin nhắn')) {
                 result.status = 'NEED_PHONE';
                 result.reason = 'NEED_PHONE_VERIFY';
-                this.log(`   📵 Chưa có SĐT - cần nhập số điện thoại`, 'warning');
+                this.log(`${prefix} 📵 Chưa có SĐT - cần nhập số điện thoại`, 'warning');
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
                 return result;
@@ -313,15 +331,15 @@ class LoginWorker {
                     pageText.includes('Mở ứng dụng Gmail')) {
                     result.status = 'HAS_PHONE';
                     result.reason = 'HAS_PHONE_VERIFY';
-                    this.log(`   📱 Đã có SĐT - xác minh qua thiết bị`, 'warning');
+                    this.log(`${prefix} 📱 Đã có SĐT - xác minh qua thiết bị`, 'warning');
                 } else if (pageText.includes('phone number') || pageText.includes('số điện thoại')) {
                     result.status = 'NEED_PHONE';
                     result.reason = 'NEED_PHONE_VERIFY';
-                    this.log(`   📵 Chưa có SĐT - cần nhập SĐT`, 'warning');
+                    this.log(`${prefix} 📵 Chưa có SĐT - cần nhập SĐT`, 'warning');
                 } else {
                     result.status = 'HAS_PHONE';
                     result.reason = 'UNKNOWN_CHALLENGE';
-                    this.log(`   📱 Challenge không xác định - lưu HAS_PHONE`, 'warning');
+                    this.log(`${prefix} 📱 Challenge không xác định - lưu HAS_PHONE`, 'warning');
                 }
                 this.saveResult(result);
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -330,7 +348,7 @@ class LoginWorker {
 
             // Step 5: Check speedbump
             if (finalUrl.includes('speedbump')) {
-                this.log(`   ⚡ Phát hiện trang Speedbump!`, 'success');
+                this.log(`${prefix} ⚡ Phát hiện trang Speedbump!`, 'success');
                 await this.delay(1500);
 
                 // Click "Tôi hiểu" / "I understand"
@@ -358,12 +376,12 @@ class LoginWorker {
                 });
 
                 if (clicked) {
-                    this.log(`   ✅ Đã bấm "Tôi hiểu" - LOGIN THÀNH CÔNG!`, 'success');
+                    this.log(`${prefix} ✅ Đã bấm "Tôi hiểu" - LOGIN THÀNH CÔNG!`, 'success');
                     await this.delay(2000);
                     result.status = 'PASSED';
                     result.reason = 'SPEEDBUMP_ACCEPTED';
                 } else {
-                    this.log(`   ⚠️ Không tìm thấy nút xác nhận`, 'warning');
+                    this.log(`${prefix} ⚠️ Không tìm thấy nút xác nhận`, 'warning');
                     result.status = 'PASSED';
                     result.reason = 'SPEEDBUMP_NO_BUTTON';
                 }
@@ -374,7 +392,7 @@ class LoginWorker {
                 // Đã login thành công (không có speedbump)
                 result.status = 'PASSED';
                 result.reason = 'LOGIN_OK';
-                this.log(`   ✅ Login thành công (không có speedbump)`, 'success');
+                this.log(`${prefix} ✅ Login thành công (không có speedbump)`, 'success');
             } else {
                 // Vẫn ở trang google accounts - có thể cần thêm xử lý
                 // Chờ thêm rồi check lại
@@ -382,7 +400,7 @@ class LoginWorker {
                 const retryUrl = page.url();
 
                 if (retryUrl.includes('speedbump')) {
-                    this.log(`   ⚡ Speedbump xuất hiện sau delay!`, 'success');
+                    this.log(`${prefix} ⚡ Speedbump xuất hiện sau delay!`, 'success');
 
                     const clicked = await page.evaluate(() => {
                         const confirmBtn = document.querySelector('input[name="confirm"], #confirm, .MK9CEd');
@@ -398,7 +416,7 @@ class LoginWorker {
                     });
 
                     if (clicked) {
-                        this.log(`   ✅ Đã bấm "Tôi hiểu"!`, 'success');
+                        this.log(`${prefix} ✅ Đã bấm "Tôi hiểu"!`, 'success');
                         result.status = 'PASSED';
                         result.reason = 'SPEEDBUMP_ACCEPTED';
                     } else {
@@ -408,21 +426,21 @@ class LoginWorker {
                 } else if (!retryUrl.includes('accounts.google.com')) {
                     result.status = 'PASSED';
                     result.reason = 'LOGIN_OK';
-                    this.log(`   ✅ Login thành công!`, 'success');
+                    this.log(`${prefix} ✅ Login thành công!`, 'success');
                 } else {
                     result.reason = 'STUCK_AT_LOGIN';
-                    this.log(`   ⚠️ Kẹt ở trang login`, 'warning');
+                    this.log(`${prefix} ⚠️ Kẹt ở trang login`, 'warning');
                 }
             }
 
         } catch (error) {
             result.reason = 'ERROR';
-            this.log(`   ❌ Lỗi: ${error.message}`, 'error');
+            this.log(`${prefix} ❌ Lỗi: ${error.message}`, 'error');
         }
 
         result.time = ((Date.now() - startTime) / 1000).toFixed(1);
         this.saveResult(result);
-        this.log(`   ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'PASSED' ? 'success' : 'warning');
+        this.log(`${prefix} ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'PASSED' ? 'success' : 'warning');
 
         return result;
     }
