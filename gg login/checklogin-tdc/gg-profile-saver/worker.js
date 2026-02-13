@@ -1,0 +1,797 @@
+/**
+ * GG Profile Saver - Worker (backend logic)
+ * Login Google accounts & lưu mỗi acc vào 1 profile riêng
+ */
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// Set Puppeteer cache riêng trong folder này (tách biệt, không bị tool khác xóa)
+const LOCAL_BROWSER_DIR = path.join(__dirname, 'browser');
+process.env.PUPPETEER_CACHE_DIR = LOCAL_BROWSER_DIR;
+
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
+
+// ======================== CONFIG ========================
+const CONFIG = {
+    PROFILES_DIR: path.join(__dirname, 'saved_profiles'),
+    DB_FILE: path.join(__dirname, 'profiles_db.json'),
+    ACCOUNTS_FILE: path.join(__dirname, 'accounts.txt'),
+    BACKUP_DIR: path.join(__dirname, 'backups'),
+    LOGIN_URL: 'https://accounts.google.com/signin',
+    CHECK_URL: 'https://myaccount.google.com',
+    VERIFY_WAIT: 120000,
+    DELAY_BETWEEN: 2000,
+};
+
+// ======================== BROWSER DETECT ========================
+const BROWSER_LIST = [
+    {
+        name: 'Google Chrome', id: 'chrome',
+        paths: [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            (process.env.LOCALAPPDATA || '') + '\\Google\\Chrome\\Application\\chrome.exe',
+        ]
+    },
+    {
+        name: 'Microsoft Edge', id: 'edge',
+        paths: [
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        ]
+    },
+    {
+        name: 'Brave', id: 'brave',
+        paths: [
+            'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+            (process.env.LOCALAPPDATA || '') + '\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+        ]
+    }
+];
+
+function detectAllBrowsers() {
+    const detected = [];
+
+    // Check local Puppeteer Chromium
+    let localChromiumExists = false;
+    try {
+        const chromeDirs = path.join(LOCAL_BROWSER_DIR, 'chrome');
+        if (fs.existsSync(chromeDirs)) {
+            const versions = fs.readdirSync(chromeDirs);
+            for (const ver of versions) {
+                const exePath = path.join(chromeDirs, ver, 'chrome-win64', 'chrome.exe');
+                if (fs.existsSync(exePath)) {
+                    localChromiumExists = true;
+                    break;
+                }
+            }
+        }
+    } catch (e) {}
+    detected.push({
+        id: 'puppeteer',
+        name: localChromiumExists ? 'Puppeteer Chromium (Local)' : 'Puppeteer Chromium (Chưa tải)',
+        detected: localChromiumExists,
+        path: null
+    });
+
+    for (const browser of BROWSER_LIST) {
+        let foundPath = null;
+        for (const p of browser.paths) {
+            if (fs.existsSync(p)) { foundPath = p; break; }
+        }
+        detected.push({ id: browser.id, name: browser.name, detected: !!foundPath, path: foundPath });
+    }
+    return detected;
+}
+
+function getBrowserPath(browserId) {
+    const browsers = detectAllBrowsers();
+    const browser = browsers.find(b => b.id === browserId && b.detected);
+    return browser ? browser.path : null;
+}
+
+// ======================== ProfileWorker CLASS ========================
+class ProfileWorker {
+    constructor(mainWindow, selectedBrowserId = null, options = {}) {
+        this.mainWindow = mainWindow;
+        this.isRunning = false;
+        this.openBrowsers = [];
+        this.selectedBrowserId = selectedBrowserId;
+        this.headless = options.headless || false;
+    }
+
+    // ---- Logging ----
+    log(message, type = 'info') {
+        if (this.mainWindow) this.mainWindow.webContents.send('log', { message, type });
+        console.log(message);
+    }
+
+    sendProgress(current, total, text) {
+        if (this.mainWindow) this.mainWindow.webContents.send('progress', { current, total, text });
+    }
+
+    sendResult(result) {
+        if (this.mainWindow) this.mainWindow.webContents.send('result', result);
+    }
+
+    sendComplete(data) {
+        if (this.mainWindow) this.mainWindow.webContents.send('complete', data);
+    }
+
+    sendProfilesUpdate() {
+        if (this.mainWindow) this.mainWindow.webContents.send('profiles-updated');
+    }
+
+    delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    // ---- Database ----
+    loadDB() {
+        if (fs.existsSync(CONFIG.DB_FILE)) {
+            return JSON.parse(fs.readFileSync(CONFIG.DB_FILE, 'utf8'));
+        }
+        return {};
+    }
+
+    saveDB(db) {
+        fs.writeFileSync(CONFIG.DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+    }
+
+    getNextProfileNum(db) {
+        let max = 0;
+        for (const key of Object.keys(db)) {
+            const num = parseInt(db[key].profileDir.replace('Profile_', ''));
+            if (num > max) max = num;
+        }
+        return max + 1;
+    }
+
+    // ---- Accounts ----
+    loadAccounts(filePath) {
+        if (!fs.existsSync(filePath)) return [];
+        const content = fs.readFileSync(filePath, 'utf8').trim();
+        if (!content) return [];
+        return content.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#') && line.includes('|'))
+            .map(line => {
+                const [email, password] = line.split('|', 2);
+                return { email: email.trim(), password: password.trim() };
+            })
+            .filter(a => a.email && a.password);
+    }
+
+    // ---- Browser ----
+    async fastType(page, selector, text) {
+        await page.waitForSelector(selector, { visible: true, timeout: 15000 });
+        await page.click(selector);
+        await this.delay(100);
+        await page.evaluate((sel, txt) => {
+            const el = document.querySelector(sel);
+            if (el) {
+                el.value = txt;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }, selector, text);
+        await this.delay(100);
+    }
+
+    async launchProfileBrowser(profileDir) {
+        if (!fs.existsSync(CONFIG.PROFILES_DIR)) fs.mkdirSync(CONFIG.PROFILES_DIR, { recursive: true });
+
+        const launchArgs = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-blink-features=AutomationControlled',
+            '--disable-infobars',
+            '--start-maximized',
+            `--profile-directory=${profileDir}`
+        ];
+
+        const launchOptions = {
+            headless: this.headless ? 'new' : false,
+            args: launchArgs,
+            userDataDir: CONFIG.PROFILES_DIR,
+            defaultViewport: null,
+        };
+
+        // Chọn browser: ưu tiên user chọn → fallback tự động
+        if (this.selectedBrowserId && this.selectedBrowserId !== 'puppeteer') {
+            const browserPath = getBrowserPath(this.selectedBrowserId);
+            if (browserPath) launchOptions.executablePath = browserPath;
+        } else if (this.selectedBrowserId === 'puppeteer') {
+            // Dùng local Puppeteer Chromium (đã set PUPPETEER_CACHE_DIR)
+            // Nếu không có, tự fallback sang Chrome/Edge trên máy
+            const allBrowsers = detectAllBrowsers();
+            const puppeteerEntry = allBrowsers.find(b => b.id === 'puppeteer');
+            if (!puppeteerEntry || !puppeteerEntry.detected) {
+                // Fallback: tìm Chrome hoặc Edge trên máy
+                const fallback = allBrowsers.find(b => b.id !== 'puppeteer' && b.detected);
+                if (fallback) {
+                    launchOptions.executablePath = fallback.path;
+                    this.log(`   ⚠️ Puppeteer Chromium chưa tải, dùng ${fallback.name}`, 'warning');
+                }
+                // Nếu không có gì → puppeteer tự throw error rõ ràng
+            }
+        }
+
+        return await puppeteer.launch(launchOptions);
+    }
+
+    // ---- Login Flow ----
+    async loginAccount(email, password, profileDir, index, total) {
+        if (!this.isRunning) return null;
+
+        const startTime = Date.now();
+        this.log(`[${index + 1}/${total}] 🚀 ${email} → ${profileDir}`, 'info');
+        this.sendProgress(index, total, `${index + 1}/${total}: ${email}`);
+
+        let browser;
+        try {
+            browser = await this.launchProfileBrowser(profileDir);
+        } catch (err) {
+            this.log(`   ❌ Không mở được browser: ${err.message}`, 'error');
+            return { email, password, profileDir, status: 'error', reason: 'BROWSER_ERROR', time: 0 };
+        }
+
+        this.openBrowsers.push(browser);
+        const page = await browser.newPage();
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        );
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        });
+
+        let result = { email, password, profileDir, status: 'error', reason: 'UNKNOWN', time: 0 };
+
+        try {
+            // Step 1: Vào Google login
+            this.log(`   📍 Vào trang đăng nhập...`, 'info');
+            await page.goto(CONFIG.LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await this.delay(2000);
+
+            // Step 2: Nhập email
+            this.log(`   📧 Nhập email...`, 'info');
+            await this.fastType(page, 'input[type="email"]', email);
+            await this.delay(300);
+
+            await page.evaluate(() => {
+                const btns = document.querySelectorAll('#identifierNext, button');
+                for (const btn of btns) {
+                    if (btn.id === 'identifierNext' || btn.textContent.includes('Next') || btn.textContent.includes('Tiếp')) {
+                        btn.click(); return true;
+                    }
+                }
+                return false;
+            });
+            await this.delay(4000);
+
+            // Check email errors
+            const afterEmailContent = await page.content();
+            const afterEmailUrl = page.url();
+
+            if (afterEmailUrl.includes('deletedaccount') ||
+                afterEmailContent.includes('Account deleted') ||
+                afterEmailContent.includes('Tài khoản đã bị xóa')) {
+                this.log(`   🗑️ Account đã bị xóa!`, 'error');
+                result.status = 'email_error'; result.reason = 'ACCOUNT_DELETED';
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                try { await browser.close(); } catch (e) {}
+                this.sendResult(result);
+                return result;
+            }
+
+            if (afterEmailContent.includes("Couldn't find") || afterEmailContent.includes('Không tìm thấy')) {
+                this.log(`   ❌ Email không tồn tại!`, 'error');
+                result.status = 'email_error'; result.reason = 'EMAIL_NOT_FOUND';
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                try { await browser.close(); } catch (e) {}
+                this.sendResult(result);
+                return result;
+            }
+
+            // Step 3: Nhập password
+            try {
+                this.log(`   🔐 Chờ trang password...`, 'info');
+                await page.waitForSelector('input[type="password"]', { visible: true, timeout: 10000 });
+
+                this.log(`   🔑 Nhập password...`, 'info');
+                await this.fastType(page, 'input[type="password"]', password);
+                await this.delay(300);
+
+                await page.evaluate(() => {
+                    const btns = document.querySelectorAll('#passwordNext, button');
+                    for (const btn of btns) {
+                        if (btn.id === 'passwordNext' || btn.textContent.includes('Next') || btn.textContent.includes('Tiếp')) {
+                            btn.click(); return true;
+                        }
+                    }
+                    return false;
+                });
+
+                // Chờ navigation sau khi nhấn Next password
+                try {
+                    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 });
+                } catch (navErr) {
+                    // Navigation timeout OK - trang có thể đã chuyển
+                }
+                await this.delay(3000);
+            } catch (passError) {
+                this.log(`   ⚠️ Không thấy trang password (CAPTCHA?)`, 'warning');
+                result.status = 'error'; result.reason = 'NO_PASSWORD_PAGE';
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                try { await browser.close(); } catch (e) {}
+                this.sendResult(result);
+                return result;
+            }
+
+            // Step 4: Check kết quả
+            let finalContent = '';
+            let finalUrl = '';
+            try {
+                finalUrl = page.url();
+                finalContent = await page.content();
+            } catch (ctxError) {
+                // Context destroyed = trang đã navigate = login có thể OK
+                this.log(`   ⏳ Trang đang chuyển...`, 'info');
+                await this.delay(3000);
+                try {
+                    finalUrl = page.url();
+                    finalContent = await page.content();
+                } catch (e2) {
+                    // Vẫn lỗi → coi như login thành công (trang đã redirect)
+                    result.status = 'logged_in'; result.reason = 'LOGIN_OK';
+                    this.log(`   ✅ Login thành công! (redirect detected)`, 'success');
+                }
+            }
+
+            // Sai mật khẩu
+            if (finalContent.includes('Wrong password') || finalContent.includes('Sai mật khẩu') ||
+                finalContent.includes('password was changed') || finalContent.includes('mật khẩu đã được thay đổi') ||
+                finalUrl.includes('challenge/pwd')) {
+                this.log(`   ❌ Sai mật khẩu!`, 'error');
+                result.status = 'wrong_password'; result.reason = 'WRONG_PASSWORD';
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                try { await browser.close(); } catch (e) {}
+                this.sendResult(result);
+                return result;
+            }
+
+            // Challenge - cần xác minh
+            if (finalUrl.includes('challenge/') || finalUrl.includes('signin/rejected') ||
+                finalContent.includes('Verify it') || finalContent.includes('Verify your identity') ||
+                finalContent.includes('mã xác minh') || finalContent.includes('Xác minh danh tính')) {
+
+                this.log(`   📱 Cần xác minh! Chờ ${CONFIG.VERIFY_WAIT / 1000}s...`, 'warning');
+
+                const verifyStart = Date.now();
+                let verified = false;
+
+                while (Date.now() - verifyStart < CONFIG.VERIFY_WAIT && this.isRunning) {
+                    await this.delay(3000);
+                    try {
+                        const currentUrl = page.url();
+                        if (currentUrl.includes('myaccount.google.com') ||
+                            !currentUrl.includes('accounts.google.com') ||
+                            currentUrl.includes('google.com/search')) {
+                            verified = true;
+                            break;
+                        }
+                    } catch (e) { break; }
+                    const remaining = Math.ceil((CONFIG.VERIFY_WAIT - (Date.now() - verifyStart)) / 1000);
+                    this.sendProgress(index, total, `${email} - Chờ xác minh (${remaining}s)...`);
+                }
+
+                if (verified) {
+                    this.log(`   ✅ Xác minh thành công!`, 'success');
+                    result.status = 'logged_in'; result.reason = 'VERIFIED_MANUALLY';
+                } else {
+                    this.log(`   ⏰ Hết thời gian chờ xác minh`, 'warning');
+                    result.status = 'needs_verification'; result.reason = 'VERIFY_TIMEOUT';
+                    result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                    try { await browser.close(); } catch (e) {}
+                    this.sendResult(result);
+                    return result;
+                }
+            }
+
+            // Step 5: Check speedbump
+            if (result.status !== 'logged_in') {
+                if (finalUrl.includes('speedbump')) {
+                    this.log(`   ⚡ Speedbump!`, 'success');
+                    await this.delay(1500);
+                    await page.evaluate(() => {
+                        const confirmBtn = document.querySelector('input[name="confirm"]');
+                        if (confirmBtn) { confirmBtn.click(); return; }
+                        const buttons = document.querySelectorAll('button, input[type="submit"]');
+                        for (const btn of buttons) {
+                            const text = btn.value || btn.textContent || '';
+                            if (text.includes('Tôi hiểu') || text.includes('I understand') ||
+                                text.includes('Confirm') || text.includes('Continue')) {
+                                btn.click(); return;
+                            }
+                        }
+                        const el = document.querySelector('#confirm, .MK9CEd');
+                        if (el) el.click();
+                    });
+                    await this.delay(2000);
+                    this.log(`   ✅ Speedbump OK!`, 'success');
+                    result.status = 'logged_in'; result.reason = 'SPEEDBUMP_ACCEPTED';
+                } else if (finalUrl.includes('myaccount.google.com') ||
+                           finalUrl.includes('google.com/search') ||
+                           !finalUrl.includes('accounts.google.com')) {
+                    result.status = 'logged_in'; result.reason = 'LOGIN_OK';
+                    this.log(`   ✅ Login thành công!`, 'success');
+                } else {
+                    await this.delay(3000);
+                    const retryUrl = page.url();
+                    if (retryUrl.includes('speedbump')) {
+                        await page.evaluate(() => {
+                            const el = document.querySelector('input[name="confirm"], #confirm, .MK9CEd');
+                            if (el) { el.click(); return; }
+                            const buttons = document.querySelectorAll('button, input[type="submit"]');
+                            for (const btn of buttons) {
+                                const text = btn.value || btn.textContent || '';
+                                if (text.includes('Tôi hiểu') || text.includes('I understand')) {
+                                    btn.click(); return;
+                                }
+                            }
+                        });
+                        await this.delay(2000);
+                        result.status = 'logged_in'; result.reason = 'SPEEDBUMP_ACCEPTED';
+                        this.log(`   ✅ Speedbump OK!`, 'success');
+                    } else if (!retryUrl.includes('accounts.google.com')) {
+                        result.status = 'logged_in'; result.reason = 'LOGIN_OK';
+                        this.log(`   ✅ Login thành công!`, 'success');
+                    } else {
+                        this.log(`   ⚠️ Kẹt ở trang login`, 'warning');
+                        result.status = 'error'; result.reason = 'STUCK_AT_LOGIN';
+                        result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                        try { await browser.close(); } catch (e) {}
+                        this.sendResult(result);
+                        return result;
+                    }
+                }
+            }
+
+            // Step 6: Verify session
+            if (result.status === 'logged_in') {
+                this.log(`   🔍 Kiểm tra session...`, 'info');
+                try {
+                    await page.goto(CONFIG.CHECK_URL, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                    await this.delay(2000);
+                    const checkUrl = page.url();
+                    if (checkUrl.includes('myaccount.google.com')) {
+                        this.log(`   ✅ Session OK! Profile đã lưu.`, 'success');
+                    } else {
+                        this.log(`   ⚠️ Session redirect, profile vẫn lưu.`, 'warning');
+                    }
+                } catch (e) {
+                    this.log(`   ⚠️ Không check session, profile vẫn lưu.`, 'warning');
+                }
+            }
+
+        } catch (error) {
+            this.log(`   ❌ Lỗi: ${error.message}`, 'error');
+            result.status = 'error'; result.reason = 'ERROR';
+        }
+
+        result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        // Giữ browser mở nếu login OK, đóng nếu lỗi
+        if (result.status !== 'logged_in') {
+            try { await browser.close(); } catch (e) {}
+        }
+
+        this.sendResult(result);
+        this.log(`   ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'logged_in' ? 'success' : 'warning');
+        return result;
+    }
+
+    // ---- Login All ----
+    async startLoginAll(accounts) {
+        this.isRunning = true;
+        this.openBrowsers = [];
+
+        let db = this.loadDB();
+        const startTime = Date.now();
+
+        // Deduplicate accounts (giữ entry đầu tiên)
+        const seen = new Set();
+        const uniqueAccounts = accounts.filter(a => {
+            const key = a.email.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        if (uniqueAccounts.length < accounts.length) {
+            this.log(`⚠️ Bỏ qua ${accounts.length - uniqueAccounts.length} accounts trùng lặp`, 'warning');
+        }
+
+        // Filter accounts chưa login thành công
+        const toLogin = uniqueAccounts.filter(a => {
+            const entry = db[a.email];
+            return !entry || entry.status !== 'logged_in';
+        });
+
+        if (toLogin.length === 0) {
+            this.log('✅ Tất cả accounts đã login thành công!', 'success');
+            this.sendComplete({ total: accounts.length, loggedIn: accounts.length, failed: 0, skipped: accounts.length, totalTime: '0' });
+            return;
+        }
+
+        this.log(`🚀 Cần login ${toLogin.length} accounts (bỏ qua ${uniqueAccounts.length - toLogin.length} đã OK)`, 'info');
+
+        let loggedIn = 0, failed = 0;
+
+        for (let i = 0; i < toLogin.length && this.isRunning; i++) {
+            const acc = toLogin[i];
+
+            // Assign profile
+            let profileDir;
+            if (db[acc.email]) {
+                profileDir = db[acc.email].profileDir;
+            } else {
+                const num = this.getNextProfileNum(db);
+                profileDir = `Profile_${num}`;
+            }
+
+            const result = await this.loginAccount(acc.email, acc.password, profileDir, i, toLogin.length);
+            if (!result) continue;
+
+            // Reload DB (có thể đã thay đổi)
+            db = this.loadDB();
+
+            // Save to DB
+            db[acc.email] = {
+                profileDir,
+                status: result.status,
+                reason: result.reason,
+                lastLogin: new Date().toISOString(),
+            };
+            this.saveDB(db);
+            this.sendProfilesUpdate();
+
+            if (result.status === 'logged_in') loggedIn++;
+            else failed++;
+
+            if (i < toLogin.length - 1 && this.isRunning) {
+                await this.delay(CONFIG.DELAY_BETWEEN);
+            }
+        }
+
+        const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+        this.sendComplete({
+            total: toLogin.length,
+            loggedIn,
+            failed,
+            skipped: uniqueAccounts.length - toLogin.length,
+            totalTime
+        });
+        this.isRunning = false;
+    }
+
+    // ---- Import ----
+    importAccounts() {
+        const importSources = [
+            { name: 'tdc-login-tool/passed.txt', path: path.join(__dirname, '..', 'tdc-login-tool', 'passed.txt') },
+            { name: 'tdc-login-tool/has_phone.txt', path: path.join(__dirname, '..', 'tdc-login-tool', 'has_phone.txt') },
+            { name: 'gg login flow_v3/has_flow.txt', path: path.join(__dirname, '..', '..', '..', 'gg login flow_v3', 'has_flow.txt') },
+            { name: 'gg login flow_v3/no_flow.txt', path: path.join(__dirname, '..', '..', '..', 'gg login flow_v3', 'no_flow.txt') },
+        ];
+
+        const existing = new Set(this.loadAccounts(CONFIG.ACCOUNTS_FILE).map(a => a.email));
+        let totalImported = 0;
+        const results = [];
+
+        for (const source of importSources) {
+            if (!fs.existsSync(source.path)) {
+                results.push({ name: source.name, status: 'not_found', imported: 0, skipped: 0 });
+                continue;
+            }
+            const accounts = this.loadAccounts(source.path);
+            const newAccounts = accounts.filter(a => !existing.has(a.email));
+
+            if (newAccounts.length > 0) {
+                const lines = newAccounts.map(a => `${a.email}|${a.password}`).join('\n') + '\n';
+                fs.appendFileSync(CONFIG.ACCOUNTS_FILE, lines);
+                newAccounts.forEach(a => existing.add(a.email));
+            }
+
+            totalImported += newAccounts.length;
+            results.push({ name: source.name, status: 'ok', imported: newAccounts.length, skipped: accounts.length - newAccounts.length });
+        }
+
+        return { totalImported, totalAccounts: existing.size, sources: results };
+    }
+
+    // ---- Profile Management ----
+    getProfiles() {
+        const db = this.loadDB();
+        return Object.entries(db).map(([email, entry]) => ({
+            email,
+            ...entry
+        }));
+    }
+
+    async openProfile(email) {
+        const db = this.loadDB();
+        if (!db[email]) return { success: false, reason: 'NOT_FOUND' };
+
+        const entry = db[email];
+        this.log(`📂 Mở profile: ${entry.profileDir} (${email})`, 'info');
+
+        const browser = await this.launchProfileBrowser(entry.profileDir);
+        this.openBrowsers.push(browser);
+        const page = await browser.newPage();
+        await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+        this.log(`✅ Browser đã mở cho ${email}`, 'success');
+        return { success: true };
+    }
+
+    async openAllProfiles() {
+        const db = this.loadDB();
+        const loggedIn = Object.entries(db).filter(([_, v]) => v.status === 'logged_in');
+
+        if (loggedIn.length === 0) return { success: false, reason: 'NO_PROFILES', count: 0 };
+
+        this.log(`🚀 Mở ${loggedIn.length} profiles...`, 'info');
+        let opened = 0;
+
+        for (const [email, entry] of loggedIn) {
+            try {
+                const browser = await this.launchProfileBrowser(entry.profileDir);
+                this.openBrowsers.push(browser);
+                const page = await browser.newPage();
+                await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+                opened++;
+                this.log(`   📂 ${email} → ${entry.profileDir}`, 'success');
+                await this.delay(1000);
+            } catch (e) {
+                this.log(`   ⚠️ Lỗi mở ${email}: ${e.message}`, 'error');
+            }
+        }
+
+        this.log(`✅ Đã mở ${opened}/${loggedIn.length} browsers!`, 'success');
+        return { success: true, count: opened };
+    }
+
+    cleanProfiles() {
+        const db = this.loadDB();
+        const entries = Object.entries(db);
+        const toDelete = entries.filter(([_, v]) => v.status !== 'logged_in');
+
+        if (toDelete.length === 0) return { deleted: 0, kept: entries.length };
+
+        for (const [email, entry] of toDelete) {
+            const profilePath = path.join(CONFIG.PROFILES_DIR, entry.profileDir);
+            if (fs.existsSync(profilePath)) {
+                try {
+                    fs.rmSync(profilePath, { recursive: true, force: true });
+                } catch (e) {}
+            }
+            delete db[email];
+            this.log(`🗑️ Xóa ${email} (${entry.profileDir}) - ${entry.status}`, 'warning');
+        }
+
+        this.saveDB(db);
+        return { deleted: toDelete.length, kept: entries.length - toDelete.length };
+    }
+
+    deleteProfile(email) {
+        const db = this.loadDB();
+        if (!db[email]) return false;
+
+        const entry = db[email];
+        const profilePath = path.join(CONFIG.PROFILES_DIR, entry.profileDir);
+        if (fs.existsSync(profilePath)) {
+            try { fs.rmSync(profilePath, { recursive: true, force: true }); } catch (e) {}
+        }
+        delete db[email];
+        this.saveDB(db);
+        this.log(`🗑️ Đã xóa profile ${entry.profileDir} (${email})`, 'warning');
+        return true;
+    }
+
+    // ---- Backup / Restore ----
+    backup() {
+        if (!fs.existsSync(CONFIG.BACKUP_DIR)) fs.mkdirSync(CONFIG.BACKUP_DIR, { recursive: true });
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const backupName = `backup_${timestamp}`;
+        const backupPath = path.join(CONFIG.BACKUP_DIR, backupName);
+        fs.mkdirSync(backupPath, { recursive: true });
+
+        let files = [];
+
+        if (fs.existsSync(CONFIG.DB_FILE)) {
+            fs.copyFileSync(CONFIG.DB_FILE, path.join(backupPath, 'profiles_db.json'));
+            files.push('profiles_db.json');
+        }
+
+        if (fs.existsSync(CONFIG.PROFILES_DIR)) {
+            try {
+                execSync(`xcopy "${CONFIG.PROFILES_DIR}" "${path.join(backupPath, 'saved_profiles')}\\" /E /I /Q /Y`, { stdio: 'pipe' });
+                files.push('saved_profiles/');
+            } catch (e) {}
+        }
+
+        if (fs.existsSync(CONFIG.ACCOUNTS_FILE)) {
+            fs.copyFileSync(CONFIG.ACCOUNTS_FILE, path.join(backupPath, 'accounts.txt'));
+            files.push('accounts.txt');
+        }
+
+        this.log(`💾 Backup hoàn thành: ${backupName}`, 'success');
+        return { name: backupName, path: backupPath, files };
+    }
+
+    listBackups() {
+        if (!fs.existsSync(CONFIG.BACKUP_DIR)) return [];
+        return fs.readdirSync(CONFIG.BACKUP_DIR)
+            .filter(f => fs.statSync(path.join(CONFIG.BACKUP_DIR, f)).isDirectory())
+            .sort().reverse();
+    }
+
+    restore(backupName) {
+        const backupPath = path.join(CONFIG.BACKUP_DIR, backupName);
+        if (!fs.existsSync(backupPath)) return { success: false, reason: 'NOT_FOUND' };
+
+        let files = [];
+
+        const dbBackup = path.join(backupPath, 'profiles_db.json');
+        if (fs.existsSync(dbBackup)) {
+            fs.copyFileSync(dbBackup, CONFIG.DB_FILE);
+            files.push('profiles_db.json');
+        }
+
+        const profilesBackup = path.join(backupPath, 'saved_profiles');
+        if (fs.existsSync(profilesBackup)) {
+            try {
+                execSync(`xcopy "${profilesBackup}" "${CONFIG.PROFILES_DIR}\\" /E /I /Q /Y`, { stdio: 'pipe' });
+                files.push('saved_profiles/');
+            } catch (e) {}
+        }
+
+        const accBackup = path.join(backupPath, 'accounts.txt');
+        if (fs.existsSync(accBackup)) {
+            fs.copyFileSync(accBackup, CONFIG.ACCOUNTS_FILE);
+            files.push('accounts.txt');
+        }
+
+        this.log(`♻️ Restore hoàn thành từ ${backupName}`, 'success');
+        return { success: true, files };
+    }
+
+    // ---- Stop / Close ----
+    stop() {
+        this.isRunning = false;
+        this.log('⏸ Đã dừng!', 'warning');
+    }
+
+    async closeAllBrowsers() {
+        const count = this.openBrowsers.length;
+        for (const browser of this.openBrowsers) {
+            try { await browser.close(); } catch (e) {}
+        }
+        this.openBrowsers = [];
+        this.log(`✖ Đã đóng ${count} browsers`, 'warning');
+        return count;
+    }
+
+    // ---- Read accounts file ----
+    readAccountsFile() {
+        if (!fs.existsSync(CONFIG.ACCOUNTS_FILE)) return '';
+        return fs.readFileSync(CONFIG.ACCOUNTS_FILE, 'utf8');
+    }
+
+    saveAccountsFile(content) {
+        fs.writeFileSync(CONFIG.ACCOUNTS_FILE, content, 'utf8');
+    }
+}
+
+module.exports = { ProfileWorker, detectAllBrowsers, CONFIG, LOCAL_BROWSER_DIR };

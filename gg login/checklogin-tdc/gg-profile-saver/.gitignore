@@ -1,0 +1,7 @@
+node_modules/
+saved_profiles/
+browser/
+backups/
+profiles_db.json
+accounts.txt
+*.log
