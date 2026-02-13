@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GG Profile Saver</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>📂 GG Profile Saver (GemLogin)</h1>
+            <div class="gemlogin-status">
+                <span class="dot" id="gemlogin-dot"></span>
+                <span id="gemlogin-label">GemLogin: Checking...</span>
+            </div>
+            <div class="gemlogin-profile-selector">
+                <span>📦 Profile:</span>
+                <select id="gemlogin-profile-select">
+                    <option value="">-- Chọn profile --</option>
+                </select>
+            </div>
+            <div class="stats">
+                <span class="stat logged-in">✅ <span id="stat-logged">0</span></span>
+                <span class="stat failed">❌ <span id="stat-failed">0</span></span>
+                <span class="stat verify">📱 <span id="stat-verify">0</span></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Input -->
+            <div class="panel input-panel">
+                <div class="panel-header">
+                    <h2>📥 Accounts</h2>
+                    <span class="account-count">Số lượng: <span id="account-count">0</span></span>
+                </div>
+                <textarea id="input-accounts"
+                    placeholder="Nhập accounts (format: email|password)&#10;&#10;Ví dụ:&#10;user@mail.tdc.edu.vn|PASSWORD123&#10;&#10;Hoặc bấm Import để lấy từ tool khác"></textarea>
+                <div class="button-group">
+                    <button id="btn-run" class="btn btn-primary">▶ Login All</button>
+                    <button id="btn-stop" class="btn btn-warning" disabled>⏸ Dừng</button>
+                    <button id="btn-close-all" class="btn btn-danger">✖ Đóng GemLogin</button>
+                </div>
+                <div class="button-group">
+                    <button id="btn-import" class="btn btn-secondary">📥 Import</button>
+                    <button id="btn-load-file" class="btn btn-secondary">📂 Load File</button>
+                    <button id="btn-save-accounts" class="btn btn-secondary">💾 Save</button>
+                    <button id="btn-clear-input" class="btn btn-secondary">🗑 Xóa</button>
+                </div>
+            </div>
+
+            <!-- Right Panel - Profiles -->
+            <div class="panel profiles-panel">
+                <div class="panel-header">
+                    <h2>📊 Profiles</h2>
+                    <div class="profile-actions">
+                        <button id="btn-open-all" class="btn btn-small btn-primary">🚀 Open All</button>
+                        <button id="btn-clean" class="btn btn-small btn-warning">🧹 Clean Lỗi</button>
+                        <button id="btn-backup" class="btn btn-small btn-secondary">💾 Backup</button>
+                        <button id="btn-restore" class="btn btn-small btn-secondary">♻️ Restore</button>
+                        <button id="btn-refresh-profiles" class="btn btn-small btn-secondary">🔄</button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="all">
+                        📋 Tất cả (<span id="tab-count-all">0</span>)
+                    </button>
+                    <button class="tab" data-tab="logged-in">
+                        ✅ Đã login (<span id="tab-count-logged">0</span>)
+                    </button>
+                    <button class="tab" data-tab="failed">
+                        ❌ Lỗi (<span id="tab-count-failed">0</span>)
+                    </button>
+                </div>
+
+                <!-- Profile List -->
+                <div class="profile-list-container">
+                    <table class="profile-table" id="profile-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Profile</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Reason</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profile-tbody">
+                            <tr class="empty-row"><td colspan="7">Chưa có profile nào</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Panel -->
+        <div class="panel log-panel">
+            <div class="panel-header">
+                <h2>📝 Log</h2>
+                <button id="btn-clear-log" class="btn btn-small">Xóa log</button>
+            </div>
+            <div id="log-container" class="log-container"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <span class="progress-text" id="progress-text">Sẵn sàng</span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

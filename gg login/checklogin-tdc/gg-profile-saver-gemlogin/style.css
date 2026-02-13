@@ -1,0 +1,464 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --bg-tertiary: #252540;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b0;
+    --accent-green: #00d26a;
+    --accent-yellow: #ffc107;
+    --accent-red: #ff4757;
+    --accent-blue: #667eea;
+    --accent-purple: #764ba2;
+    --border-color: #3a3a5c;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 10px;
+    gap: 10px;
+}
+
+/* ============ HEADER ============ */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.header h1 {
+    font-size: 1.4rem;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stats {
+    display: flex;
+    gap: 18px;
+}
+
+.stat {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+.stat.logged-in { color: var(--accent-green); }
+.stat.failed { color: var(--accent-red); }
+.stat.verify { color: var(--accent-yellow); }
+
+/* GemLogin Status */
+.gemlogin-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.gemlogin-status .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent-red);
+}
+
+.gemlogin-status .dot.connected {
+    background: var(--accent-green);
+    box-shadow: 0 0 6px var(--accent-green);
+}
+
+/* GemLogin Profile Selector */
+.gemlogin-profile-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.gemlogin-profile-selector select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    min-width: 160px;
+}
+
+.gemlogin-profile-selector select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.gemlogin-profile-selector select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* ============ MAIN CONTENT ============ */
+.main-content {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+}
+
+.panel {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.panel-header h2 {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.account-count {
+    color: var(--accent-blue);
+    font-size: 0.85rem;
+}
+
+/* ============ INPUT PANEL ============ */
+.input-panel {
+    flex: 0.8;
+    min-width: 320px;
+}
+
+.input-panel textarea {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text-primary);
+    font-family: 'Consolas', monospace;
+    font-size: 0.85rem;
+    resize: none;
+    line-height: 1.5;
+}
+
+.input-panel textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.input-panel textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+/* ============ PROFILES PANEL ============ */
+.profiles-panel {
+    flex: 1.5;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 5px;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.82rem;
+}
+
+.tab:hover { background: var(--bg-primary); }
+.tab.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+/* Profile Table */
+.profile-list-container {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+}
+
+.profile-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.profile-table thead {
+    position: sticky;
+    top: 0;
+    background: var(--bg-tertiary);
+    z-index: 1;
+}
+
+.profile-table th {
+    padding: 8px 10px;
+    text-align: left;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profile-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(58, 58, 92, 0.3);
+    color: var(--text-primary);
+}
+
+.profile-table tbody tr:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.profile-table .empty-row td {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 30px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.status-badge.logged-in {
+    background: rgba(0, 210, 106, 0.2);
+    color: var(--accent-green);
+}
+
+.status-badge.error,
+.status-badge.wrong-password,
+.status-badge.email-error {
+    background: rgba(255, 71, 87, 0.2);
+    color: var(--accent-red);
+}
+
+.status-badge.needs-verification {
+    background: rgba(255, 193, 7, 0.2);
+    color: var(--accent-yellow);
+}
+
+.action-btn {
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    margin-right: 3px;
+    transition: all 0.2s;
+}
+
+.action-btn.open {
+    background: rgba(102, 126, 234, 0.3);
+    color: var(--accent-blue);
+}
+
+.action-btn.open:hover {
+    background: rgba(102, 126, 234, 0.5);
+}
+
+.action-btn.delete {
+    background: rgba(255, 71, 87, 0.2);
+    color: var(--accent-red);
+}
+
+.action-btn.delete:hover {
+    background: rgba(255, 71, 87, 0.4);
+}
+
+/* ============ BUTTONS ============ */
+.button-group {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-shrink: 0;
+}
+
+.btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    color: white;
+}
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-danger {
+    background: var(--accent-red);
+    color: white;
+}
+.btn-danger:hover:not(:disabled) { background: #ff6b7a; }
+
+.btn-warning {
+    background: var(--accent-yellow);
+    color: #1a1a2e;
+}
+.btn-warning:hover:not(:disabled) { background: #ffca2c; }
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--bg-primary); }
+
+.btn-small {
+    padding: 4px 9px;
+    font-size: 0.78rem;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+}
+.btn-small:hover { background: var(--bg-primary); color: var(--text-primary); }
+.btn-small.btn-primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    color: white;
+    border: none;
+}
+.btn-small.btn-warning {
+    background: var(--accent-yellow);
+    color: #1a1a2e;
+    border: none;
+}
+.btn-small.btn-danger {
+    background: var(--accent-red);
+    color: white;
+    border: none;
+}
+
+/* ============ LOG PANEL ============ */
+.log-panel {
+    height: 160px;
+    min-height: 100px;
+    flex-shrink: 0;
+}
+
+.log-container {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px;
+    overflow-y: auto;
+    font-family: 'Consolas', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.log-entry { margin-bottom: 2px; }
+.log-entry.success { color: var(--accent-green); }
+.log-entry.warning { color: var(--accent-yellow); }
+.log-entry.error { color: var(--accent-red); }
+.log-entry.info { color: var(--accent-blue); }
+
+/* ============ PROGRESS BAR ============ */
+.progress-bar-container {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    min-width: 180px;
+    text-align: right;
+}
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-tertiary); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }

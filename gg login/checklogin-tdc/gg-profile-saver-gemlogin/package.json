@@ -1,0 +1,14 @@
+{
+  "name": "gg-profile-saver-gemlogin",
+  "version": "2.0.0",
+  "description": "Google Profile Saver via GemLogin antidetect browser",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "puppeteer-core": "^21.6.1",
+    "electron": "^28.3.3"
+  }
+}
