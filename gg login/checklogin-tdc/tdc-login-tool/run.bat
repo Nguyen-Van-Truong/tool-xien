@@ -1,0 +1,4 @@
+@echo off
+cd /d "E:\tool xien\gg login\checklogin-tdc\tdc-login-tool"
+npm start
+pause
