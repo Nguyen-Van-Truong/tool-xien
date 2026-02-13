@@ -76,12 +76,12 @@ ipcMain.handle('close-all-browsers', async () => {
 // ---- Profiles ----
 ipcMain.handle('get-profiles', async () => {
     const w = new ProfileWorker(null);
-    return w.getProfiles();
+    return w.getProfiles(selectedGemLoginProfileId);
 });
 
-ipcMain.handle('open-profile', async (event, email) => {
+ipcMain.handle('open-profile', async (event, profileDir) => {
     if (!worker) worker = new ProfileWorker(mainWindow, { gemloginProfileId: selectedGemLoginProfileId });
-    return await worker.openProfile(email);
+    return await worker.openProfile(profileDir);
 });
 
 ipcMain.handle('open-all-profiles', async () => {

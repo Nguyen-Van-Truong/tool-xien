@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('api', {
 
     // Profiles
     getProfiles: () => ipcRenderer.invoke('get-profiles'),
-    openProfile: (email) => ipcRenderer.invoke('open-profile', email),
+    openProfile: (profileDir) => ipcRenderer.invoke('open-profile', profileDir),
     openAllProfiles: () => ipcRenderer.invoke('open-all-profiles'),
     deleteProfile: (email) => ipcRenderer.invoke('delete-profile', email),
     cleanProfiles: () => ipcRenderer.invoke('clean-profiles'),

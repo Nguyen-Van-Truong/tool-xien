@@ -6,6 +6,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const http = require('http');
 const { execSync } = require('child_process');
 const puppeteer = require('puppeteer-core');
@@ -19,6 +20,8 @@ const CONFIG = {
     LOGIN_URL: 'https://accounts.google.com/signin',
     CHECK_URL: 'https://myaccount.google.com/?utm_source=sign_in_no_continue&pli=1',
     DELAY_BETWEEN: 2000,
+    GEMLOGIN_PROFILES_BASE: path.join(os.homedir(), '.gemlogin', 'profile', 'profiles'),
+    OLD_DB_FILE: path.join(__dirname, '..', 'gg-profile-saver', 'profiles_db.json'),
 };
 
 // ======================== GemLogin API ========================
@@ -154,11 +157,22 @@ class ProfileWorker {
     }
 
     async connectToGemLogin() {
-        // Start GemLogin profile → get CDP address → puppeteer connect
-        const data = await startGemLoginProfile(this.gemloginProfileId);
-        const debugAddress = data.remote_debugging_address; // "127.0.0.1:PORT"
+        let data;
+        try {
+            data = await startGemLoginProfile(this.gemloginProfileId);
+        } catch (err) {
+            // Profile might be already running → close and retry
+            if (err.message.includes('not ready') || err.message.includes('status')) {
+                this.log('   ⚠️ Profile đang chạy, đóng và mở lại...', 'warning');
+                await closeGemLoginProfile(this.gemloginProfileId);
+                await this.delay(2000);
+                data = await startGemLoginProfile(this.gemloginProfileId);
+            } else {
+                throw err;
+            }
+        }
 
-        // Get WebSocket URL from CDP
+        const debugAddress = data.remote_debugging_address; // "127.0.0.1:PORT"
         const wsUrl = await this.getWsEndpoint(debugAddress);
         const browser = await puppeteer.connect({
             browserWSEndpoint: wsUrl,
@@ -910,22 +924,129 @@ class ProfileWorker {
     }
 
     // ---- Profile Management ----
-    getProfiles() {
+    getProfiles(gemloginProfileId) {
         const db = this.loadDB();
-        return Object.entries(db).map(([email, entry]) => ({ email, ...entry }));
+
+        if (!gemloginProfileId) {
+            return Object.entries(db).map(([email, entry]) => ({ email, ...entry }));
+        }
+
+        const profilePath = path.join(CONFIG.GEMLOGIN_PROFILES_BASE, String(gemloginProfileId));
+
+        // Read Local State to get GemLogin sub-profile display names
+        const nameMap = {}; // "Default" -> "github1", "Profile 1" -> "github2", etc.
+        const localStatePath = path.join(profilePath, 'Local State');
+        if (fs.existsSync(localStatePath)) {
+            try {
+                const localState = JSON.parse(fs.readFileSync(localStatePath, 'utf8'));
+                const infoCache = localState?.profile?.info_cache || {};
+                for (const [dirName, info] of Object.entries(infoCache)) {
+                    if (info.name) nameMap[dirName] = info.name;
+                }
+            } catch {}
+        }
+
+        // Scan disk for sub-profile directories
+        let diskDirs = [];
+        if (fs.existsSync(profilePath)) {
+            diskDirs = fs.readdirSync(profilePath, { withFileTypes: true })
+                .filter(d => d.isDirectory() && /^(Default|Profile \d+)$/.test(d.name))
+                .map(d => d.name);
+        }
+
+        // Load old DB for email recovery
+        let oldDB = {};
+        if (fs.existsSync(CONFIG.OLD_DB_FILE)) {
+            try { oldDB = JSON.parse(fs.readFileSync(CONFIG.OLD_DB_FILE, 'utf8')); } catch {}
+        }
+        // Old DB reverse map: "Profile_1" -> { email, status, ... }
+        const oldDirToEmail = {};
+        for (const [email, entry] of Object.entries(oldDB)) {
+            oldDirToEmail[entry.profileDir] = { email, ...entry };
+        }
+
+        // New DB: collect entries already mapped to this GemLogin profile
+        const dbByDir = {};
+        for (const [email, entry] of Object.entries(db)) {
+            if (String(entry.gemloginProfileId) === String(gemloginProfileId)) {
+                dbByDir[entry.profileDir] = { email, ...entry };
+            }
+        }
+
+        const results = [];
+        const seenDirs = new Set();
+        let imported = 0;
+
+        for (const dirName of diskDirs) {
+            if (seenDirs.has(dirName)) continue;
+            seenDirs.add(dirName);
+
+            const displayName = nameMap[dirName] || dirName;
+
+            // Check new DB first (by dir name or display name)
+            const dbEntry = dbByDir[dirName] || dbByDir[displayName];
+            if (dbEntry) {
+                results.push({ ...dbEntry, profileDir: displayName });
+                continue;
+            }
+
+            // Try old DB: "Profile 1" -> "Profile_1"
+            const oldDBKey = dirName.replace(/ /g, '_');
+            const oldEntry = oldDirToEmail[oldDBKey] || oldDirToEmail[dirName];
+
+            if (oldEntry) {
+                // Import from old DB into new DB
+                db[oldEntry.email] = {
+                    profileDir: displayName,
+                    gemloginProfileId: gemloginProfileId,
+                    status: oldEntry.status || 'unknown',
+                    reason: oldEntry.reason || '',
+                    lastLogin: oldEntry.lastLogin || '',
+                };
+                results.push({
+                    email: oldEntry.email,
+                    profileDir: displayName,
+                    gemloginProfileId: gemloginProfileId,
+                    status: oldEntry.status || 'unknown',
+                    reason: oldEntry.reason || '',
+                    lastLogin: oldEntry.lastLogin || '',
+                });
+                imported++;
+            } else {
+                // Unknown - no email info
+                results.push({
+                    email: '',
+                    profileDir: displayName,
+                    gemloginProfileId: gemloginProfileId,
+                    status: 'unknown',
+                    reason: '',
+                    lastLogin: '',
+                });
+            }
+        }
+
+        if (imported > 0) {
+            this.saveDB(db);
+        }
+
+        // Sort by number extracted from display name (github1, github2, ...)
+        results.sort((a, b) => {
+            const numA = parseInt((a.profileDir.match(/(\d+)$/) || [0, 0])[1]);
+            const numB = parseInt((b.profileDir.match(/(\d+)$/) || [0, 0])[1]);
+            return numA - numB;
+        });
+
+        return results;
     }
 
-    async openProfile(email) {
-        const db = this.loadDB();
-        if (!db[email]) return { success: false, reason: 'NOT_FOUND' };
-
-        this.log(`📂 Mở GemLogin profile (${email})...`, 'info');
+    async openProfile(profileDir) {
+        this.log(`📂 Mở GemLogin profile (${profileDir})...`, 'info');
 
         try {
             const browser = await this.connectToGemLogin();
             const page = await browser.newPage();
             await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            this.log(`✅ Browser đã mở cho ${email}`, 'success');
+            this.log(`✅ Browser đã mở cho ${profileDir}`, 'success');
             return { success: true };
         } catch (e) {
             this.log(`❌ Không mở được: ${e.message}`, 'error');

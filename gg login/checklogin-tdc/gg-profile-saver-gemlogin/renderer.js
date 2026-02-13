@@ -89,6 +89,7 @@ gemloginProfileSelect.addEventListener('change', async () => {
         await window.api.setGemLoginProfile(selectedGemLoginProfile);
         const selectedText = gemloginProfileSelect.options[gemloginProfileSelect.selectedIndex].textContent;
         addLog(`📦 Đã chọn GemLogin profile: ${selectedText}`, 'success');
+        await refreshProfiles();
     } else {
         selectedGemLoginProfile = null;
     }
@@ -135,7 +136,7 @@ function getStatusBadge(status) {
     const icons = {
         'logged_in': '✅', 'wrong_password': '❌', 'email_error': '🗑️',
         'needs_verification': '📱', 'error': '⚠️',
-        'has_phone': '📱', 'need_phone': '📵'
+        'has_phone': '📱', 'need_phone': '📵', 'unknown': '❓'
     };
     return `<span class="status-badge ${cls}">${icons[status] || '❓'} ${status}</span>`;
 }
@@ -170,13 +171,13 @@ function renderProfiles() {
         <tr>
             <td>${i + 1}</td>
             <td>${p.profileDir}</td>
-            <td style="font-family: Consolas; font-size: 0.8rem">${p.email}</td>
+            <td style="font-family: Consolas; font-size: 0.8rem">${p.email || '<span style="color:#666">—</span>'}</td>
             <td>${getStatusBadge(p.status)}</td>
             <td style="font-size: 0.78rem; color: #999">${p.reason || '-'}</td>
             <td style="font-size: 0.78rem; color: #888">${formatTime(p.lastLogin)}</td>
             <td>
-                <button class="action-btn open" onclick="openProfile('${p.email}')">📂 Open</button>
-                <button class="action-btn delete" onclick="deleteProfile('${p.email}')">🗑️</button>
+                <button class="action-btn open" onclick="openProfile('${p.profileDir}')">📂 Open</button>
+                ${p.email ? `<button class="action-btn delete" onclick="deleteProfile('${p.email}')">🗑️</button>` : ''}
             </td>
         </tr>
     `).join('');
@@ -207,9 +208,9 @@ document.querySelectorAll('.tab').forEach(tab => {
 // ============ ACTIONS ============
 
 // Open single profile
-async function openProfile(email) {
-    addLog(`📂 Mở profile ${email}...`, 'info');
-    const result = await window.api.openProfile(email);
+async function openProfile(profileDir) {
+    addLog(`📂 Mở profile ${profileDir}...`, 'info');
+    const result = await window.api.openProfile(profileDir);
     if (!result.success) addLog(`❌ ${result.reason}`, 'error');
 }
 

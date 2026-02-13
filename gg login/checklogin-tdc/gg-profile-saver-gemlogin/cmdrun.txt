@@ -1,2 +1,2 @@
-cd "E:\tool xien\gg login\checklogin-tdc\gg-profile-saver"
+cd "E:\tool xien\gg login\checklogin-tdc\gg-profile-saver-gemlogin"
 npm start
