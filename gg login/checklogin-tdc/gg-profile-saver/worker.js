@@ -256,6 +256,27 @@ class ProfileWorker {
             await page.goto(CONFIG.LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
             await this.delay(2000);
 
+            // Check nếu đã login sẵn (redirect khỏi accounts.google.com)
+            const afterNavUrl = page.url();
+            if (afterNavUrl.includes('myaccount.google.com') || 
+                (!afterNavUrl.includes('accounts.google.com') && !afterNavUrl.includes('signin'))) {
+                this.log(`   ✅ Đã login sẵn! (redirect → ${afterNavUrl.substring(0, 60)})`, 'success');
+                result.status = 'logged_in'; result.reason = 'ALREADY_LOGGED_IN';
+                // Verify session
+                try {
+                    await page.goto(CONFIG.CHECK_URL, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                    await this.delay(3000);
+                    const emailOnPage = await page.evaluate(() => {
+                        const el = document.querySelector('.fwyMNe');
+                        return el ? el.textContent.trim() : '';
+                    });
+                    if (emailOnPage) this.log(`   ✅ Session OK! Email: ${emailOnPage}`, 'success');
+                } catch (e) {}
+                result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+                this.sendResult(result);
+                return result;
+            }
+
             // Step 2: Nhập email
             this.log(`   📧 Nhập email...`, 'info');
             await this.fastType(page, 'input[type="email"]', email);
@@ -499,11 +520,7 @@ class ProfileWorker {
 
         result.time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-        // Giữ browser mở nếu login OK, đóng nếu thất bại
-        if (result.status !== 'logged_in') {
-            try { await browser.close(); } catch (e) {}
-            this.openBrowsers.delete(profileDir);
-        }
+        // Giữ browser mở luôn (kể cả lỗi) để user xử lý thủ công
 
         this.sendResult(result);
         this.log(`   ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'logged_in' ? 'success' : 'warning');
@@ -1090,14 +1107,9 @@ class ProfileWorker {
                     await this.delay(1000);
                 }
 
-                // Click Create account
-                this.log(`   🖱️ Bấm Create account...`, 'info');
-                await this._ghClickCreate(page);
-                await this.delay(1000);
+                this.log(`   ✅ Đã điền form! Hãy kiểm tra và bấm Create Account thủ công...`, 'success');
 
-                this.log(`   ✅ Đã điền form! Chờ giải captcha...`, 'success');
-
-                // Emit event to UI - waiting for manual captcha
+                // Emit event to UI ngay sau khi điền form - hiển thị password sớm
                 if (this.mainWindow) {
                     this.mainWindow.webContents.send('github-waiting', {
                         email, username, ghPassword, index: i, total
