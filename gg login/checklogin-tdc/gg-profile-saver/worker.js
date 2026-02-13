@@ -22,7 +22,7 @@ const CONFIG = {
     ACCOUNTS_FILE: path.join(__dirname, 'accounts.txt'),
     BACKUP_DIR: path.join(__dirname, 'backups'),
     LOGIN_URL: 'https://accounts.google.com/signin',
-    CHECK_URL: 'https://myaccount.google.com',
+    CHECK_URL: 'https://myaccount.google.com/?utm_source=sign_in_no_continue&pli=1',
     VERIFY_WAIT: 120000,
     DELAY_BETWEEN: 2000,
 };
@@ -238,7 +238,8 @@ class ProfileWorker {
         }
 
         this.openBrowsers.push(browser);
-        const page = await browser.newPage();
+        const pages = await browser.pages();
+        const page = pages[0] || await browser.newPage();
         await page.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         );
@@ -280,7 +281,6 @@ class ProfileWorker {
                 this.log(`   🗑️ Account đã bị xóa!`, 'error');
                 result.status = 'email_error'; result.reason = 'ACCOUNT_DELETED';
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
-                try { await browser.close(); } catch (e) {}
                 this.sendResult(result);
                 return result;
             }
@@ -289,7 +289,6 @@ class ProfileWorker {
                 this.log(`   ❌ Email không tồn tại!`, 'error');
                 result.status = 'email_error'; result.reason = 'EMAIL_NOT_FOUND';
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
-                try { await browser.close(); } catch (e) {}
                 this.sendResult(result);
                 return result;
             }
@@ -324,7 +323,6 @@ class ProfileWorker {
                 this.log(`   ⚠️ Không thấy trang password (CAPTCHA?)`, 'warning');
                 result.status = 'error'; result.reason = 'NO_PASSWORD_PAGE';
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
-                try { await browser.close(); } catch (e) {}
                 this.sendResult(result);
                 return result;
             }
@@ -356,7 +354,6 @@ class ProfileWorker {
                 this.log(`   ❌ Sai mật khẩu!`, 'error');
                 result.status = 'wrong_password'; result.reason = 'WRONG_PASSWORD';
                 result.time = ((Date.now() - startTime) / 1000).toFixed(1);
-                try { await browser.close(); } catch (e) {}
                 this.sendResult(result);
                 return result;
             }
@@ -393,7 +390,6 @@ class ProfileWorker {
                     this.log(`   ⏰ Hết thời gian chờ xác minh`, 'warning');
                     result.status = 'needs_verification'; result.reason = 'VERIFY_TIMEOUT';
                     result.time = ((Date.now() - startTime) / 1000).toFixed(1);
-                    try { await browser.close(); } catch (e) {}
                     this.sendResult(result);
                     return result;
                 }
@@ -451,24 +447,33 @@ class ProfileWorker {
                         this.log(`   ⚠️ Kẹt ở trang login`, 'warning');
                         result.status = 'error'; result.reason = 'STUCK_AT_LOGIN';
                         result.time = ((Date.now() - startTime) / 1000).toFixed(1);
-                        try { await browser.close(); } catch (e) {}
                         this.sendResult(result);
                         return result;
                     }
                 }
             }
 
-            // Step 6: Verify session
+            // Step 6: Verify session bằng email trên myaccount
             if (result.status === 'logged_in') {
                 this.log(`   🔍 Kiểm tra session...`, 'info');
                 try {
                     await page.goto(CONFIG.CHECK_URL, { waitUntil: 'domcontentloaded', timeout: 15000 });
-                    await this.delay(2000);
-                    const checkUrl = page.url();
-                    if (checkUrl.includes('myaccount.google.com')) {
-                        this.log(`   ✅ Session OK! Profile đã lưu.`, 'success');
+                    await this.delay(3000);
+                    const emailOnPage = await page.evaluate(() => {
+                        const el = document.querySelector('.fwyMNe');
+                        return el ? el.textContent.trim() : '';
+                    });
+                    if (emailOnPage && emailOnPage.toLowerCase() === email.toLowerCase()) {
+                        this.log(`   ✅ Session OK! Email: ${emailOnPage}`, 'success');
+                    } else if (emailOnPage) {
+                        this.log(`   ✅ Session OK! (${emailOnPage})`, 'success');
                     } else {
-                        this.log(`   ⚠️ Session redirect, profile vẫn lưu.`, 'warning');
+                        const checkUrl = page.url();
+                        if (checkUrl.includes('myaccount.google.com')) {
+                            this.log(`   ✅ Session OK! Profile đã lưu.`, 'success');
+                        } else {
+                            this.log(`   ⚠️ Session redirect, profile vẫn lưu.`, 'warning');
+                        }
                     }
                 } catch (e) {
                     this.log(`   ⚠️ Không check session, profile vẫn lưu.`, 'warning');
@@ -482,10 +487,71 @@ class ProfileWorker {
 
         result.time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-        // Giữ browser mở nếu login OK, đóng nếu lỗi
-        if (result.status !== 'logged_in') {
-            try { await browser.close(); } catch (e) {}
+        // Đóng browser sau login để nhường lock cho acc tiếp theo (profile data đã lưu)
+        try { await browser.close(); } catch (e) {}
+
+        this.sendResult(result);
+        this.log(`   ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'logged_in' ? 'success' : 'warning');
+        return result;
+    }
+
+    // ---- Check session cho account đã login ----
+    async checkSession(email, profileDir, index, total) {
+        if (!this.isRunning) return null;
+
+        const startTime = Date.now();
+        this.log(`[${index + 1}/${total}] 🔍 Kiểm tra session ${email} → ${profileDir}`, 'info');
+        this.sendProgress(index, total, `${index + 1}/${total}: ${email} (check session)`);
+
+        let browser;
+        try {
+            browser = await this.launchProfileBrowser(profileDir);
+        } catch (err) {
+            this.log(`   ❌ Không mở được browser: ${err.message}`, 'error');
+            return { email, profileDir, status: 'error', reason: 'BROWSER_ERROR', time: 0 };
         }
+
+        this.openBrowsers.push(browser);
+        const pages = await browser.pages();
+        const page = pages[0] || await browser.newPage();
+
+        let result = { email, profileDir, status: 'error', reason: 'SESSION_EXPIRED', time: 0 };
+
+        try {
+            await page.goto(CONFIG.CHECK_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await this.delay(3000);
+
+            const emailOnPage = await page.evaluate(() => {
+                const el = document.querySelector('.fwyMNe');
+                return el ? el.textContent.trim() : '';
+            });
+
+            if (emailOnPage && emailOnPage.toLowerCase() === email.toLowerCase()) {
+                this.log(`   ✅ Session còn sống! Email: ${emailOnPage}`, 'success');
+                result.status = 'logged_in';
+                result.reason = 'SESSION_OK';
+            } else if (emailOnPage) {
+                this.log(`   ✅ Session OK! (${emailOnPage})`, 'success');
+                result.status = 'logged_in';
+                result.reason = 'SESSION_OK';
+            } else {
+                const checkUrl = page.url();
+                if (checkUrl.includes('myaccount.google.com')) {
+                    this.log(`   ✅ Session OK!`, 'success');
+                    result.status = 'logged_in';
+                    result.reason = 'SESSION_OK';
+                } else {
+                    this.log(`   ⚠️ Session hết hạn, cần login lại`, 'warning');
+                }
+            }
+        } catch (e) {
+            this.log(`   ⚠️ Không check được session: ${e.message}`, 'warning');
+        }
+
+        result.time = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        // Đóng browser sau check để nhường lock cho acc tiếp theo
+        try { await browser.close(); } catch (e) {}
 
         this.sendResult(result);
         this.log(`   ⏱️ ${result.status} - ${result.reason} (${result.time}s)`, result.status === 'logged_in' ? 'success' : 'warning');
@@ -512,27 +578,59 @@ class ProfileWorker {
             this.log(`⚠️ Bỏ qua ${accounts.length - uniqueAccounts.length} accounts trùng lặp`, 'warning');
         }
 
-        // Filter accounts chưa login thành công
-        const toLogin = uniqueAccounts.filter(a => {
-            const entry = db[a.email];
-            return !entry || entry.status !== 'logged_in';
-        });
-
-        if (toLogin.length === 0) {
-            this.log('✅ Tất cả accounts đã login thành công!', 'success');
-            this.sendComplete({ total: accounts.length, loggedIn: accounts.length, failed: 0, skipped: accounts.length, totalTime: '0' });
-            return;
+        // Chia thành 2 nhóm: đã login OK và chưa login
+        const alreadyOK = [];
+        const needLogin = [];
+        for (const acc of uniqueAccounts) {
+            const entry = db[acc.email];
+            if (entry && entry.status === 'logged_in') {
+                alreadyOK.push({ ...acc, profileDir: entry.profileDir });
+            } else {
+                needLogin.push(acc);
+            }
         }
 
-        this.log(`🚀 Cần login ${toLogin.length} accounts (bỏ qua ${uniqueAccounts.length - toLogin.length} đã OK)`, 'info');
+        const totalWork = uniqueAccounts.length;
+        this.log(`🚀 Tổng: ${totalWork} accounts (${alreadyOK.length} check session + ${needLogin.length} cần login)`, 'info');
 
         let loggedIn = 0, failed = 0;
+        let idx = 0;
 
-        for (let i = 0; i < toLogin.length && this.isRunning; i++) {
-            const acc = toLogin[i];
+        // Phase 1: Check session cho accounts đã login trước đó
+        for (const acc of alreadyOK) {
+            if (!this.isRunning) break;
 
-            // Assign profile
+            const result = await this.checkSession(acc.email, acc.profileDir, idx, totalWork);
+            idx++;
+            if (!result) continue;
+
+            db = this.loadDB();
+            db[acc.email] = {
+                profileDir: acc.profileDir,
+                status: result.status,
+                reason: result.reason,
+                lastLogin: new Date().toISOString(),
+            };
+            this.saveDB(db);
+            this.sendProfilesUpdate();
+
+            if (result.status === 'logged_in') loggedIn++;
+            else {
+                // Session hết hạn → thêm vào danh sách cần login lại
+                needLogin.push({ email: acc.email, password: accounts.find(a => a.email === acc.email)?.password || '' });
+                failed++;
+            }
+
+            if (this.isRunning) await this.delay(1000);
+        }
+
+        // Phase 2: Login accounts mới / session hết hạn
+        for (const acc of needLogin) {
+            if (!this.isRunning) break;
+            if (!acc.password) { failed++; idx++; continue; }
+
             let profileDir;
+            db = this.loadDB();
             if (db[acc.email]) {
                 profileDir = db[acc.email].profileDir;
             } else {
@@ -540,13 +638,11 @@ class ProfileWorker {
                 profileDir = `Profile_${num}`;
             }
 
-            const result = await this.loginAccount(acc.email, acc.password, profileDir, i, toLogin.length);
+            const result = await this.loginAccount(acc.email, acc.password, profileDir, idx, totalWork);
+            idx++;
             if (!result) continue;
 
-            // Reload DB (có thể đã thay đổi)
             db = this.loadDB();
-
-            // Save to DB
             db[acc.email] = {
                 profileDir,
                 status: result.status,
@@ -559,17 +655,15 @@ class ProfileWorker {
             if (result.status === 'logged_in') loggedIn++;
             else failed++;
 
-            if (i < toLogin.length - 1 && this.isRunning) {
-                await this.delay(CONFIG.DELAY_BETWEEN);
-            }
+            if (this.isRunning) await this.delay(CONFIG.DELAY_BETWEEN);
         }
 
         const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
         this.sendComplete({
-            total: toLogin.length,
+            total: totalWork,
             loggedIn,
             failed,
-            skipped: uniqueAccounts.length - toLogin.length,
+            skipped: 0,
             totalTime
         });
         this.isRunning = false;
@@ -622,16 +716,25 @@ class ProfileWorker {
         const db = this.loadDB();
         if (!db[email]) return { success: false, reason: 'NOT_FOUND' };
 
+        // Đóng browser cũ trước (shared userDataDir → chỉ 1 browser mở cùng lúc)
+        await this.closeAllBrowsers();
+
         const entry = db[email];
         this.log(`📂 Mở profile: ${entry.profileDir} (${email})`, 'info');
 
-        const browser = await this.launchProfileBrowser(entry.profileDir);
-        this.openBrowsers.push(browser);
-        const page = await browser.newPage();
-        await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        try {
+            const browser = await this.launchProfileBrowser(entry.profileDir);
+            this.openBrowsers.push(browser);
+            const pages = await browser.pages();
+            const page = pages[0] || await browser.newPage();
+            await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-        this.log(`✅ Browser đã mở cho ${email}`, 'success');
-        return { success: true };
+            this.log(`✅ Browser đã mở cho ${email}`, 'success');
+            return { success: true };
+        } catch (e) {
+            this.log(`❌ Không mở được: ${e.message}`, 'error');
+            return { success: false, reason: 'BROWSER_ERROR' };
+        }
     }
 
     async openAllProfiles() {
@@ -640,25 +743,27 @@ class ProfileWorker {
 
         if (loggedIn.length === 0) return { success: false, reason: 'NO_PROFILES', count: 0 };
 
-        this.log(`🚀 Mở ${loggedIn.length} profiles...`, 'info');
-        let opened = 0;
+        // Shared userDataDir → chỉ mở được 1 browser. Mở profile đầu tiên.
+        await this.closeAllBrowsers();
 
-        for (const [email, entry] of loggedIn) {
-            try {
-                const browser = await this.launchProfileBrowser(entry.profileDir);
-                this.openBrowsers.push(browser);
-                const page = await browser.newPage();
-                await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-                opened++;
-                this.log(`   📂 ${email} → ${entry.profileDir}`, 'success');
-                await this.delay(1000);
-            } catch (e) {
-                this.log(`   ⚠️ Lỗi mở ${email}: ${e.message}`, 'error');
+        const [email, entry] = loggedIn[0];
+        this.log(`🚀 Mở profile đầu tiên: ${email} (dùng Open để chuyển profile)`, 'info');
+
+        try {
+            const browser = await this.launchProfileBrowser(entry.profileDir);
+            this.openBrowsers.push(browser);
+            const pages = await browser.pages();
+            const page = pages[0] || await browser.newPage();
+            await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            this.log(`✅ Đã mở ${email}. Dùng nút 📂 Open để chuyển sang profile khác.`, 'success');
+            if (loggedIn.length > 1) {
+                this.log(`💡 Có ${loggedIn.length} profiles. Chỉ mở được 1 browser cùng lúc (shared data).`, 'info');
             }
+            return { success: true, count: 1 };
+        } catch (e) {
+            this.log(`❌ Lỗi mở: ${e.message}`, 'error');
+            return { success: false, reason: 'BROWSER_ERROR', count: 0 };
         }
-
-        this.log(`✅ Đã mở ${opened}/${loggedIn.length} browsers!`, 'success');
-        return { success: true, count: opened };
     }
 
     cleanProfiles() {

@@ -434,16 +434,9 @@ async function init() {
     await refreshProfiles();
     await loadStorageInfo();
 
-    // Auto-load accounts.txt
-    try {
-        const content = await window.api.readAccounts();
-        if (content.trim()) {
-            inputAccounts.value = content;
-            const lines = content.trim().split('\n').filter(l => l.trim() && !l.startsWith('#') && l.includes('|'));
-            accountCount.textContent = lines.length;
-            addLog(`📋 Đã load ${lines.length} accounts từ accounts.txt`, 'info');
-        }
-    } catch (e) {}
+    // Khởi động với input trống
+    inputAccounts.value = '';
+    accountCount.textContent = '0';
 }
 
 init();
