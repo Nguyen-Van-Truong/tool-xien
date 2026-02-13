@@ -20,6 +20,7 @@ const CONFIG = {
     PROFILES_DIR: path.join(__dirname, 'saved_profiles'),
     DB_FILE: path.join(__dirname, 'profiles_db.json'),
     ACCOUNTS_FILE: path.join(__dirname, 'accounts.txt'),
+    GITHUB_ACCOUNTS_FILE: path.join(__dirname, 'github_accounts.txt'),
     BACKUP_DIR: path.join(__dirname, 'backups'),
     LOGIN_URL: 'https://accounts.google.com/signin',
     CHECK_URL: 'https://myaccount.google.com/?utm_source=sign_in_no_continue&pli=1',
@@ -726,10 +727,13 @@ class ProfileWorker {
     // ---- Profile Management ----
     getProfiles() {
         const db = this.loadDB();
-        return Object.entries(db).map(([email, entry]) => ({
+        const profiles = Object.entries(db).map(([email, entry], i) => ({
             email,
-            ...entry
+            ...entry,
+            sortOrder: entry.sortOrder !== undefined ? entry.sortOrder : i
         }));
+        profiles.sort((a, b) => a.sortOrder - b.sortOrder);
+        return profiles;
     }
 
     async openProfile(email) {
@@ -934,6 +938,327 @@ class ProfileWorker {
     saveAccountsFile(content) {
         fs.writeFileSync(CONFIG.ACCOUNTS_FILE, content, 'utf8');
     }
+
+    // ---- Rename Profile (display name) ----
+    renameProfile(email, newDisplayName) {
+        const db = this.loadDB();
+        if (!db[email]) return { success: false, reason: 'NOT_FOUND' };
+        const entry = db[email];
+        const oldName = entry.displayName || entry.profileDir;
+        entry.displayName = newDisplayName;
+        this.saveDB(db);
+        this.log(`✏️ Đổi tên: ${oldName} → ${newDisplayName}`, 'success');
+        return { success: true, oldName, newName: newDisplayName };
+    }
+
+    // ---- Reorder Profiles ----
+    reorderProfile(email, direction) {
+        const db = this.loadDB();
+        if (!db[email]) return false;
+        const entries = Object.entries(db);
+        // Assign sortOrder if missing
+        entries.forEach(([_, v], i) => { if (v.sortOrder === undefined) v.sortOrder = i; });
+        entries.sort((a, b) => (a[1].sortOrder || 0) - (b[1].sortOrder || 0));
+
+        const idx = entries.findIndex(([e]) => e === email);
+        if (idx < 0) return false;
+
+        const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= entries.length) return false;
+
+        // Swap sortOrder
+        const tmp = entries[idx][1].sortOrder;
+        entries[idx][1].sortOrder = entries[swapIdx][1].sortOrder;
+        entries[swapIdx][1].sortOrder = tmp;
+
+        this.saveDB(db);
+        return true;
+    }
+
+    // ---- GitHub Signup ----
+    async githubSignupMultiple(emails) {
+        this.isRunning = true;
+        const db = this.loadDB();
+        const startTime = Date.now();
+        const total = emails.length;
+        let successCount = 0, failedCount = 0;
+
+        this.log(`🐙 GitHub Signup: ${total} accounts...`, 'info');
+
+        for (let i = 0; i < total; i++) {
+            if (!this.isRunning) break;
+            const email = emails[i];
+            const entry = db[email];
+            if (!entry || entry.status !== 'logged_in') {
+                this.log(`⚠️ Bỏ qua ${email} (chưa login Google)`, 'warning');
+                failedCount++;
+                continue;
+            }
+
+            const username = generateRandomUsername(email);
+            const ghPassword = generateRandomPassword();
+
+            this.log(`[${i + 1}/${total}] 🐙 ${email} → ${username}`, 'info');
+            this.sendProgress(i, total, `${i + 1}/${total}: ${email}`);
+
+            let browser;
+            let reusingBrowser = false;
+
+            // Check if browser is already open for this profile
+            if (this.openBrowsers.has(entry.profileDir)) {
+                const existing = this.openBrowsers.get(entry.profileDir);
+                if (existing.isConnected()) {
+                    browser = existing;
+                    reusingBrowser = true;
+                    this.log(`   📂 Tái sử dụng browser đang mở`, 'info');
+                } else {
+                    this.openBrowsers.delete(entry.profileDir);
+                }
+            }
+
+            if (!browser) {
+                try {
+                    browser = await this.launchProfileBrowser(entry.profileDir);
+                } catch (err) {
+                    this.log(`   ❌ Không mở được browser: ${err.message}`, 'error');
+                    failedCount++;
+                    continue;
+                }
+                this.openBrowsers.set(entry.profileDir, browser);
+            }
+
+            // Open new tab for GitHub signup
+            const page = await browser.newPage();
+
+            if (!reusingBrowser) {
+                await page.setUserAgent(
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                );
+                await page.evaluateOnNewDocument(() => {
+                    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+                });
+            }
+
+            try {
+                this.log(`   🔗 Vào github.com/signup...`, 'info');
+                await page.goto('https://github.com/signup', { waitUntil: 'networkidle2', timeout: 30000 });
+                await this.delay(2000);
+
+                // Detect form type
+                const formType = await page.evaluate(() => {
+                    const emailInput = document.querySelector('#email, input[name="user[email]"]');
+                    const passInput = document.querySelector('#password, input[name="user[password]"]');
+                    const loginInput = document.querySelector('#login, input[name="user[login]"]');
+                    const isVisible = (el) => {
+                        if (!el) return false;
+                        const style = window.getComputedStyle(el);
+                        return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetWidth > 0;
+                    };
+                    if (isVisible(emailInput) && isVisible(passInput) && isVisible(loginInput)) return 'single';
+                    return 'multi';
+                });
+
+                if (formType === 'single') {
+                    await this._ghFillField(page, '#email, input[name="user[email]"], input[type="email"]', email);
+                    await this.delay(600);
+                    await this._ghFillField(page, '#password, input[name="user[password]"], input[type="password"]', ghPassword);
+                    await this.delay(600);
+                    await this._ghFillField(page, '#login, input[name="user[login]"], input[name="login"]', username);
+                    await this.delay(600);
+                    await this._ghHandleEmailPref(page);
+                } else {
+                    // Multi-step
+                    await this._ghFillField(page, '#email, input[type="email"]', email);
+                    await this.delay(800);
+                    await this._ghClickContinue(page);
+                    await this.delay(2000);
+
+                    await page.waitForSelector('#password', { visible: true, timeout: 10000 }).catch(() => {});
+                    await this._ghFillField(page, '#password, input[type="password"]', ghPassword);
+                    await this.delay(800);
+                    await this._ghClickContinue(page);
+                    await this.delay(2000);
+
+                    await page.waitForSelector('#login', { visible: true, timeout: 10000 }).catch(() => {});
+                    await this._ghFillField(page, '#login, input[name="login"]', username);
+                    await this.delay(800);
+                    await this._ghClickContinue(page);
+                    await this.delay(2000);
+
+                    await this._ghHandleEmailPref(page);
+                    await this._ghClickContinue(page);
+                    await this.delay(1000);
+                }
+
+                // Click Create account
+                this.log(`   🖱️ Bấm Create account...`, 'info');
+                await this._ghClickCreate(page);
+                await this.delay(1000);
+
+                this.log(`   ✅ Đã điền form! Chờ giải captcha...`, 'success');
+
+                // Emit event to UI - waiting for manual captcha
+                if (this.mainWindow) {
+                    this.mainWindow.webContents.send('github-waiting', {
+                        email, username, ghPassword, index: i, total
+                    });
+                }
+
+                // Wait for manual resolution
+                const status = await new Promise((resolve) => {
+                    this._ghResolves = this._ghResolves || new Map();
+                    this._ghResolves.set(email, resolve);
+                });
+
+                const curDb = this.loadDB();
+                if (status === 'done') {
+                    curDb[email].github = {
+                        username,
+                        password: ghPassword,
+                        status: 'registered',
+                        registeredAt: new Date().toISOString()
+                    };
+                    this.saveDB(curDb);
+                    // Save to github_accounts.txt
+                    const line = `${email}|${ghPassword}|${username}\n`;
+                    fs.appendFileSync(CONFIG.GITHUB_ACCOUNTS_FILE, line);
+                    this.log(`   🎉 GitHub OK: ${email} | ${username} | ${ghPassword}`, 'success');
+                    this.log(`   💾 Đã lưu vào github_accounts.txt`, 'info');
+                    successCount++;
+                } else {
+                    this.log(`   ❌ GitHub thất bại: ${email}`, 'error');
+                    failedCount++;
+                }
+
+            } catch (error) {
+                this.log(`   ❌ Lỗi: ${error.message}`, 'error');
+                failedCount++;
+            }
+
+            this.sendResult({ email, status: 'github_signup' });
+        }
+
+        const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+        this.sendComplete({ total, loggedIn: successCount, failed: failedCount, skipped: 0, totalTime });
+        this.isRunning = false;
+    }
+
+    // Resolve manual wait for github signup
+    githubSignupDone(email, status) {
+        if (this._ghResolves && this._ghResolves.has(email)) {
+            this._ghResolves.get(email)(status);
+            this._ghResolves.delete(email);
+        }
+    }
+
+    // GitHub helper: fill a field
+    async _ghFillField(page, selectors, value) {
+        const sels = selectors.split(',').map(s => s.trim());
+        for (const sel of sels) {
+            try {
+                const el = await page.$(sel);
+                if (!el) continue;
+                const isVisible = await page.evaluate(e => {
+                    const s = window.getComputedStyle(e);
+                    return s.display !== 'none' && s.visibility !== 'hidden' && e.offsetWidth > 0;
+                }, el);
+                if (!isVisible) continue;
+
+                await page.evaluate(e => e.scrollIntoView({ block: 'center' }), el);
+                await this.delay(200);
+                await el.click();
+                await this.delay(150);
+                await page.evaluate(e => { e.value = ''; }, el);
+                await el.click({ clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await this.delay(100);
+                await el.type(value, { delay: 50 });
+                await page.evaluate(e => {
+                    e.dispatchEvent(new Event('input', { bubbles: true }));
+                    e.dispatchEvent(new Event('change', { bubbles: true }));
+                    e.dispatchEvent(new Event('blur', { bubbles: true }));
+                }, el);
+                this.log(`   ✅ Filled: ${sel.split(',')[0]}`, 'info');
+                return true;
+            } catch (e) { continue; }
+        }
+        return false;
+    }
+
+    // GitHub helper: click Continue (not Google/Apple)
+    async _ghClickContinue(page) {
+        await page.evaluate(() => {
+            const stepBtns = document.querySelectorAll('button[data-continue-to]');
+            for (const btn of stepBtns) {
+                if (btn.offsetParent !== null && btn.offsetWidth > 0) { btn.click(); return; }
+            }
+            const buttons = Array.from(document.querySelectorAll('button'));
+            for (const btn of buttons) {
+                const text = btn.textContent.trim().toLowerCase();
+                if (text.includes('google') || text.includes('apple') || text.includes('create')) continue;
+                if (text === 'continue' || text === 'next') {
+                    if (btn.offsetParent !== null && btn.offsetWidth > 0) { btn.click(); return; }
+                }
+            }
+        });
+    }
+
+    // GitHub helper: handle email preferences
+    async _ghHandleEmailPref(page) {
+        try {
+            const pref = await page.$('#opt_in');
+            if (pref) {
+                const isChecked = await page.evaluate(el => el.checked, pref);
+                if (isChecked) await pref.click();
+            }
+        } catch (e) {}
+    }
+
+    // GitHub helper: click Create account
+    async _ghClickCreate(page) {
+        await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            for (const btn of buttons) {
+                const text = btn.textContent.trim().toLowerCase();
+                if (text === 'create account' || text === 'create your account') {
+                    if (btn.offsetParent !== null && btn.offsetWidth > 0) { btn.click(); return true; }
+                }
+            }
+            const submits = Array.from(document.querySelectorAll('button[type="submit"]'));
+            for (const btn of submits) {
+                const text = btn.textContent.trim().toLowerCase();
+                if (text.includes('google') || text.includes('apple')) continue;
+                if (btn.offsetParent !== null && btn.offsetWidth > 0) { btn.click(); return true; }
+            }
+            return false;
+        });
+    }
 }
 
-module.exports = { ProfileWorker, detectAllBrowsers, CONFIG, LOCAL_BROWSER_DIR };
+// ======================== RANDOM GENERATORS ========================
+function generateRandomUsername(email) {
+    const base = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+    const suffix = Math.random().toString(36).substring(2, 8);
+    return (base.substring(0, 12) + '-' + suffix).substring(0, 39);
+}
+
+function generateRandomPassword(length = 14) {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghjkmnpqrstuvwxyz';
+    const digits = '23456789';
+    const symbols = '!@#$%&*?';
+    const all = upper + lower + digits + symbols;
+    // Ensure at least one of each type
+    let pass = '';
+    pass += upper[Math.floor(Math.random() * upper.length)];
+    pass += lower[Math.floor(Math.random() * lower.length)];
+    pass += digits[Math.floor(Math.random() * digits.length)];
+    pass += symbols[Math.floor(Math.random() * symbols.length)];
+    for (let i = pass.length; i < length; i++) {
+        pass += all[Math.floor(Math.random() * all.length)];
+    }
+    // Shuffle
+    return pass.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+module.exports = { ProfileWorker, detectAllBrowsers, CONFIG, LOCAL_BROWSER_DIR, generateRandomUsername, generateRandomPassword };

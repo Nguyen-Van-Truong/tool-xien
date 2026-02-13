@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const { ProfileWorker, detectAllBrowsers, CONFIG, LOCAL_BROWSER_DIR } = require('./worker');
+const { ProfileWorker, detectAllBrowsers, CONFIG, LOCAL_BROWSER_DIR, generateRandomUsername, generateRandomPassword } = require('./worker');
 
 let mainWindow;
 let worker;
@@ -115,6 +115,30 @@ ipcMain.handle('read-accounts', async () => {
 ipcMain.handle('save-accounts', async (event, content) => {
     const w = new ProfileWorker(null);
     w.saveAccountsFile(content);
+    return true;
+});
+
+// ---- Rename ----
+ipcMain.handle('rename-profile', async (event, email, newName) => {
+    const w = new ProfileWorker(mainWindow);
+    return w.renameProfile(email, newName);
+});
+
+// ---- Reorder ----
+ipcMain.handle('reorder-profile', async (event, email, direction) => {
+    const w = new ProfileWorker(mainWindow);
+    return w.reorderProfile(email, direction);
+});
+
+// ---- GitHub Signup ----
+ipcMain.handle('github-signup', async (event, emails) => {
+    if (!worker) worker = new ProfileWorker(mainWindow, selectedBrowserId);
+    await worker.githubSignupMultiple(emails);
+    return true;
+});
+
+ipcMain.handle('github-done', async (event, email, status) => {
+    if (worker) worker.githubSignupDone(email, status);
     return true;
 });
 

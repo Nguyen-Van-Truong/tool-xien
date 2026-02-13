@@ -14,6 +14,10 @@ const btnRestore = document.getElementById('btn-restore');
 const btnRefreshProfiles = document.getElementById('btn-refresh-profiles');
 const btnClearLog = document.getElementById('btn-clear-log');
 const btnClearTemp = document.getElementById('btn-clear-temp');
+const btnGithubSignup = document.getElementById('btn-github-signup');
+const chkSelectAll = document.getElementById('chk-select-all');
+const githubWaitingPanel = document.getElementById('github-waiting-panel');
+const githubWaitingList = document.getElementById('github-waiting-list');
 
 const logContainer = document.getElementById('log-container');
 const progressBar = document.getElementById('progress-bar');
@@ -35,6 +39,8 @@ const browserSelect = document.getElementById('browser-select');
 let isRunning = false;
 let currentTab = 'all';
 let allProfiles = [];
+let selectedEmails = new Set();
+let ghWaitingAccounts = new Map();
 
 // ============ BROWSERS ============
 async function loadBrowsers() {
@@ -171,24 +177,62 @@ function renderProfiles() {
     else if (currentTab === 'failed') filtered = allProfiles.filter(p => p.status !== 'logged_in');
 
     if (filtered.length === 0) {
-        profileTbody.innerHTML = '<tr class="empty-row"><td colspan="7">Không có profile nào</td></tr>';
+        profileTbody.innerHTML = '<tr class="empty-row"><td colspan="8">Không có profile nào</td></tr>';
         return;
     }
 
-    profileTbody.innerHTML = filtered.map((p, i) => `
+    profileTbody.innerHTML = filtered.map((p, i) => {
+        const checked = selectedEmails.has(p.email) ? 'checked' : '';
+        const ghInfo = p.github;
+        let ghBadge = '<span class="gh-badge gh-none">—</span>';
+        if (ghInfo && ghInfo.status === 'registered') {
+            ghBadge = `<span class="gh-badge gh-ok" title="User: ${ghInfo.username}\nPass: ${ghInfo.password}">✅ ${ghInfo.username}</span>`;
+        }
+        const displayName = p.displayName || p.profileDir;
+        return `
         <tr>
+            <td><input type="checkbox" class="profile-checkbox" data-email="${p.email}" ${checked}></td>
             <td>${i + 1}</td>
-            <td>${p.profileDir}</td>
+            <td class="profile-name-cell" data-email="${p.email}" title="Click để đổi tên">${displayName}</td>
             <td style="font-family: Consolas; font-size: 0.8rem">${p.email}</td>
             <td>${getStatusBadge(p.status)}</td>
-            <td style="font-size: 0.78rem; color: #999">${p.reason || '-'}</td>
+            <td>${ghBadge}</td>
             <td style="font-size: 0.78rem; color: #888">${formatTime(p.lastLogin)}</td>
-            <td>
-                <button class="action-btn open" onclick="openProfile('${p.email}')">📂 Open</button>
-                <button class="action-btn delete" onclick="deleteProfile('${p.email}')">🗑️</button>
+            <td class="actions-cell">
+                <button class="action-btn open" onclick="openProfile('${p.email}')" title="Mở">📂</button>
+                <button class="action-btn rename" onclick="renameProfile('${p.email}', '${(p.displayName || p.profileDir).replace(/'/g, "\\'")}')" title="Đổi tên">✏️</button>
+                <button class="action-btn move-up" onclick="moveProfile('${p.email}', 'up')" title="Lên">⬆</button>
+                <button class="action-btn move-down" onclick="moveProfile('${p.email}', 'down')" title="Xuống">⬇</button>
+                <button class="action-btn delete" onclick="deleteProfile('${p.email}')" title="Xóa">🗑️</button>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
+
+    // Rebind checkbox events
+    document.querySelectorAll('.profile-checkbox').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+            if (e.target.checked) selectedEmails.add(e.target.dataset.email);
+            else selectedEmails.delete(e.target.dataset.email);
+            updateSelectAllState();
+        });
+    });
+
+    // Click profile name to rename
+    document.querySelectorAll('.profile-name-cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+            const email = cell.dataset.email;
+            const profile = allProfiles.find(p => p.email === email);
+            if (profile) renameProfile(email, profile.displayName || profile.profileDir);
+        });
+    });
+
+    updateSelectAllState();
+}
+
+function updateSelectAllState() {
+    const loggedIn = allProfiles.filter(p => p.status === 'logged_in');
+    const allChecked = loggedIn.length > 0 && loggedIn.every(p => selectedEmails.has(p.email));
+    chkSelectAll.checked = allChecked;
 }
 
 function updateStats() {
@@ -437,6 +481,135 @@ async function init() {
     // Khởi động với input trống
     inputAccounts.value = '';
     accountCount.textContent = '0';
+}
+
+// ============ SELECT ALL ============
+chkSelectAll.addEventListener('change', () => {
+    const loggedIn = allProfiles.filter(p => p.status === 'logged_in');
+    if (chkSelectAll.checked) {
+        loggedIn.forEach(p => selectedEmails.add(p.email));
+    } else {
+        selectedEmails.clear();
+    }
+    renderProfiles();
+});
+
+// ============ RENAME PROFILE ============
+async function renameProfile(email, currentName) {
+    const newName = prompt(`Đổi tên hiển thị "${currentName}" thành:`, currentName);
+    if (!newName || newName === currentName) return;
+    const result = await window.api.renameProfile(email, newName);
+    if (result.success) {
+        addLog(`✏️ Đổi tên: ${result.oldName} → ${result.newName}`, 'success');
+        refreshProfiles();
+    } else {
+        addLog(`❌ Lỗi đổi tên: ${result.reason}`, 'error');
+    }
+}
+
+// ============ MOVE PROFILE ============
+async function moveProfile(email, direction) {
+    const result = await window.api.reorderProfile(email, direction);
+    if (result) refreshProfiles();
+}
+
+// ============ GITHUB SIGNUP ============
+btnGithubSignup.addEventListener('click', async () => {
+    const selected = [...selectedEmails];
+    const loggedInSelected = selected.filter(email => {
+        const p = allProfiles.find(pr => pr.email === email);
+        return p && p.status === 'logged_in';
+    });
+
+    if (loggedInSelected.length === 0) {
+        addLog('❌ Chọn ít nhất 1 profile đã login (tick checkbox)!', 'error');
+        return;
+    }
+
+    // Filter out already registered
+    const needSignup = loggedInSelected.filter(email => {
+        const p = allProfiles.find(pr => pr.email === email);
+        return !p.github || p.github.status !== 'registered';
+    });
+
+    if (needSignup.length === 0) {
+        addLog('✅ Tất cả profile đã chọn đều đã đăng ký GitHub!', 'info');
+        return;
+    }
+
+    if (!confirm(`Đăng ký GitHub cho ${needSignup.length} profile?\n\n${needSignup.join('\n')}`)) return;
+
+    addLog(`🐙 Bắt đầu GitHub Signup ${needSignup.length} accounts...`, 'info');
+    btnGithubSignup.disabled = true;
+
+    try {
+        await window.api.githubSignup(needSignup);
+    } catch (e) {
+        addLog(`❌ Lỗi: ${e.message}`, 'error');
+    }
+
+    btnGithubSignup.disabled = false;
+    refreshProfiles();
+});
+
+// ---- GitHub waiting handlers ----
+window.api.onGithubWaiting((data) => {
+    const { email, username, ghPassword } = data;
+    ghWaitingAccounts.set(email, data);
+    githubWaitingPanel.style.display = '';
+
+    const card = document.createElement('div');
+    card.className = 'gh-waiting-card';
+    card.dataset.email = email;
+    card.innerHTML = `
+        <div class="gh-waiting-info">
+            <span>📧 ${email}</span>
+            <span class="gh-detail">👤 ${username} | 🔑 ${ghPassword}</span>
+        </div>
+        <div class="gh-waiting-btns">
+            <button class="btn btn-small btn-primary gh-done-btn" data-email="${email}">✅ Done</button>
+            <button class="btn btn-small btn-danger gh-fail-btn" data-email="${email}">❌ Fail</button>
+        </div>
+    `;
+    githubWaitingList.appendChild(card);
+});
+
+githubWaitingList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const email = btn.dataset.email;
+    if (btn.classList.contains('gh-done-btn')) {
+        await window.api.githubDone(email, 'done');
+        removeGhWaiting(email);
+        addLog(`✅ GitHub Done: ${email}`, 'success');
+    } else if (btn.classList.contains('gh-fail-btn')) {
+        await window.api.githubDone(email, 'failed');
+        removeGhWaiting(email);
+        addLog(`❌ GitHub Fail: ${email}`, 'error');
+    }
+});
+
+document.getElementById('btn-gh-done-all').addEventListener('click', async () => {
+    for (const email of ghWaitingAccounts.keys()) {
+        await window.api.githubDone(email, 'done');
+        removeGhWaiting(email);
+    }
+});
+
+document.getElementById('btn-gh-fail-all').addEventListener('click', async () => {
+    for (const email of ghWaitingAccounts.keys()) {
+        await window.api.githubDone(email, 'failed');
+        removeGhWaiting(email);
+    }
+});
+
+function removeGhWaiting(email) {
+    ghWaitingAccounts.delete(email);
+    const card = githubWaitingList.querySelector(`[data-email="${email}"]`);
+    if (card) card.remove();
+    if (ghWaitingAccounts.size === 0) {
+        githubWaitingPanel.style.display = 'none';
+    }
 }
 
 init();

@@ -35,10 +35,21 @@ contextBridge.exposeInMainWorld('api', {
     getTempSize: () => ipcRenderer.invoke('get-temp-size'),
     clearTemp: () => ipcRenderer.invoke('clear-temp'),
 
+    // Rename
+    renameProfile: (email, newName) => ipcRenderer.invoke('rename-profile', email, newName),
+
+    // Reorder
+    reorderProfile: (email, direction) => ipcRenderer.invoke('reorder-profile', email, direction),
+
+    // GitHub
+    githubSignup: (emails) => ipcRenderer.invoke('github-signup', emails),
+    githubDone: (email, status) => ipcRenderer.invoke('github-done', email, status),
+
     // Events
     onLog: (cb) => ipcRenderer.on('log', (e, data) => cb(data)),
     onResult: (cb) => ipcRenderer.on('result', (e, data) => cb(data)),
     onProgress: (cb) => ipcRenderer.on('progress', (e, data) => cb(data)),
     onComplete: (cb) => ipcRenderer.on('complete', (e, data) => cb(data)),
     onProfilesUpdated: (cb) => ipcRenderer.on('profiles-updated', () => cb()),
+    onGithubWaiting: (cb) => ipcRenderer.on('github-waiting', (e, data) => cb(data)),
 });

@@ -65,6 +65,7 @@
                     <h2>📊 Profiles</h2>
                     <div class="profile-actions">
                         <button id="btn-open-all" class="btn btn-small btn-primary">🚀 Open All</button>
+                        <button id="btn-github-signup" class="btn btn-small btn-github">🐙 GitHub Signup</button>
                         <button id="btn-clean" class="btn btn-small btn-warning">🧹 Clean Lỗi</button>
                         <button id="btn-backup" class="btn btn-small btn-secondary">💾 Backup</button>
                         <button id="btn-restore" class="btn btn-small btn-secondary">♻️ Restore</button>
@@ -90,21 +91,34 @@
                     <table class="profile-table" id="profile-table">
                         <thead>
                             <tr>
+                                <th style="width:30px"><input type="checkbox" id="chk-select-all" title="Chọn tất cả"></th>
                                 <th>#</th>
                                 <th>Profile</th>
                                 <th>Email</th>
                                 <th>Status</th>
-                                <th>Reason</th>
+                                <th>GitHub</th>
                                 <th>Last Login</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="profile-tbody">
-                            <tr class="empty-row"><td colspan="7">Chưa có profile nào</td></tr>
+                            <tr class="empty-row"><td colspan="8">Chưa có profile nào</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
+        </div>
+
+        <!-- GitHub Waiting Panel -->
+        <div id="github-waiting-panel" class="panel github-panel" style="display:none">
+            <div class="panel-header">
+                <h2>🐙 GitHub Signup - Chờ Captcha</h2>
+                <div>
+                    <button id="btn-gh-done-all" class="btn btn-small btn-primary">✅ Done All</button>
+                    <button id="btn-gh-fail-all" class="btn btn-small btn-danger">❌ Fail All</button>
+                </div>
+            </div>
+            <div id="github-waiting-list" class="github-waiting-list"></div>
         </div>
 
         <!-- Log Panel -->

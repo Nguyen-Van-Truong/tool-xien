@@ -462,3 +462,116 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg-tertiary); border-radius: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+/* ============ GITHUB ============ */
+.btn-github {
+    background: linear-gradient(135deg, #238636, #2ea043) !important;
+    color: white !important;
+    border: none !important;
+}
+.btn-github:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2ea043, #3fb950) !important;
+}
+
+.gh-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: default;
+}
+.gh-badge.gh-ok {
+    background: rgba(46, 160, 67, 0.2);
+    color: #3fb950;
+}
+.gh-badge.gh-none {
+    color: #555;
+}
+
+.action-btn.rename {
+    background: rgba(255, 193, 7, 0.2);
+    color: var(--accent-yellow);
+}
+.action-btn.rename:hover {
+    background: rgba(255, 193, 7, 0.4);
+}
+
+.action-btn.move-up, .action-btn.move-down {
+    background: rgba(102, 126, 234, 0.15);
+    color: var(--accent-blue);
+    font-size: 0.7rem;
+    padding: 2px 5px;
+}
+.action-btn.move-up:hover, .action-btn.move-down:hover {
+    background: rgba(102, 126, 234, 0.35);
+}
+
+.actions-cell {
+    white-space: nowrap;
+}
+
+.profile-name-cell {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.profile-name-cell:hover {
+    color: var(--accent-blue);
+    text-decoration: underline;
+}
+
+.profile-checkbox {
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+}
+
+#chk-select-all {
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+}
+
+/* GitHub Waiting Panel */
+.github-panel {
+    flex-shrink: 0;
+    max-height: 180px;
+}
+
+.github-waiting-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.gh-waiting-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.gh-waiting-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85rem;
+}
+
+.gh-detail {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-family: Consolas, monospace;
+}
+
+.gh-waiting-btns {
+    display: flex;
+    gap: 5px;
+}
