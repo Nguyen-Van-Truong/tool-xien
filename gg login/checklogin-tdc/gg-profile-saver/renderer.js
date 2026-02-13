@@ -186,7 +186,7 @@ function renderProfiles() {
         const ghInfo = p.github;
         let ghBadge = '<span class="gh-badge gh-none">—</span>';
         if (ghInfo && ghInfo.status === 'registered') {
-            ghBadge = `<span class="gh-badge gh-ok" title="User: ${ghInfo.username}\nPass: ${ghInfo.password}">✅ ${ghInfo.username}</span>`;
+            ghBadge = `<span class="gh-badge gh-ok" title="User: ${ghInfo.username}">✅ ${p.email}|${ghInfo.password}</span>`;
         }
         const displayName = p.displayName || p.profileDir;
         return `
