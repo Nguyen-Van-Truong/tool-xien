@@ -115,15 +115,42 @@ class ProfileWorker {
     }
 
     getNextProfileNum(db) {
-        let max = 0;
-        for (const key of Object.keys(db)) {
-            const match = db[key].profileDir.match(/^tdc(\d+)$/);
-            if (match) {
-                const num = parseInt(match[1]);
-                if (num > max) max = num;
+        // Get list of sub-profiles already assigned in DB for current GemLogin profile
+        const usedNames = new Set();
+        for (const entry of Object.values(db)) {
+            if (String(entry.gemloginProfileId) === String(this.gemloginProfileId)) {
+                usedNames.add(entry.profileDir);
             }
         }
-        return max + 1;
+
+        // Read Local State to get available sub-profile names
+        const profilePath = path.join(CONFIG.GEMLOGIN_PROFILES_BASE, String(this.gemloginProfileId));
+        const localStatePath = path.join(profilePath, 'Local State');
+        const allNames = [];
+        if (fs.existsSync(localStatePath)) {
+            try {
+                const localState = JSON.parse(fs.readFileSync(localStatePath, 'utf8'));
+                const infoCache = localState?.profile?.info_cache || {};
+                for (const info of Object.values(infoCache)) {
+                    if (info.name) allNames.push(info.name);
+                }
+            } catch {}
+        }
+
+        // Sort by number suffix
+        allNames.sort((a, b) => {
+            const na = parseInt((a.match(/(\d+)$/) || [0, 0])[1]);
+            const nb = parseInt((b.match(/(\d+)$/) || [0, 0])[1]);
+            return na - nb;
+        });
+
+        // Return first unused sub-profile name
+        for (const name of allNames) {
+            if (!usedNames.has(name)) return name;
+        }
+
+        // All used — return next number
+        return null;
     }
 
     // ---- Accounts ----
@@ -173,6 +200,7 @@ class ProfileWorker {
         }
 
         const debugAddress = data.remote_debugging_address; // "127.0.0.1:PORT"
+        this.debugAddress = debugAddress; // cache for later use
         const wsUrl = await this.getWsEndpoint(debugAddress);
         const browser = await puppeteer.connect({
             browserWSEndpoint: wsUrl,
@@ -180,6 +208,151 @@ class ProfileWorker {
         });
 
         return browser;
+    }
+
+    /**
+     * Click a sub-profile in the GemLogin profile picker via CDP mouse click.
+     * GemLogin starts Chrome at chrome://profile-picker/ with sub-profiles (github1, github2, ...).
+     * Synthetic JS clicks don't work — must use real mouse coordinates.
+     * After clicking, Chrome opens a NEW window under that sub-profile.
+     * Returns the new page in the sub-profile window.
+     */
+    async clickSubProfile(browser, subProfileName) {
+        const pages = await browser.pages();
+        const pickerPage = pages.find(p => p.url().includes('profile-picker'));
+        if (!pickerPage) {
+            throw new Error('Không tìm thấy profile picker');
+        }
+
+        // Find the card index matching subProfileName via aria-label
+        const cardInfo = await pickerPage.evaluate((targetName) => {
+            const app = document.querySelector('profile-picker-app');
+            if (!app?.shadowRoot) return { error: 'no app shadowRoot' };
+            const mainView = app.shadowRoot.querySelector('profile-picker-main-view');
+            if (!mainView?.shadowRoot) return { error: 'no mainView shadowRoot' };
+            const cards = mainView.shadowRoot.querySelectorAll('profile-card');
+
+            for (let i = 0; i < cards.length; i++) {
+                const sr = cards[i].shadowRoot;
+                if (!sr) continue;
+                const btn = sr.querySelector('#profileCardButton');
+                if (!btn) continue;
+                const label = btn.getAttribute('aria-label') || '';
+                // "Open github2 profile"
+                if (label.includes(targetName)) {
+                    const rect = btn.getBoundingClientRect();
+                    return { index: i, label, x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, found: true };
+                }
+            }
+
+            // Fallback: return all labels for debugging
+            const allLabels = [];
+            for (const card of cards) {
+                const sr = card.shadowRoot;
+                if (!sr) continue;
+                const btn = sr.querySelector('#profileCardButton');
+                allLabels.push(btn?.getAttribute('aria-label') || '?');
+            }
+            return { error: `Không tìm thấy "${targetName}"`, allLabels };
+        }, subProfileName);
+
+        if (!cardInfo.found) {
+            // Card might be off-screen, scroll to it
+            const scrollResult = await pickerPage.evaluate((targetName) => {
+                const app = document.querySelector('profile-picker-app');
+                if (!app?.shadowRoot) return { error: 'no app' };
+                const mainView = app.shadowRoot.querySelector('profile-picker-main-view');
+                if (!mainView?.shadowRoot) return { error: 'no mainView' };
+                const cards = mainView.shadowRoot.querySelectorAll('profile-card');
+
+                for (let i = 0; i < cards.length; i++) {
+                    const sr = cards[i].shadowRoot;
+                    if (!sr) continue;
+                    const btn = sr.querySelector('#profileCardButton');
+                    if (!btn) continue;
+                    const label = btn.getAttribute('aria-label') || '';
+                    if (label.includes(targetName)) {
+                        cards[i].scrollIntoView({ block: 'center' });
+                        return { scrolled: true, index: i };
+                    }
+                }
+                return { error: 'not found after scroll' };
+            }, subProfileName);
+
+            if (scrollResult.error) {
+                throw new Error(cardInfo.error || `Sub-profile "${subProfileName}" không tìm thấy`);
+            }
+
+            await this.delay(500);
+
+            // Re-get coordinates after scroll
+            const retryInfo = await pickerPage.evaluate((targetName) => {
+                const app = document.querySelector('profile-picker-app');
+                const mainView = app.shadowRoot.querySelector('profile-picker-main-view');
+                const cards = mainView.shadowRoot.querySelectorAll('profile-card');
+                for (const card of cards) {
+                    const sr = card.shadowRoot;
+                    if (!sr) continue;
+                    const btn = sr.querySelector('#profileCardButton');
+                    if (!btn) continue;
+                    if ((btn.getAttribute('aria-label') || '').includes(targetName)) {
+                        const rect = btn.getBoundingClientRect();
+                        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, found: true };
+                    }
+                }
+                return { found: false };
+            }, subProfileName);
+
+            if (!retryInfo.found) {
+                throw new Error(`Sub-profile "${subProfileName}" không tìm thấy sau khi scroll`);
+            }
+
+            // Click with real mouse
+            await pickerPage.mouse.click(retryInfo.x, retryInfo.y);
+        } else {
+            // Click with real mouse at the card center
+            await pickerPage.mouse.click(cardInfo.x, cardInfo.y);
+        }
+
+        this.log(`   🖱️ Đã click sub-profile: ${subProfileName}`, 'info');
+
+        // Wait for new window/target to appear
+        const newTarget = await browser.waitForTarget(
+            t => t.type() === 'page' && !t.url().includes('profile-picker') && t.url() !== 'about:blank',
+            { timeout: 15000 }
+        ).catch(() => null);
+
+        if (newTarget) {
+            const newPage = await newTarget.page();
+            return newPage;
+        }
+
+        // Fallback: check for new pages
+        await this.delay(3000);
+        const allPages = await browser.pages();
+        const nonPickerPages = allPages.filter(p => !p.url().includes('profile-picker'));
+        if (nonPickerPages.length > 0) {
+            return nonPickerPages[nonPickerPages.length - 1];
+        }
+
+        // Last fallback: new tab on about:blank means sub-profile opened
+        const blankPages = allPages.filter(p => p.url() === 'about:blank' || p.url().startsWith('chrome://newtab'));
+        if (blankPages.length > 0) {
+            return blankPages[blankPages.length - 1];
+        }
+
+        throw new Error('Sub-profile window không mở được sau khi click');
+    }
+
+    /**
+     * Connect to GemLogin and select a specific sub-profile.
+     * Returns { browser, page } where page is inside the sub-profile.
+     */
+    async connectToSubProfile(subProfileName) {
+        const browser = await this.connectToGemLogin();
+        this.log(`   📋 Chọn sub-profile: ${subProfileName}...`, 'info');
+        const page = await this.clickSubProfile(browser, subProfileName);
+        return { browser, page };
     }
 
     async getWsEndpoint(debugAddress) {
@@ -576,15 +749,19 @@ class ProfileWorker {
             this.log(`⚠️ Bỏ qua ${accounts.length - uniqueAccounts.length} accounts trùng lặp`, 'warning');
         }
 
-        // Chia nhóm
+        // Assign sub-profiles to accounts
         const needLogin = [];
         for (const acc of uniqueAccounts) {
             db = this.loadDB();
             if (db[acc.email]) {
                 acc.profileDir = db[acc.email].profileDir;
             } else {
-                const num = this.getNextProfileNum(db);
-                acc.profileDir = `tdc${num}`;
+                const nextProfile = this.getNextProfileNum(db);
+                if (!nextProfile) {
+                    this.log(`❌ Hết sub-profile trống cho ${acc.email}!`, 'error');
+                    continue;
+                }
+                acc.profileDir = nextProfile;
                 db[acc.email] = { profileDir: acc.profileDir, gemloginProfileId: this.gemloginProfileId, status: 'pending', reason: '', lastLogin: '' };
                 this.saveDB(db);
             }
@@ -594,27 +771,14 @@ class ProfileWorker {
         const totalWork = needLogin.length;
         this.log(`🚀 Bắt đầu login ${totalWork} accounts qua GemLogin (Profile ID: ${this.gemloginProfileId})...`, 'info');
 
-        // Start GemLogin profile 1 lần, dùng chung browser
-        let browser;
-        try {
-            browser = await this.connectToGemLogin();
-            this.log('✅ Đã kết nối GemLogin browser', 'success');
-        } catch (err) {
-            this.log(`❌ Không kết nối GemLogin: ${err.message}`, 'error');
-            this.sendComplete({ total: totalWork, loggedIn: 0, failed: totalWork, skipped: 0, totalTime: 0 });
-            this.isRunning = false;
-            return;
-        }
-
         let loggedIn = 0, failed = 0;
 
-        // Login tuần tự (dùng chung 1 browser GemLogin, mỗi acc = 1 tab)
+        // Login tuần tự: mỗi account = start GemLogin → click sub-profile → login → close
         for (let i = 0; i < needLogin.length && this.isRunning; i++) {
             const acc = needLogin[i];
             if (!acc.password) { failed++; continue; }
 
-            // Mở tab mới cho mỗi account
-            const result = await this.loginAccountInTab(browser, acc.email, acc.password, acc.profileDir, i, totalWork);
+            const result = await this.loginInSubProfile(acc.email, acc.password, acc.profileDir, i, totalWork);
             if (!result) continue;
 
             db = this.loadDB();
@@ -631,6 +795,8 @@ class ProfileWorker {
             if (result.status === 'logged_in') loggedIn++;
             else failed++;
 
+            // Close GemLogin profile between accounts
+            await closeGemLoginProfile(this.gemloginProfileId);
             if (this.isRunning && i < needLogin.length - 1) await this.delay(CONFIG.DELAY_BETWEEN);
         }
 
@@ -639,15 +805,24 @@ class ProfileWorker {
         this.isRunning = false;
     }
 
-    // Login 1 account trong 1 tab mới (dùng chung browser GemLogin)
-    async loginAccountInTab(browser, email, password, profileDir, index, total) {
+    /**
+     * Login 1 account trong 1 GemLogin sub-profile.
+     * Flow: start GemLogin → click sub-profile card → login Google trong window mới
+     */
+    async loginInSubProfile(email, password, profileDir, index, total) {
         if (!this.isRunning) return null;
 
         const startTime = Date.now();
         this.log(`[${index + 1}/${total}] 🚀 ${email} → ${profileDir}`, 'info');
         this.sendProgress(index, total, `${index + 1}/${total}: ${email}`);
 
-        const page = await browser.newPage();
+        let browser, page;
+        try {
+            ({ browser, page } = await this.connectToSubProfile(profileDir));
+        } catch (err) {
+            this.log(`   ❌ Không kết nối sub-profile: ${err.message}`, 'error');
+            return { email, password, profileDir, status: 'error', reason: 'GEMLOGIN_ERROR', time: 0 };
+        }
 
         let result = { email, password, profileDir, status: 'error', reason: 'UNKNOWN', time: 0 };
 
@@ -1040,17 +1215,17 @@ class ProfileWorker {
     }
 
     async openProfile(profileDir) {
-        this.log(`📂 Mở GemLogin profile (${profileDir})...`, 'info');
+        this.log(`📂 Mở GemLogin sub-profile (${profileDir})...`, 'info');
 
         try {
-            const browser = await this.connectToGemLogin();
-            const page = await browser.newPage();
+            const { browser, page } = await this.connectToSubProfile(profileDir);
             await page.goto('https://myaccount.google.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
             this.log(`✅ Browser đã mở cho ${profileDir}`, 'success');
+            browser.disconnect(); // disconnect puppeteer, keep browser open
             return { success: true };
         } catch (e) {
             this.log(`❌ Không mở được: ${e.message}`, 'error');
-            return { success: false, reason: 'GEMLOGIN_ERROR' };
+            return { success: false, reason: e.message };
         }
     }
 

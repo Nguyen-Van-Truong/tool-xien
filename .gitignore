@@ -12,3 +12,4 @@ accounts.txt
 **/dist/
 **/node_modules/
 **/.puppeteer-cache/
+**/browser/

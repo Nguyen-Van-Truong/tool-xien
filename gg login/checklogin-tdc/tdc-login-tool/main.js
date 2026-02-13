@@ -148,35 +148,24 @@ ipcMain.handle('clear-temp', async () => {
     return { deletedCount };
 });
 
-// Lấy tổng dung lượng cache
+// Lấy tổng dung lượng cache (không tính browser/ binary)
 ipcMain.handle('get-cache-size', async () => {
-    const puppeteerCache = path.join(process.env.USERPROFILE || '', '.cache', 'puppeteer');
     const chromiumData = path.join(process.env.LOCALAPPDATA || '', 'Chromium');
-    let totalSize = getFolderSize(puppeteerCache) + getFolderSize(chromiumData);
+    let totalSize = getFolderSize(chromiumData);
     return {
         sizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,
         sizeBytes: totalSize
     };
 });
 
-// Xóa tất cả cache
+// Xóa tất cả cache (KHÔNG xóa browser/ của project để tránh lỗi)
 ipcMain.handle('clear-all-cache', async () => {
-    const puppeteerCache = path.join(process.env.USERPROFILE || '', '.cache', 'puppeteer');
     const chromiumData = path.join(process.env.LOCALAPPDATA || '', 'Chromium');
     const tempPath = path.join(process.env.LOCALAPPDATA || '', 'Temp');
     let freedSize = 0;
     let deletedCount = 0;
 
-    // Xóa puppeteer cache
-    try {
-        if (fs.existsSync(puppeteerCache)) {
-            freedSize += getFolderSize(puppeteerCache);
-            fs.rmSync(puppeteerCache, { recursive: true, force: true });
-            deletedCount++;
-        }
-    } catch (e) { }
-
-    // Xóa Chromium user data
+    // Xóa Chromium user data (session data, không phải browser binary)
     try {
         if (fs.existsSync(chromiumData)) {
             freedSize += getFolderSize(chromiumData);
