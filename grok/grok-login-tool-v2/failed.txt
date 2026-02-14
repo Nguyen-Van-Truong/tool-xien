@@ -1,2 +1,1 @@
-thomas.torres58@iglesiatransparente.com|km$svd#yug8F|Login failed - still on auth page|2026-02-11T08:03:52.871Z
-m.garcia60@ascentruggedmobile.com|z3F9HcLka8Fa|Waiting for selector `button[aria-label="Upgrade to SuperGrok"]` failed: Protocol error (Runtime.callFunctionOn): Target closed|2026-02-11T08:05:55.364Z
+jessica_y127@lamontreeves.net|Hl1P@6Ho8lDT|Login failed - still on auth page|2026-02-14T00:13:53.309Z
