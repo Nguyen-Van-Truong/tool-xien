@@ -6,6 +6,7 @@
 const puppeteer = require('puppeteer-core');
 const { generateEmail, checkEmailForCode } = require('./email_service');
 const fs = require('fs');
+const path = require('path');
 
 class GrokWorker {
     constructor(mainWindow, browserId, options = {}) {
@@ -47,13 +48,13 @@ class GrokWorker {
             // Format: grok_email|password (temp email used for Grok)
             const grokEmail = extraData.grokEmail;
             const line = `${grokEmail}|${account.password}\n`;
-            fs.appendFileSync('success.txt', line);
+            fs.appendFileSync(path.join(__dirname, 'success.txt'), line);
             this.results.success++;
         } else {
             // Failed format: email|password|error|timestamp
             const failedEmail = extraData.grokEmail || 'unknown';
             const line = `${failedEmail}|${account.password}|${extraData.error}|${timestamp}\n`;
-            fs.appendFileSync('failed.txt', line);
+            fs.appendFileSync(path.join(__dirname, 'failed.txt'), line);
             this.results.failed++;
         }
         if (this.mainWindow) {

@@ -4,11 +4,31 @@
   "description": "Grok Login + Auto Payment Tool - Login and subscribe to SuperGrok trial",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "dependencies": {
-    "electron": "^28.0.0",
     "puppeteer-core": "^21.6.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.grok.login-tool-v2",
+    "productName": "Grok Login Tool V2",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.cache/**",
+      "!dist/**"
+    ]
   },
   "author": "",
   "license": "MIT"

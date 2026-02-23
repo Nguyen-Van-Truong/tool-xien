@@ -25,7 +25,8 @@
     },
     "devDependencies": {
         "electron": "^27.3.11",
-        "electron-builder": "^24.6.0"
+        "electron-builder": "^24.6.0",
+        "electron-packager": "^17.1.2"
     },
     "build": {
         "appId": "com.grok.signup-tool",
@@ -35,6 +36,11 @@
         },
         "win": {
             "target": "portable"
-        }
+        },
+        "files": [
+            "**/*",
+            "!node_modules/.cache/**",
+            "!dist/**"
+        ]
     }
 }

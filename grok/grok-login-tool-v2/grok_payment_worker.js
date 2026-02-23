@@ -5,6 +5,7 @@
 
 const puppeteer = require('puppeteer-core');
 const fs = require('fs');
+const path = require('path');
 
 class GrokPaymentWorker {
     constructor(mainWindow, browserId, options = {}) {
@@ -54,12 +55,12 @@ class GrokPaymentWorker {
             // Format: email|password|cardUsed
             const cardInfo = extraData.cardUsed || 'unknown';
             const line = `${account.email}|${account.password}|${cardInfo}\n`;
-            fs.appendFileSync('success.txt', line);
+            fs.appendFileSync(path.join(__dirname, 'success.txt'), line);
             this.results.success++;
         } else {
             // Failed format: email|password|error|timestamp
             const line = `${account.email}|${account.password}|${extraData.error || 'unknown'}|${timestamp}\n`;
-            fs.appendFileSync('failed.txt', line);
+            fs.appendFileSync(path.join(__dirname, 'failed.txt'), line);
             this.results.failed++;
         }
         if (this.mainWindow) {

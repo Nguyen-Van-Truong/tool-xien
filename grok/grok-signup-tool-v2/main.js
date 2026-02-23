@@ -3,9 +3,18 @@
  * Handles app initialization and IPC communication
  */
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// Global error handler
+process.on('uncaughtException', (err) => {
+    const logPath = path.join(path.dirname(process.execPath), 'crash.log');
+    fs.writeFileSync(logPath, `[${new Date().toISOString()}] ${err.message}\n${err.stack}\n`);
+    if (app.isReady()) dialog.showErrorBox('Error', err.message);
+    process.exit(1);
+});
+
 const { GrokWorker } = require('./grok_worker');
 
 let mainWindow;
@@ -27,9 +36,6 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
-
-    // Open DevTools in development
-    // mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(createWindow);

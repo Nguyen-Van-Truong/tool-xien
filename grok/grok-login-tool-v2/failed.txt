@@ -1,1 +1,1 @@
-jessica_y127@lamontreeves.net|Hl1P@6Ho8lDT|Login failed - still on auth page|2026-02-14T00:13:53.309Z
+jenniferbrown523@studebakerworleylaw.net|@Slr@lasyTvr|Waiting for selector `button[aria-label="Upgrade to SuperGrok"]` failed: Waiting failed: 15000ms exceeded|2026-02-21T08:39:31.427Z
